@@ -1,0 +1,46 @@
+# Production-style stack: PostgreSQL + EHMS app + scheduled backups.
+#   cp .env.example .env   (edit secrets)
+#   docker compose up -d --build
+#   docker compose exec app python -m ehms.seed bootstrap --org "..." --org-code ABC --hotel "..." --hotel-code H1 --admin-email you@example.com --admin-name "Your Name"
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ehms
+      POSTGRES_USER: ehms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ehms -d ehms"]
+      interval: 10s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://ehms:${POSTGRES_PASSWORD}@db:5432/ehms
+    ports:
+      - "8000:8000"   # put a TLS-terminating reverse proxy (Caddy / Nginx) in front in production
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on: [db]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./deploy/backup.sh:/backup.sh:ro
+      - backups:/backups
+    entrypoint: ["/bin/sh", "-c", "while true; do /bin/sh /backup.sh; sleep 86400; done"]
+
+volumes:
+  pgdata:
+  backups:

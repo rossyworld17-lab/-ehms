@@ -1,0 +1,48 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        db: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: ehms, POSTGRES_DB: ehms_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r backend/requirements.txt pytest
+      - name: Tests
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: ${{ matrix.db == 'postgres' && 'postgresql://postgres:ehms@localhost:5432/ehms_test' || '' }}
+        run: python -m pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - working-directory: frontend
+        run: npm install && npm run build
+      - name: Type check (advisory until the first CI run is green)
+        working-directory: frontend
+        continue-on-error: true
+        run: npm run typecheck
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ehms:ci .
