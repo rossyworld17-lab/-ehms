@@ -24,29 +24,39 @@ hotel.example.com {
 ```
 Set `EHMS_ENV=production` (enables HSTS). The app trusts `X-Forwarded-For` from the proxy for audit IPs.
 
-## Email
-Set `EHMS_SMTP_HOST`, `EHMS_SMTP_PORT`, `EHMS_SMTP_USER`, `EHMS_SMTP_PASSWORD`, `EHMS_SMTP_FROM`. Queued messages
-are delivered by:
+## Background worker (reminders and message delivery)
+The web process runs a worker every `EHMS_WORKER_INTERVAL` seconds (default 60): day-before arrival reminders,
+birthday greetings (consenting guests), daily low-stock and supplier-invoice alerts, and delivery of queued
+email/SMS/WhatsApp messages (3 attempts, then `failed` with the provider error). Each reminder is sent once
+(`job_runs`). With several app instances set `EHMS_WORKER=0` on all but one, or run it separately:
 ```bash
-docker compose exec app python -c "from ehms.notify import deliver_queued; print(deliver_queued())"
+docker compose exec app python -m ehms.worker          # one cycle
+docker compose exec app python -m ehms.worker --loop   # continuous
 ```
-Schedule it every minute (host cron or a small worker container). Messages created before SMTP was configured
-stay `not_configured` and are not re-sent automatically.
+Administrators can also trigger a cycle from **Messaging → Delivery log → Run reminders & deliver now**.
 
-## SMS / WhatsApp
-Adapters are an integration point in `ehms/notify.py` (`provider_for` and `deliver_queued`). Add the chosen
-provider (e.g. Termii, Twilio, Meta WhatsApp Cloud API) under its commercial terms; until then messages are
-recorded as `not_configured`.
+## Email
+Set `EHMS_SMTP_HOST`, `EHMS_SMTP_PORT`, `EHMS_SMTP_USER`, `EHMS_SMTP_PASSWORD`, `EHMS_SMTP_FROM`. Messages created
+before a provider was configured stay `not_configured`; once configured, use **Retry** in the delivery log.
+
+## SMS (Termii) and WhatsApp (Meta Cloud API)
+- SMS: `EHMS_TERMII_API_KEY`, `EHMS_TERMII_SENDER` (an approved sender ID).
+- WhatsApp: `EHMS_WHATSAPP_TOKEN`, `EHMS_WHATSAPP_PHONE_ID`. Free-text messages are only delivered inside
+  WhatsApp's 24-hour customer-service window; for reminders outside it, register approved message templates
+  with Meta. Both adapters are in `ehms/notify.py`; other providers can be added there.
+Edit message wording per event and channel in **Administration → Messaging**.
 
 ## Online payments (Paystack / Flutterwave)
-Online card payments must be confirmed by the gateway, never typed in. To enable:
-1. Add a payment method of kind **online** mapped to *Online Payments Clearing*.
-2. Implement the gateway adapter: initialise a transaction, and a webhook endpoint that verifies the signature
-   (`x-paystack-signature` HMAC-SHA512 / Flutterwave `verif-hash`), re-queries the transaction status, and then
-   posts the payment using the same posting function as manual payments with the gateway reference as the
-   idempotency key.
-3. Set `PAYSTACK_SECRET_KEY` or `FLUTTERWAVE_SECRET_KEY`. The booking engine shows "pay online" only when set.
-This adapter is scheduled in the roadmap (Phase 6b); the system returns HTTP 501 for online payments until then.
+1. Set `PAYSTACK_SECRET_KEY` and/or `FLUTTERWAVE_SECRET_KEY` (+ `FLUTTERWAVE_WEBHOOK_HASH`), optionally
+   `EHMS_PAYMENT_PROVIDER` (preferred provider) and `EHMS_PUBLIC_URL` (e.g. `https://hotel.example.com`).
+2. Register the webhook URL with the provider:
+   `https://<your-domain>/api/public/webhooks/paystack` or `.../flutterwave`.
+3. Guests return to `https://<your-domain>/payment-return`, which confirms the payment with the provider.
+An "Online payment" method (posting to *Online Payments Clearing*) is created automatically on first use.
+A payment is recorded only after the provider's verify API confirms it with the expected amount and currency,
+once per reference, whichever of the webhook or return page arrives first. Settlements from the provider are
+reconciled against *Online Payments Clearing* in **Finance operations → Bank reconciliation**. Every call
+and webhook is logged under **Finance operations → Online payments**.
 
 ## Backups
 The `backup` service runs `deploy/backup.sh` daily: `pg_dump` custom format, verified with `pg_restore --list`,

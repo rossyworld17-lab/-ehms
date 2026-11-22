@@ -237,3 +237,11 @@ textarea.input { resize: vertical; }
 .titem.ti-ready b { color: var(--green); } .titem.ti-preparing b { color: var(--violet); }
 td.best { background: #eaf7f0; font-weight: 600; }
 @media (max-width: 900px) { .pos-grid { grid-template-columns: 1fr; } .menugrid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); } }
+
+/* ---------- release 0.5: notification centre */
+.icon-btn.bell { position: relative; font-size: 1.35rem; }
+.icon-btn.bell .badge { position: absolute; top: -2px; right: -4px; font-size: .62rem; }
+.notif-menu { width: 340px; max-height: 70vh; overflow-y: auto; right: 0; padding: 0; }
+.notif { display: flex; flex-direction: column; gap: .15rem; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--soft); background: none; padding: .6rem .8rem; cursor: pointer; font: inherit; }
+.notif span { font-size: .82rem; color: var(--text); } .notif small { color: var(--muted); font-size: .72rem; }
+.notif.unread { background: var(--gold-soft); } .notif:hover { background: var(--soft); }

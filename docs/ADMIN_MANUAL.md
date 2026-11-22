@@ -74,3 +74,15 @@ status. "Not configured" means no SMTP server is set; configure `EHMS_SMTP_*` an
 Capture identification only where required, restrict `guests.identity.view` to front-office supervisors,
 record marketing consent before campaigns, set backup retention to your policy, and handle access/erasure
 requests through the guest profile. Appoint a data protection officer as your obligations require.
+
+## Finance controls, promotions and messaging (release 0.5)
+- New permissions: `finance.expenses.request / approve / pay`, `accounting.reconcile`, `accounting.budgets`,
+  `accounting.close_period`, `promotions.manage`, `admin.notifications.manage`. Department managers can submit
+  expense claims; the Finance Manager approves; the Accountant pays and reconciles.
+- **Period close** (Finance operations → Periods): once a month is closed, nothing can be posted with a date in
+  it — including night audit and late invoices. Reopening needs a reason and is audited.
+- **Budgets**: enter monthly amounts per revenue or expense account; Budget vs actual shows variances.
+- **Promotions**: promo codes apply to the room price on the online booking engine (dates refer to arrival).
+- **Messaging**: templates per event (booking received, day-before reminder, payment link, birthday, staff
+  alerts) and channel; turn any off. Delivery log shows every message with its status and provider error.
+- Online payment and messaging provider settings are environment variables — see DEPLOYMENT.md.

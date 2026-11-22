@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **170**
+Total endpoints: **202**
 
 ## Accounting
 
@@ -70,6 +70,9 @@ Total endpoints: **170**
 | POST | `/api/public/hotels/{code}/bookings` | Submit an online booking (pay at hotel unless a payment gateway is configured) | public |
 | GET | `/api/public/bookings/{reference}` | Look up a booking by reference and email | public |
 | POST | `/api/public/bookings/{reference}/cancel` | Guest cancellation of a future booking (subject to hotel policy) | public |
+| GET | `/api/public/payments/{reference}` | Return page: verify an online payment with the provider and show its outcome | public |
+| POST | `/api/public/webhooks/paystack` | Paystack webhook (HMAC-SHA512 signed) | public |
+| POST | `/api/public/webhooks/flutterwave` | Flutterwave webhook (verif-hash header) | public |
 
 ## Dashboard
 
@@ -86,6 +89,20 @@ Total endpoints: **170**
 | PATCH | `/api/taxes/{tax_id}` | End-date or deactivate a tax rule | `admin.settings.manage` |
 | GET | `/api/hotels/{hotel_id}/payment-methods` | Payment methods | signed in |
 | POST | `/api/hotels/{hotel_id}/payment-methods` | Add a payment method | `admin.settings.manage` |
+| GET | `/api/hotels/{hotel_id}/expenses` | Expense claims (?status); requesters see their own unless they approve or pay | `finance.expenses.request` |
+| POST | `/api/hotels/{hotel_id}/expenses` | Submit an expense claim (department, expense account, amount, description, receipt reference) | `finance.expenses.request` |
+| POST | `/api/expenses/{claim_id}/decide` | Approve or reject an expense claim (not your own) | `finance.expenses.approve` |
+| POST | `/api/expenses/{claim_id}/pay` | Pay an approved claim from cash or bank (posts Dr expense / Cr cash or bank) | `finance.expenses.pay` |
+| GET | `/api/hotels/{hotel_id}/bank-reconciliation` | Reconciliation workspace for an account (?account_id, ?as_at): statement lines, unreconciled book lines, balances | `accounting.reconcile` |
+| POST | `/api/hotels/{hotel_id}/bank-reconciliation/import` | Import bank statement lines: account_id, lines[{date, description, reference, amount}] (+ money in, − money out) | `accounting.reconcile` |
+| POST | `/api/hotels/{hotel_id}/bank-reconciliation/auto-match` | Match statement lines to book lines with the same amount within ±5 days (one-to-one) | `accounting.reconcile` |
+| POST | `/api/bank-statement-lines/{line_id}/match` | Manually match (journal_line_id), unmatch (null) or ignore (ignore=true) a statement line | `accounting.reconcile` |
+| GET | `/api/hotels/{hotel_id}/budgets` | Budget vs actual for revenue and expense accounts (?year, ?month for one month else year to date) | `accounting.view` |
+| PUT | `/api/hotels/{hotel_id}/budgets` | Set a year's budget: year, lines[{account_id, months: [12 amounts in kobo]}] | `accounting.budgets` |
+| GET | `/api/hotels/{hotel_id}/cash-flow` | Cash-flow statement, direct method, for cash, bank and clearing accounts (?from, ?to) | `reports.financial` |
+| GET | `/api/hotels/{hotel_id}/accounting/periods` | Accounting periods and their status | `accounting.view` |
+| POST | `/api/hotels/{hotel_id}/accounting/periods/{period}/close` | Close a past accounting period (no further postings dated in it) | `accounting.close_period` |
+| POST | `/api/hotels/{hotel_id}/accounting/periods/{period}/reopen` | Reopen a closed period (reason required; audited) | `accounting.close_period` |
 
 ## Folio
 
@@ -160,6 +177,19 @@ Total endpoints: **170**
 | POST | `/api/kitchen/items/{item_id}/status` | Move a kitchen item to preparing / ready (kitchen staff) or served (service staff) | `kitchen.view` |
 | GET | `/api/hotels/{hotel_id}/kitchen/performance` | Kitchen performance: items, average and slowest preparation time per station (?from, ?to) | `kitchen.view` |
 
+## Messaging
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/notifications/mine` | My in-app notifications (latest 50) and unread count | signed in |
+| POST | `/api/notifications/{notification_id}/read` | Mark one of my notifications as read | signed in |
+| POST | `/api/notifications/read-all` | Mark all my notifications as read | signed in |
+| GET | `/api/hotels/{hotel_id}/notification-templates` | Notification templates per event and channel (built-in defaults plus hotel overrides) | `admin.notifications.manage` |
+| PUT | `/api/hotels/{hotel_id}/notification-templates` | Save a template (code, channel, subject, body, active) | `admin.notifications.manage` |
+| GET | `/api/hotels/{hotel_id}/notifications` | Delivery history (?status=queued/sent/failed/not_configured, ?channel) | `admin.notifications.manage` |
+| POST | `/api/notifications/{notification_id}/retry` | Re-queue a failed or not-configured message (once its provider is configured) | `admin.notifications.manage` |
+| POST | `/api/hotels/{hotel_id}/notifications/run-jobs` | Run scheduled jobs now (reminders, digests) and deliver queued messages | `admin.notifications.manage` |
+
 ## Payments
 
 | Method | Path | Purpose | Access |
@@ -168,6 +198,10 @@ Total endpoints: **170**
 | POST | `/api/folios/{folio_id}/refund-requests` | Request a refund (requires approval by a different authorised user) | `payments.refund_request` |
 | GET | `/api/hotels/{hotel_id}/approvals` | Approval requests | `approvals.view` |
 | POST | `/api/approvals/{approval_id}/decide` | Approve or reject a refund request (maker-checker) | `payments.refund_approve` |
+| GET | `/api/payments/gateway-status` | Which online payment providers are configured | signed in |
+| POST | `/api/folios/{folio_id}/payment-link` | Create an online payment link for a folio amount and (optionally) email it to the guest | `payments.receive` |
+| GET | `/api/hotels/{hotel_id}/gateway-transactions` | Online payment transactions and integration log | `accounting.view` |
+| POST | `/api/gateway-transactions/{tx_id}/verify` | Re-check a pending online payment with the provider | `payments.receive` |
 
 ## POS (restaurant, bar, room service)
 
@@ -277,4 +311,12 @@ Total endpoints: **170**
 | PATCH | `/api/rooms/{room_id}` | Edit room details | `rooms.manage` |
 | POST | `/api/rooms/{room_id}/housekeeping-status` | Set room housekeeping status (dirty / clean / inspected) | `rooms.status.update` |
 | POST | `/api/rooms/{room_id}/service-status` | Block a room / set out of order, out of service, maintenance, VIP hold, or return to service | `rooms.block` |
+
+## Sales
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/promo-codes` | Promotional codes | `promotions.manage` |
+| POST | `/api/hotels/{hotel_id}/promo-codes` | Create a promotional code | `promotions.manage` |
+| PATCH | `/api/promo-codes/{promo_id}` | Edit or deactivate a promotional code | `promotions.manage` |
 

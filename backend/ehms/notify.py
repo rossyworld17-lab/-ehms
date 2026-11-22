@@ -15,8 +15,31 @@ def provider_for(channel: str) -> bool:
         return bool(os.environ.get("EHMS_SMTP_HOST"))
     if channel == "in_app":
         return True
-    # SMS / WhatsApp adapters are added per provider contract (e.g. Termii, Twilio, Meta Cloud API).
+    if channel == "sms":
+        return bool(os.environ.get("EHMS_TERMII_API_KEY"))
+    if channel == "whatsapp":
+        return bool(os.environ.get("EHMS_WHATSAPP_TOKEN") and os.environ.get("EHMS_WHATSAPP_PHONE_ID"))
     return False
+
+
+def send_sms(to: str, body: str) -> None:
+    """Termii SMS API (Nigeria). Raises on a non-success response."""
+    from .gateways import http_json
+    r = http_json("termii", None, "POST", "https://api.ng.termii.com/api/sms/send", {},
+                  {"api_key": os.environ["EHMS_TERMII_API_KEY"], "to": to.replace("+", "").replace(" ", ""),
+                   "from": os.environ.get("EHMS_TERMII_SENDER", "EHMS"), "sms": body[:900], "type": "plain", "channel": "generic"}, retries=2)
+    if r["status"] >= 300:
+        raise RuntimeError(f"Termii HTTP {r['status']}: {str(r['data'])[:200]}")
+
+
+def send_whatsapp(to: str, body: str) -> None:
+    """WhatsApp Business Cloud API text message (an approved template is needed outside the 24-hour service window)."""
+    from .gateways import http_json
+    r = http_json("whatsapp", None, "POST", f"https://graph.facebook.com/v19.0/{os.environ['EHMS_WHATSAPP_PHONE_ID']}/messages",
+                  {"Authorization": f"Bearer {os.environ['EHMS_WHATSAPP_TOKEN']}"},
+                  {"messaging_product": "whatsapp", "to": to.replace("+", "").replace(" ", ""), "type": "text", "text": {"body": body[:4000]}}, retries=2)
+    if r["status"] >= 300:
+        raise RuntimeError(f"WhatsApp HTTP {r['status']}: {str(r['data'])[:200]}")
 
 
 def send_email(to: str, subject: str, body: str) -> None:
@@ -35,22 +58,31 @@ def send_email(to: str, subject: str, body: str) -> None:
         s.send_message(msg)
 
 
+MAX_ATTEMPTS = 3
+
+
 def deliver_queued(limit: int = 50) -> dict:
-    """Deliver queued notifications. Run from a scheduler/worker (see docs/DEPLOYMENT.md)."""
+    """Deliver queued email/SMS/WhatsApp messages. Failed sends are retried up to MAX_ATTEMPTS times, then
+    marked 'failed' with the provider's error (visible in Messaging → Delivery log)."""
     db = get_db()
     sent = failed = 0
     with db.tx() as c:
-        rows = c.all("SELECT * FROM notifications WHERE status = 'queued' ORDER BY id LIMIT ?", [limit])
+        rows = c.all("SELECT * FROM notifications WHERE status = 'queued' AND channel <> 'in_app' ORDER BY id LIMIT ?", [limit])
     for n in rows:
         try:
             if n["channel"] == "email":
                 send_email(n["recipient"], n["subject"] or "", n["body"])
+            elif n["channel"] == "sms":
+                send_sms(n["recipient"], n["body"])
+            elif n["channel"] == "whatsapp":
+                send_whatsapp(n["recipient"], n["body"])
             status, err = "sent", None
             sent += 1
-        except Exception as e:  # pragma: no cover - network
-            status, err = "failed", str(e)[:300]
+        except Exception as e:
+            err = str(e)[:300]
+            status = "failed" if (n.get("attempts") or 0) + 1 >= MAX_ATTEMPTS else "queued"
             failed += 1
         with db.tx() as c:
-            c.execute("UPDATE notifications SET status = ?, error = ?, sent_at = ? WHERE id = ?",
+            c.execute("UPDATE notifications SET status = ?, error = ?, sent_at = ?, attempts = attempts + 1 WHERE id = ?",
                       [status, err, now_iso() if status == "sent" else None, n["id"]])
     return {"sent": sent, "failed": failed}

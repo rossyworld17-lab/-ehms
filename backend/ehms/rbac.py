@@ -77,6 +77,15 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "procurement.invoice": ("procurement", "Record supplier invoices"),
     "procurement.invoice_approve": ("procurement", "Approve supplier invoices for payment"),
     "procurement.pay": ("procurement", "Record supplier payments"),
+    # --- release 0.5: finance operations, promotions, messaging
+    "finance.expenses.request": ("finance", "Submit expense claims"),
+    "finance.expenses.approve": ("finance", "Approve or reject expense claims"),
+    "finance.expenses.pay": ("finance", "Pay approved expense claims"),
+    "accounting.reconcile": ("accounting", "Import bank statements and reconcile accounts"),
+    "accounting.budgets": ("accounting", "Set budgets"),
+    "accounting.close_period": ("accounting", "Close and reopen accounting periods"),
+    "promotions.manage": ("sales", "Create and manage promotional codes"),
+    "admin.notifications.manage": ("admin", "Manage notification templates and the message delivery log"),
 }
 
 ALL = list(PERMISSIONS)
@@ -103,22 +112,24 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "reservations_officer": ("Reservations Officer", "Booking administration",
                              ["dashboard.view", "rooms.view", "guests.view", "guests.manage", "reservations.view", "reservations.create",
                               "reservations.modify", "reservations.cancel", "folio.view", "payments.receive", "reports.view"]),
-    "accountant": ("Accountant", "Accounting and payments", _FIN + ["payments.receive", "procurement.view", "procurement.invoice",
+    "accountant": ("Accountant", "Accounting and payments", _FIN + ["payments.receive", "finance.expenses.request", "finance.expenses.pay", "accounting.reconcile", "procurement.view", "procurement.invoice",
                                                                     "procurement.pay", "inventory.view", "pos.view"]),
     "finance_manager": ("Finance Manager", "Financial control", _FIN + ["accounting.manage_accounts", "payments.refund_approve",
                                                                          "folio.adjust", "admin.settings.manage", "admin.audit.view",
                                                                          "procurement.view", "procurement.approve", "procurement.approve_high",
-                                                                         "procurement.invoice_approve", "inventory.view", "pos.view"]),
+                                                                         "procurement.invoice_approve", "inventory.view", "pos.view",
+                                                                         "finance.expenses.request", "finance.expenses.approve", "accounting.reconcile",
+                                                                         "accounting.budgets", "accounting.close_period", "promotions.manage"]),
     "auditor": ("Auditor", "Read-only audit access", _VIEW_ALL + ["admin.audit.view"]),
     "hr_manager": ("Human Resources Manager", "Employee administration", ["dashboard.view", "admin.users.view"]),
     "hr_officer": ("HR Officer", "HR administration", ["dashboard.view"]),
     "housekeeping_manager": ("Housekeeping Manager", "Cleaning and room readiness",
                              ["dashboard.view", "rooms.view", "rooms.status.update", "housekeeping.view", "housekeeping.assign",
                               "housekeeping.update", "housekeeping.inspect", "reports.view",
-                              "inventory.view", "inventory.requisition"]),
+                              "inventory.view", "inventory.requisition", "finance.expenses.request"]),
     "housekeeping_staff": ("Housekeeping Staff", "Room cleaning", ["rooms.view", "housekeeping.view", "housekeeping.update"]),
     "restaurant_manager": ("Restaurant Manager", "Outlets and POS", ["dashboard.view", "guests.view", "folio.view", "folio.post_charge"] + _POS_ALL
-                           + ["kitchen.view", "inventory.view", "inventory.requisition", "reports.view"]),
+                           + ["kitchen.view", "inventory.view", "inventory.requisition", "reports.view", "finance.expenses.request"]),
     "restaurant_cashier": ("Restaurant Cashier", "POS cashier", ["guests.view", "folio.post_charge", "pos.view", "pos.order", "pos.settle",
                                                                  "pos.post_to_room", "pos.shift"]),
     "waiter": ("Waiter / Waitress", "Food and beverage service", ["pos.view", "pos.order", "kitchen.view"]),
@@ -129,14 +140,16 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "procurement_officer": ("Procurement Officer", "Purchasing", ["dashboard.view", "inventory.view", "procurement.view", "procurement.suppliers",
                                                                   "procurement.requisition", "procurement.order", "procurement.receive", "reports.view"]),
     "maintenance_manager": ("Maintenance Manager", "Assets and repairs", ["dashboard.view", "rooms.view", "rooms.block",
-                                                                      "inventory.view", "inventory.requisition", "procurement.requisition"]),
+                                                                      "inventory.view", "inventory.requisition", "procurement.requisition", "finance.expenses.request"]),
     "maintenance_technician": ("Maintenance Technician", "Repairs", ["rooms.view"]),
     "security_officer": ("Security Officer", "Security and incidents", ["dashboard.view", "rooms.view"]),
-    "marketing_manager": ("Marketing Manager", "Marketing", ["dashboard.view", "guests.view", "reports.view"]),
-    "sales_manager": ("Sales Manager", "Sales and corporate accounts", ["dashboard.view", "guests.view", "reservations.view", "reservations.create", "reports.view"]),
+    "marketing_manager": ("Marketing Manager", "Marketing", ["dashboard.view", "guests.view", "reports.view", "promotions.manage", "finance.expenses.request"]),
+    "sales_manager": ("Sales Manager", "Sales and corporate accounts", ["dashboard.view", "guests.view", "reservations.view", "reservations.create", "reports.view",
+                                                                        "promotions.manage"]),
     "customer_service_officer": ("Customer Service Officer", "Guest service", ["dashboard.view", "guests.view", "reservations.view"]),
     "it_admin": ("IT Administrator", "Technical administration", ["dashboard.view", "admin.users.view", "admin.users.manage",
-                                                                   "admin.sessions.manage", "admin.audit.view", "admin.settings.manage"]),
+                                                                   "admin.sessions.manage", "admin.audit.view", "admin.settings.manage",
+                                                                   "admin.notifications.manage"]),
     "guest": ("Guest / Customer", "Guest self-service", []),
 }
 
@@ -164,6 +177,8 @@ def seed_permissions_and_roles(c, organisation_id: int) -> dict[str, int]:
 # default template includes them; afterwards administrators stay in full control of every role.
 INTRODUCED: dict[str, list[str]] = {
     "0.4": [p for p in PERMISSIONS if p.split(".")[0] in ("pos", "kitchen", "inventory", "procurement")],
+    "0.5": ["finance.expenses.request", "finance.expenses.approve", "finance.expenses.pay", "accounting.reconcile", "accounting.budgets",
+            "accounting.close_period", "promotions.manage", "admin.notifications.manage"],
 }
 
 

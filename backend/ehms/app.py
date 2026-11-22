@@ -4,6 +4,7 @@ Run (development):  uvicorn ehms.app:app --reload --port 8000
 """
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
 import os
@@ -115,7 +116,11 @@ def create_app() -> Starlette:
         if settings.seed_demo:
             from .seed import seed_demo
             seed_demo()
+        from . import worker
+        task = asyncio.create_task(worker.loop(int(os.environ.get("EHMS_WORKER_INTERVAL", "60")))) if worker.enabled() else None
         yield
+        if task:
+            task.cancel()
 
     return Starlette(routes=routes, middleware=middleware, lifespan=lifespan)
 

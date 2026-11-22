@@ -215,6 +215,9 @@ def post_journal(c: Connection, hotel_id: int, entry_date: dt.date | str, descri
     total_cr = sum(int(l[2] or 0) for l in lines)
     if total_dr != total_cr:
         raise bad_request(f"Journal entry is not balanced (debits {total_dr} vs credits {total_cr})")
+    period = str(entry_date)[:7]
+    if c.one("SELECT id FROM accounting_periods WHERE hotel_id = ? AND period = ? AND status = 'closed'", [hotel_id, period]):
+        raise ApiError(409, "period_closed", f"The accounting period {period} is closed; post in an open period or ask finance to reopen it")
     number = next_number(c, hotel_id, "journal", "JE")
     entry_id = c.insert("journal_entries", {
         "hotel_id": hotel_id, "number": number, "entry_date": str(entry_date), "description": description[:300],

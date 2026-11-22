@@ -25,7 +25,8 @@ def _hotel_by_code(c, code: str) -> dict:
 
 
 def gateway_configured() -> bool:
-    return bool(os.environ.get("PAYSTACK_SECRET_KEY") or os.environ.get("FLUTTERWAVE_SECRET_KEY"))
+    from ..gateways import configured_providers
+    return bool(configured_providers())
 
 
 @route("GET", "/api/public/hotels/{code}", public=True, tag="booking-engine", summary="Public hotel profile and room categories")
@@ -60,7 +61,15 @@ def public_availability(ctx: Ctx):
             if t["available"] < 1 or adults + children > t["max_occupancy"]:
                 continue
             q = quote(c, h, t, a, d, adults, children, "individual", None, 0)
-            out.append({"room_type_id": t["id"], "code": t["code"], "name": t["name"], "description": t["description"],
+            promo_error = None
+            if ctx.q("promo_code"):
+                from .online import promo_discount
+                try:
+                    disc, _ = promo_discount(c, h["id"], ctx.q("promo_code"), t["id"], a, d, q["room_total"])
+                    q = quote(c, h, t, a, d, adults, children, "individual", None, disc)
+                except ApiError as e:
+                    promo_error = e.message
+            out.append({"promo_error": promo_error, "room_type_id": t["id"], "code": t["code"], "name": t["name"], "description": t["description"],
                         "amenities": t["amenities"], "max_occupancy": t["max_occupancy"], "image_url": t["image_url"],
                         "rooms_left": t["available"] if t["available"] <= 3 else None, "price": q})
     return {"arrival": a.isoformat(), "departure": d.isoformat(), "nights": (d - a).days, "options": out}
@@ -77,7 +86,8 @@ def public_book(ctx: Ctx):
         raise bad_request("Please accept the booking terms and privacy notice", {"field": "accept_terms"})
     if "@" not in str(b["email"]):
         raise bad_request("Enter a valid email address", {"field": "email"})
-    if b.get("payment_option", "pay_at_hotel") != "pay_at_hotel":
+    pay_online = b.get("payment_option", "pay_at_hotel") != "pay_at_hotel"   # 'pay_online' (or legacy 'card')
+    if pay_online:
         if not gateway_configured():
             raise ApiError(501, "gateway_not_configured", "Online payment is not available yet. Choose 'Pay at hotel'.")
     a, d = parse_date(b["arrival"], "arrival"), parse_date(b["departure"], "departure")
@@ -95,6 +105,12 @@ def public_book(ctx: Ctx):
         if adults + children > t["max_occupancy"]:
             raise bad_request(f"{t['name']} allows a maximum of {t['max_occupancy']} guests")
         q = quote(c, h, t, a, d, adults, children, "individual", None, 0)
+        promo = None
+        if b.get("promo_code"):
+            from .online import promo_discount
+            disc, promo = promo_discount(c, h["id"], str(b["promo_code"]), t["id"], a, d, q["room_total"])
+            q = quote(c, h, t, a, d, adults, children, "individual", None, disc)
+            c.execute("UPDATE promo_codes SET uses = uses + 1 WHERE id = ?", [promo["id"]])
         email = str(b["email"]).strip().lower()
         g = c.one("SELECT id FROM guests WHERE organisation_id = ? AND lower(email) = ? ORDER BY id LIMIT 1", [h["organisation_id"], email])
         if g:
@@ -108,15 +124,29 @@ def public_book(ctx: Ctx):
         rid = c.insert("reservations", {"hotel_id": h["id"], "reference": ref, "guest_id": gid, "status": "tentative", "booking_type": "individual",
                                         "source": "booking_engine", "arrival": a.isoformat(), "departure": d.isoformat(), "adults": adults,
                                         "children": children, "room_type_id": t["id"], "nightly_rate": t["base_rate"], "rate_overridden": 0,
-                                        "discount_amount": 0, "deposit_required": 0, "special_requests": (b.get("special_requests") or "")[:1000],
-                                        "notes": "Online booking — pay at hotel", "created_at": now_iso(), "updated_at": now_iso()})
+                                        "discount_amount": q["discount"], "promo_code": promo["code"] if promo else None, "deposit_required": 0,
+                                        "special_requests": (b.get("special_requests") or "")[:1000],
+                                        "notes": "Online booking — awaiting online payment" if pay_online else "Online booking — pay at hotel", "created_at": now_iso(), "updated_at": now_iso()})
         audit(c, None, "booking_engine.booking", "reservation", rid, ref, new={"total": q["total"], "ip": ctx.ip}, hotel_id=h["id"])
         queue_notification(c, h["id"], "email", email, f"Booking received {ref} — {h['name']}",
                            f"Dear {b['first_name']},\n\nThank you for booking with {h['name']}. Your booking reference is {ref}.\n"
                            f"Arrival {a.isoformat()}, departure {d.isoformat()}, {t['name']}.\nEstimated total: {h['currency']} {q['total'] / 100:,.2f} "
                            f"(payable at the hotel).\nWe will confirm your reservation shortly.\n\n{h['name']}", "reservation", rid)
+        if pay_online:
+            from .frontoffice import ensure_folio
+            folio = ensure_folio(c, c.one("SELECT * FROM reservations WHERE id = ?", [rid]))
+    if pay_online:
+        from .online import start_payment
+        try:
+            pay = start_payment(None, h["id"], "booking", folio["id"], rid, q["total"], email)
+        except ApiError as e:
+            return {"reference": ref, "status": "tentative", "total": q["total"], "currency": h["currency"], "payment": "pay_at_hotel",
+                    "message": f"Your booking is held, but online payment could not be started ({e.message}). You can pay at the hotel.", "_created": True}
+        return {"reference": ref, "status": "tentative", "total": q["total"], "currency": h["currency"], "payment": "pay_online",
+                "authorization_url": pay["authorization_url"], "payment_reference": pay["reference"],
+                "message": "Complete your payment to confirm the booking.", "_created": True}
     return {"reference": ref, "status": "tentative", "total": q["total"], "currency": h["currency"], "payment": "pay_at_hotel",
-            "message": "Your booking request has been received. The hotel will confirm it shortly.", "_created": True}
+            "discount": q["discount"], "message": "Your booking request has been received. The hotel will confirm it shortly.", "_created": True}
 
 
 @route("GET", "/api/public/bookings/{reference}", public=True, tag="booking-engine", rate_limit=20,

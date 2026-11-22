@@ -11,6 +11,9 @@ ASGI app (Starlette + Uvicorn)  ──  /api/*  REST endpoints, OpenAPI at /api/
   ├─ modules/       auth · admin · properties · rooms · guests · reservations · frontoffice
   │                 accounting · housekeeping · dashboard · reports · booking (public)
   │                 pos (+ kitchen display) · inventory · procurement            (release 0.4)
+  │                 online (gateways, promo codes) · finance · messaging          (release 0.5)
+  ├─ gateways.py    Paystack / Flutterwave adapters, retrying HTTP client, integration log (0.5)
+  ├─ worker.py      scheduled jobs + message delivery (in-process loop or separate) (0.5)
   ├─ stock.py       perpetual stock ledger (weighted average cost, FEFO batches)  (release 0.4)
   ├─ services.py    numbering, business date, tax engine, double-entry posting, notifications
   ├─ security.py    scrypt hashing, JWT, TOTP (RFC 6238)
@@ -44,6 +47,9 @@ design system (navy / champagne gold) instead of a utility framework, which keep
 | Stock valuation | Weighted average cost per item per store. Each stock level stores quantity **and** carrying value; an outflow removes value in proportion (all of it when the store empties), so the stock sub-ledger always equals the Inventory GL account (asserted by the tests). Batches with expiry dates are depleted first-expiry-first-out. `stock_movements` is append-only (DB triggers). |
 | POS settlement | One transaction: validate tenders (only cash may be over-tendered), post one balanced journal (Dr tenders / guest ledger, Cr F&B revenue, service charge, VAT), write folio lines for room charges, deduct recipe ingredients (each menu item's own store or the outlet's) and post cost of sales. If any ingredient is short the whole settlement rolls back. |
 | Procurement accounting | GRN: Dr Inventory / expense, Cr Goods Received Not Invoiced. Invoice approval: Dr GRNI (uninvoiced receipts) ± Purchase Price Variance, Cr Accounts Payable. Payment: Dr AP, Cr bank (net), Cr Withholding Tax Payable. Maker-checker on requisitions, POs (with a configurable high-value tier) and invoices. |
+| Online payments | Transaction row first, then the provider call outside any DB transaction. Credit only after the provider's verify API confirms status, amount and currency; idempotency key `gw-<reference>`; webhook signatures checked with constant-time comparison; callers never trust webhook bodies. |
+| Period close | `post_journal` refuses entries dated in a closed month, so every module (night audit, POS, procurement…) respects it automatically. |
+| Messaging | Templates (built-in defaults + per-hotel overrides) rendered with a safe formatter; one queued row per channel; delivery with retries; reminders made idempotent by `job_runs`. |
 | Upgrades | Migrations apply on start-up. Permissions introduced by a release are granted once to existing system roles (`rbac.INTRODUCED`, marker in `system_settings`); missing ledger accounts are added. |
 | Sessions | Server-side session rows behind every JWT: logout, password change, suspension and admin revocation take effect immediately; idle timeout is enforced on each request. |
 
@@ -62,6 +68,8 @@ to run manually, `--render postgresql` to print the DDL). Main tables:
 | Operations | housekeeping_tasks, notifications |
 | Inventory (0.4) | stores, inventory_items, stock_levels, stock_batches, stock_movements, stock_requisitions(+_lines), stock_counts(+_lines) |
 | POS (0.4) | outlets, pos_tables, menu_categories, menu_items, recipe_lines, cashier_shifts, pos_orders, pos_order_items, pos_payments |
+| Payments & finance (0.5) | gateway_transactions, integration_logs, promo_codes, accounting_periods, bank_statement_lines, budget_lines, expense_claims |
+| Messaging (0.5) | notification_templates, job_runs (+ notifications.read_at / attempts) |
 | Procurement (0.4) | suppliers, purchase_requisitions(+_lines), supplier_quotes(+_lines), purchase_orders(+_lines), goods_receipts(+_lines), supplier_invoices, supplier_payments |
 | Control | audit_logs, schema_migrations |
 

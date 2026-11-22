@@ -444,7 +444,7 @@ def test_permission_upgrade_grants_new_permissions_once(client):
         # simulate a pre-0.4 database: drop the marker and the cashier's POS permissions
         c.execute("DELETE FROM system_settings WHERE key LIKE ?", ["rbac.upgrade.%"])
         c.execute("DELETE FROM role_permissions WHERE role_id = ? AND permission_code LIKE ?", [role["id"], "pos.%"])
-        assert apply_permission_upgrades(c, org) == ["0.4"]
+        assert apply_permission_upgrades(c, org) == ["0.4", "0.5"]
         perms = {r["permission_code"] for r in c.all("SELECT permission_code FROM role_permissions WHERE role_id = ?", [role["id"]])}
         assert {"pos.order", "pos.settle", "pos.shift"} <= perms and "pos.manage" not in perms
         # an administrator then removes a permission: the upgrade does not re-add it

@@ -1,6 +1,6 @@
 # Roadmap
 
-The master prompt defines 12 build phases; the SRS groups them into 6. Release 0.4 status:
+The master prompt defines 12 build phases; the SRS groups them into 6. Release 0.5 status:
 
 | Master-prompt phase | SRS phase | Status in 0.4 |
 |---|---|---|
@@ -9,20 +9,20 @@ The master prompt defines 12 build phases; the SRS groups them into 6. Release 0
 | 3. Property management, rooms, reservations | 2 | **Done** — room board, categories & rates, reservations, availability, calendar, booking engine |
 | 4. Front office & CRM | 2 | **Front office done** (check-in/out, moves, folios, night audit). CRM base done; loyalty points, campaigns, surveys and feedback pending |
 | 5. Restaurant POS, housekeeping, laundry | 3 | **POS, kitchen display and housekeeping done (0.4).** Laundry module pending (laundry charges can already be posted to folios; linen and detergent are stocked through inventory) |
-| 6. Accounting, finance, payment integrations | 4 | **Core done** — double-entry ledger, TB/P&L/BS, payments, refunds with approval, accounts payable (0.4), cashier shifts (0.4). Pending: Paystack/Flutterwave adapters & webhooks, bank reconciliation, budgets, period close, credit notes, cash-flow statement, multi-currency |
+| 6. Accounting, finance, payment integrations | 4 | **Done (0.5)** — ledger, statements incl. cash flow, AP, cashier shifts, expense claims, bank reconciliation, budgets, period close, Paystack/Flutterwave with webhooks. Pending: credit/debit note documents, multi-currency conversion |
 | 7. Inventory, procurement, suppliers | 4 | **Done (0.4)** — stores, WAC stock ledger, requisitions, counts, batches/expiry, recipes; suppliers, requisitions, quotations, POs with thresholds, GRN, three-way match, payments with WHT. Pending: FIFO costing option, supplier returns / debit notes, barcode scanner input |
 | 8. HRMS, payroll | 4 | Pending (statutory rules configurable: PAYE, pension, NHF, NSITF) |
 | 9. Maintenance, security, events | 3–4 | Room blocks for maintenance done; maintenance materials can be requisitioned from stores (0.4); work orders/assets, incident log, events & banquets pending |
 | 10. Sales, marketing, revenue management | 5 | Pending (corporate accounts, rate rules, competitor rates, pickup/pace) |
-| 11. BI, AI and automation | 5 | Dashboard KPIs (now incl. outlet revenue, low stock, pending POs) and forecast-on-books done; permission-aware AI assistant, predictive models and scheduled reports pending |
+| 11. BI, AI and automation | 5 | Dashboard KPIs and forecast-on-books done; workflow automation (reminders, digests, alerts) done (0.5); permission-aware AI assistant, predictive models and scheduled reports pending |
 | 12. Security/performance testing, deployment | 6 | Docker, CI (SQLite + PostgreSQL), backups/restore, security headers done; external penetration test, load test, connection pooling, UAT and training pending |
 
-## Next release (0.5) — proposed order
-1. Payment gateway adapters (Paystack, Flutterwave) with signed webhooks; promo codes in the booking engine.
-2. Laundry: guest laundry orders with item tracking and billing to folio; internal linen cycle.
-3. Cashier-level bank reconciliation, period close, credit notes, cash-flow statement.
-4. Notification centre in the UI (in-app messages such as "order ready" are already recorded), templates, SMS/WhatsApp adapter, reservation reminders via a background worker.
-5. Maintenance work orders and asset register (consuming spare parts from stores).
+## Remaining releases
+- **0.6** Laundry (guest orders billed to folio, internal linen); HR (employees, attendance, shifts, leave) and payroll (configurable PAYE, pension, NHF, payslips, bank schedule, GL posting).
+- **0.7** Maintenance (assets, work orders, preventive schedules, spare parts from stores), security (incidents, visitors, lost & found), events & banqueting (venues, bookings without clashes, quotations, deposits, invoices).
+- **0.8** CRM loyalty points, complaints & feedback with escalation, campaigns, corporate accounts and rate rules, competitor rates, booking pace.
+- **0.9** BI and AI assistant (permission-aware), forecasting, anomaly detection, scheduled reports, document store.
+- **1.0** Hardening, performance, final acceptance documentation.
 
 ## Items needing project-owner decisions (SRS §17)
 Deployment model (single property / multi-property / SaaS), payment providers and fees, SMS/WhatsApp provider,

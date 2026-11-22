@@ -129,7 +129,24 @@ variance; **Kitchen performance** shows preparation times by station.
    net amount to pay is shown.
 The **Overview** tab shows items awaiting approval, open orders, payables ageing and spend by supplier.
 
+## Notifications
+The bell at the top right shows your in-app notifications (for example "order ready" for waiters, low-stock
+digests for inventory managers, supplier invoices due for accountants). Click one to mark it read.
+
+## Online payment links
+On a folio, **Payment link** creates a secure Paystack/Flutterwave link for any amount and emails it to the
+guest. The payment appears on the folio automatically once the provider confirms it.
+
+## Finance operations
+- **Expense claims**: submit a claim with the account, amount and receipt number; an approver (not you) approves;
+  the accountant pays it from cash or bank.
+- **Bank reconciliation**: choose the bank (or card/online clearing) account, import the statement CSV, click
+  **Auto-match**, then match or ignore the rest. The difference must be zero.
+- **Budget vs actual**, **Cash flow** and **Periods** (close a month once its books are final).
+- **Online payments**: every gateway transaction and the integration log; **Re-check** a pending payment.
+
 ## Booking engine (guests)
 Share `https://<your-domain>/#/book/<HOTEL_CODE>`. Guests check availability, see the full price including
-taxes, book with "pay at hotel", and can look up or cancel their booking with the reference and email. Online
+taxes, enter a promo code, book with "pay at hotel" or (when a gateway is configured) **pay now online** —
+prepaid bookings are confirmed automatically — and can look up or cancel their booking with the reference and email. Online
 bookings arrive as **tentative** for staff to confirm.

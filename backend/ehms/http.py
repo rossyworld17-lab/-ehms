@@ -51,6 +51,7 @@ class Ctx:
     body: Any = None
     path: dict = field(default_factory=dict)
     query: dict = field(default_factory=dict)
+    raw: bytes = b""          # raw request body (webhook signature checks)
 
     @property
     def ip(self) -> str | None:
@@ -171,6 +172,7 @@ def route(method: str, path: str, perm: str | None = None, public: bool = False,
                 if rate_limit and rate_limited(f"{path}:{request.client.host if request.client else '-'}", rate_limit):
                     raise ApiError(429, "rate_limited", "Too many attempts. Please wait a minute and try again.")
                 body = None
+                raw = b""
                 if method in ("POST", "PUT", "PATCH", "DELETE"):
                     raw = await request.body()
                     if raw:
@@ -178,7 +180,7 @@ def route(method: str, path: str, perm: str | None = None, public: bool = False,
                             body = json.loads(raw)
                         except json.JSONDecodeError:
                             raise bad_request("Request body must be valid JSON")
-                ctx = Ctx(request=request, body=body, path=dict(request.path_params), query=dict(request.query_params))
+                ctx = Ctx(request=request, body=body, path=dict(request.path_params), query=dict(request.query_params), raw=raw)
                 if not public:
                     user, sess, perms, hotels = await run_in_threadpool(_authenticate, request, allow_mfa_pending)
                     ctx.user, ctx.session, ctx.permissions, ctx.hotel_ids = user, sess, perms, hotels

@@ -5,11 +5,12 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
-> **Release 0.4 — adds master-prompt Phase 5 (restaurant & bar POS with kitchen display) and Phase 7 (inventory,
-> stores, procurement and suppliers), fully integrated with guest folios and the double-entry ledger.**
-> Traceability: 57 of 127 SRS requirements implemented, 25 partial. Laundry, HR/payroll, maintenance, events,
-> AI and channel-manager integrations are scheduled in [docs/ROADMAP.md](docs/ROADMAP.md); the
-> [progress register](docs/PROGRESS.md) lists what is done, partial, pending and outstanding. Nothing in the
+> **Release 0.5 — adds online payments (Paystack/Flutterwave links, booking-engine prepayment, signed webhooks),
+> promo codes, finance operations (expense claims, bank reconciliation, budgets, cash flow, period close) and a
+> communication centre (templates, email/SMS/WhatsApp, in-app notifications, automated reminders) on top of
+> 0.4's restaurant POS, kitchen display, inventory and procurement.** Traceability: 70 of 127 SRS requirements
+> implemented, 16 partial. Laundry, HR/payroll, maintenance, events, CRM loyalty, AI and channel managers follow
+> in [docs/ROADMAP.md](docs/ROADMAP.md); the [progress register](docs/PROGRESS.md) tracks status. Nothing in the
 > interface is a placeholder: screens and menu items appear only when the module behind them works and the
 > user has permission.
 
@@ -31,6 +32,9 @@ and policy is configurable for other countries.
 | Restaurant & bar POS *(0.4)* | Outlets (restaurant, bar, in-room dining), table plan, menu with categories, stations and sold-out switch; dine-in / takeaway / room service; split bill, merge, move table; authorised discounts and voids with reasons; split tenders (cash with change, POS card, transfer, **charge to room folio**); cashier shifts with float, expected vs counted cash and variance; 80 mm receipt PDF |
 | Kitchen display *(0.4)* | Tickets by station (kitchen, grill, pastry, bar), oldest first with ageing colours, preparing → ready → served, rush flag, ready alerts on the POS, preparation-time report |
 | Inventory & stores *(0.4)* | Item catalogue with barcodes and reorder levels; multiple stores; perpetual stock at weighted average cost (always reconciles to the Inventory GL account); requisitions with approval, issues to departments, transfers, wastage and adjustments, stock counts with variance posting; batches and expiry dates (FEFO); low-stock and expiry alerts; **recipes deduct ingredients automatically when a POS order is settled** |
+| Online payments *(0.5)* | Paystack and Flutterwave hosted checkout: payment links from any folio (emailed to the guest), "pay now" on the booking engine (booking confirmed automatically), HMAC-signed webhooks, provider verification of amount and currency before anything is posted, idempotent per reference, retries and an integration log |
+| Finance operations *(0.5)* | Expense claims with maker-checker and payment, bank reconciliation (CSV import, auto-match, manual match), monthly budgets and budget vs actual, direct-method cash-flow statement, accounting period close/reopen enforced on every posting |
+| Communication *(0.5)* | In-app notification bell, editable templates per event and channel, email (SMTP), SMS (Termii), WhatsApp Cloud API, delivery log with retries; background worker sends day-before reminders, birthday greetings, low-stock and invoice-due alerts exactly once; promo codes for the booking engine |
 | Procurement *(0.4)* | Supplier register with performance and masked bank details; purchase requisitions; quotation comparison; purchase orders with standard / high-value approval and maker-checker; goods received notes with rejections, batch and expiry; three-way matched supplier invoices with tolerance; supplier payments with withholding tax; payables ageing |
 
 ## Quick start (demo)
@@ -83,7 +87,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for TLS, email, payment gateways, b
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q                       # 45 API/integration tests (SQLite)
+cd backend && python -m pytest -q                       # 54 API/integration tests (SQLite)
 TEST_DATABASE_URL=postgresql://... python -m pytest -q  # same suite on PostgreSQL
 python ../frontend/e2e/smoke.py                         # browser end-to-end (app running with demo data)
 ```

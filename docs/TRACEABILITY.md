@@ -1,10 +1,10 @@
 # Requirements traceability
 
-Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.4.
+Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.5.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md
 
-Summary: **57 implemented**, **25 partial**, **45 planned** (of 127).
+Summary: **70 implemented**, **16 partial**, **41 planned** (of 127).
 
 | ID | Requirement | Status | Notes |
 |---|---|---|---|
@@ -13,7 +13,7 @@ Summary: **57 implemented**, **25 partial**, **45 planned** (of 127).
 | FR-ADM-003 | Support password policies, account lockout and multi-factor authentication. | Implemented | password policy, lockout, TOTP MFA |
 | FR-ADM-004 | Configure hotel identity, contact details, room categories, facilities, services, outlets and departments. | Implemented | hotel profile, room categories, departments; restaurant/bar/room-service outlets with tables (0.4) |
 | FR-ADM-005 | Configure currencies, exchange rates, taxes, service charges and payment methods. | Partial | taxes, service charge, payment methods; exchange rates planned |
-| FR-ADM-006 | Maintain administrative audit logs and configurable notification templates and business rules. | Partial | audit logs; notification templates planned |
+| FR-ADM-006 | Maintain administrative audit logs and configurable notification templates and business rules. | Implemented | audit logs; notification templates per event & channel; business rules (thresholds, tolerances) configurable (0.5) |
 | FR-PRP-001 | Register multiple hotel properties and branches, each with a unique identifier. | Implemented | multi-hotel |
 | FR-PRP-002 | Maintain property-specific rooms, rates, departments, staff, outlets and operational settings. | Implemented | per-hotel rooms, rates, departments, staff scope |
 | FR-PRP-003 | Provide consolidated organisation-level reports to authorised users. | Implemented | consolidated TB/P&L/BS |
@@ -30,14 +30,14 @@ Summary: **57 implemented**, **25 partial**, **45 planned** (of 127).
 | FR-RES-002 | Generate unique booking references and display availability for requested dates. | Implemented |  |
 | FR-RES-003 | Support Enquiry, Tentative, Confirmed, Checked In, Checked Out, Cancelled, No Show and Waitlisted statuses. | Implemented |  |
 | FR-RES-004 | Support deposits, advance payments, modifications, cancellation policies and applicable fees. | Partial | deposits, modifications, cancellation; automatic fee calculation planned |
-| FR-RES-005 | Generate booking confirmations and send configured notifications and reminders. | Partial | confirmation emails (SMTP); reminders scheduled planned |
+| FR-RES-005 | Generate booking confirmations and send configured notifications and reminders. | Implemented | confirmations by email; day-before reminders by email/SMS/WhatsApp via the background worker (0.5) |
 | FR-RES-006 | Maintain reservation history, identify potential duplicates and support corporate or negotiated rates. | Implemented | history, duplicate detection, corporate rate |
 | FR-RES-007 | Support group room blocks, rooming lists and reports by date, source, status and channel. | Partial | group/corporate bookings & reports; rooming lists planned |
 | FR-BKG-001 | Provide a mobile-friendly online booking interface with date, room and guest search. | Implemented |  |
 | FR-BKG-002 | Display room descriptions, images, amenities, rates and applicable charges. | Implemented |  |
-| FR-BKG-003 | Allow guests to submit booking details, review total price and pay through approved gateways. | Partial | pay-at-hotel; gateway adapter planned |
+| FR-BKG-003 | Allow guests to submit booking details, review total price and pay through approved gateways. | Implemented | pay at hotel or pay online through Paystack / Flutterwave hosted checkout; confirmed on verified payment (0.5) |
 | FR-BKG-004 | Synchronise confirmed online bookings with central availability and reservations. | Implemented | shared inventory |
-| FR-BKG-005 | Support promotional codes, discounts, policies, privacy notices and terms. | Partial | policies, privacy, terms; promo codes planned |
+| FR-BKG-005 | Support promotional codes, discounts, policies, privacy notices and terms. | Implemented | promo codes (percent/amount, dates, minimum nights, usage limit, room category), policies, privacy, terms (0.5) |
 | FR-FO-001 | Provide a front-office dashboard and reservation search by guest, reference, room or contact. | Implemented |  |
 | FR-FO-002 | Support guest registration, lawful identification capture, walk-in registration and check-in. | Implemented |  |
 | FR-FO-003 | Support early check-in, late check-out, room allocation and room changes under configured rules. | Implemented |  |
@@ -66,16 +66,16 @@ Summary: **57 implemented**, **25 partial**, **45 planned** (of 127).
 | FR-HSK-005 | Support laundry service orders, charges and housekeeping productivity reports. | Planned | laundry module |
 | FR-FIN-001 | Provide a configurable chart of accounts and double-entry accounting. | Implemented |  |
 | FR-FIN-002 | Maintain a general ledger, accounts receivable, accounts payable, cashbook and bank accounts. | Implemented | GL, guest & city ledger, accounts payable via supplier invoices, cash/bank accounts (0.4) |
-| FR-FIN-003 | Record income and expenses by department, property and category. | Partial | income by department/property; expenses by department via stock issues, GRN service lines and supplier invoices (0.4); expense claims planned |
-| FR-FIN-004 | Support budgets, budget-versus-actual analysis, payment allocation and reconciliation. | Planned | budgets, bank reconciliation |
+| FR-FIN-003 | Record income and expenses by department, property and category. | Implemented | income by department/property; expenses by department via expense claims, stock issues, GRN and supplier invoices (0.5) |
+| FR-FIN-004 | Support budgets, budget-versus-actual analysis, payment allocation and reconciliation. | Implemented | monthly budgets, budget-vs-actual with variance; payment allocation; bank reconciliation with CSV import and auto-match (0.5) |
 | FR-FIN-005 | Configure taxes, service charges, invoices, receipts, credit notes and debit notes. | Partial | taxes, service charge, invoices/receipts; credit/debit notes planned |
-| FR-FIN-006 | Support financial approval workflows, bank reconciliation and financial period closing. | Partial | maker-checker on refunds, requisitions, POs (amount thresholds) and supplier invoices (0.4); bank reconciliation & period close planned |
-| FR-FIN-007 | Generate trial balance, profit and loss, balance sheet, cash flow and departmental reports. | Partial | TB, P&L, balance sheet, departmental revenue; cash-flow statement planned |
+| FR-FIN-006 | Support financial approval workflows, bank reconciliation and financial period closing. | Implemented | maker-checker on refunds, requisitions, POs, invoices and expense claims; bank reconciliation; period close/reopen (0.5) |
+| FR-FIN-007 | Generate trial balance, profit and loss, balance sheet, cash flow and departmental reports. | Implemented | trial balance, P&L, balance sheet, departmental revenue and direct-method cash-flow statement (0.5) |
 | FR-FIN-008 | Prevent unauthorised changes to posted transactions; use controlled reversals or adjustments. | Implemented | DB triggers + reversals |
 | FR-FIN-009 | Trace financial entries to originating operational transactions and preserve approval history. | Implemented | folio line → journal entry; approval history |
-| FR-PAY-001 | Support cash, bank transfer, card and approved online gateway payments. | Partial | cash, transfer, POS card, city ledger; online gateway planned |
+| FR-PAY-001 | Support cash, bank transfer, card and approved online gateway payments. | Implemented | cash, transfer, POS card, city ledger; online card/transfer via Paystack and Flutterwave (0.5) |
 | FR-PAY-002 | Support deposits, partial payments, outstanding balances and authorised refunds. | Implemented |  |
-| FR-PAY-003 | Verify payment status through trusted gateway responses or reconciliation. | Partial | manual reconciliation refs; gateway verification planned |
+| FR-PAY-003 | Verify payment status through trusted gateway responses or reconciliation. | Implemented | every online payment verified with the provider's verify API (signed webhooks + return page), amount & currency checked (0.5) |
 | FR-PAY-004 | Prevent duplicate payment processing and maintain payment history. | Implemented | idempotency keys + duplicate reference check |
 | FR-PAY-005 | Never store raw card security codes or sensitive card authentication data. | Implemented | no card data stored |
 | FR-INV-001 | Maintain an item catalogue with codes, categories, units, costs, selling prices and reorder levels. | Implemented | item catalogue: code, barcode, category, unit, cost, sale price, reorder level & quantity (0.4) |
@@ -107,7 +107,7 @@ Summary: **57 implemented**, **25 partial**, **45 planned** (of 127).
 | FR-EVT-004 | Prevent conflicting confirmed bookings for the same venue and time. | Planned |  |
 | FR-EVT-005 | Generate event invoices, final bills and revenue reports. | Planned |  |
 | FR-SAL-001 | Maintain corporate customer accounts and negotiated rates. | Planned |  |
-| FR-SAL-002 | Support promotional campaigns, discount codes, sales targets and booking-source tracking. | Planned |  |
+| FR-SAL-002 | Support promotional campaigns, discount codes, sales targets and booking-source tracking. | Partial | promo/discount codes and booking-source tracking (0.5); campaigns and sales targets with CRM release |
 | FR-SAL-003 | Calculate ADR, RevPAR and occupancy percentage. | Planned |  |
 | FR-SAL-004 | Support historical performance comparisons and configurable rate plans. | Planned |  |
 | FR-SEC-001 | Record incidents with date, time, location, category, description, persons involved and actions taken. | Planned |  |
@@ -129,9 +129,9 @@ Summary: **57 implemented**, **25 partial**, **45 planned** (of 127).
 | FR-AI-005 | Analyse guest feedback and summarise recurring service issues. | Planned |  |
 | FR-AI-006 | Explain recommendations and limitations, respect access permissions and tenant boundaries. | Planned |  |
 | FR-AI-007 | Require human approval for sensitive financial, employment, cancellation and administrative decisions. | Planned |  |
-| FR-NOT-001 | Support in-application and email notifications; support SMS and WhatsApp Business where configured and available. | Partial | email + in-app log; SMS/WhatsApp adapters planned |
-| FR-NOT-002 | Configure notifications by event and recipient for bookings, payments, reminders, approvals and tasks. | Planned |  |
-| FR-NOT-003 | Record delivery status where supported by the provider. | Planned |  |
+| FR-NOT-001 | Support in-application and email notifications; support SMS and WhatsApp Business where configured and available. | Implemented | in-app notification centre, email (SMTP), SMS (Termii) and WhatsApp Business Cloud API adapters (0.5) |
+| FR-NOT-002 | Configure notifications by event and recipient for bookings, payments, reminders, approvals and tasks. | Implemented | templates per event and channel, on/off per event; reminders, digests and alerts by the scheduled worker (0.5) |
+| FR-NOT-003 | Record delivery status where supported by the provider. | Implemented | delivery log with status, attempts and provider error; automatic retries; manual retry (0.5) |
 | FR-DOC-001 | Securely upload and associate documents with guests, employees, suppliers, purchases, events and transactions. | Partial | invoices/receipts PDF; document storage planned |
 | FR-DOC-002 | Apply access permissions, categorisation, retrieval and retention policies. | Planned |  |
 | FR-DOC-003 | Maintain document access and modification history. | Planned |  |

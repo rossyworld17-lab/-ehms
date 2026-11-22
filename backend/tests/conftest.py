@@ -6,6 +6,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ.setdefault("EHMS_SECRET_KEY", "test-secret-key-not-for-production-0123456789")
 os.environ["EHMS_LOGIN_RATE_LIMIT"] = "1000"
+os.environ["EHMS_WORKER"] = "0"
 
 from asgi_client import Client  # noqa: E402
 

@@ -1,10 +1,10 @@
-# Test report — release 0.4
+# Test report — release 0.5
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 45 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 54 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
@@ -18,6 +18,11 @@ a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for b
 | **Procurement (0.4)** | 2 | requisition approval (not own); quotation comparison picks the cheapest per line; PO above ₦500,000 needs `procurement.approve_high`; creator cannot approve; GRN refuses over-receipt and missing expiry dates; partial and final receipts update PO status and stock; invoice variance needs an approval note; invoice approval clears GRNI to zero and books the price variance; supplier invoice numbers unique per supplier; payments with 5 % WHT, idempotent, cannot exceed the balance; AP reaches zero; service lines expensed at GRN; invoices without a PO need an expense account; supplier performance and masked bank details |
 | **Cross-cutting (0.4)** | 2 | permission upgrade grants new permissions to existing system roles exactly once and respects later removals; dashboard shows outlet revenue and supply-chain counts; new reports listed only to permitted roles; report exports audited |
 
+| **Online payments (0.5)** | 5 | payment link emailed; forged webhook rejected (401); signed webhook for an unpaid transaction credits nothing; paid → folio credited exactly once although webhook and return page both arrive; tampered amount not credited (`amount_mismatch`); provider down → 3 retries then HTTP 502, nothing taken; no provider → 501; booking-engine prepayment with Flutterwave confirms the reservation; integration log written. Provider APIs are simulated by a fake transport matching their documented request/response format |
+| **Promo codes (0.5)** | (in the above) | invalid percentage rejected; discount shown in availability; invalid code explained; usage limit enforced; code stored on the reservation |
+| **Finance operations (0.5)** | 3 | expense claim maker-checker and payment journal; bank statement import, auto-match, unmatched bank charge, zero difference; reconciliation restricted; budget vs actual; cash flow closing = cash GL balance; financing classified; current month cannot be closed; posting into a closed month refused; reopen needs a reason |
+| **Messaging & worker (0.5)** | 1 | template override with unknown placeholder renders safely; day-before reminder by email (honestly `not_configured` without SMTP) and SMS (delivered through the fake provider); idempotent reruns; retry refused without a provider; low-stock digest reaches inventory managers in-app; mark read / read all; users cannot touch others' notifications |
+
 Every 0.4 test ends with a ledger integrity check: total debits equal total credits, **and** the stock
 sub-ledger value equals the Inventory GL account balance.
 
@@ -28,7 +33,9 @@ sub-ledger value equals the Inventory GL account balance.
    (all tabs) and Procurement (all tabs).
 2. Receptionist walk-in → check-in → folio charge → payment → check-out. Housekeeping inspection. Public booking.
 3. **Cashier opens a shift, sells a takeaway meal and settles it in cash (0.4).**
-4. Mobile layout (390 px).
+4. Finance operations (all tabs), Promotions, Messaging (run reminders), notification bell (0.5).
+5. Booking engine with promo code WELCOME10 shows the discount; the payment return page handles an unknown reference (0.5).
+6. Mobile layout (390 px).
 
 Additional scripted browser walkthroughs for 0.4 (run during development): waiter → kitchen → cashier dine-in
 sale with change; room-service order charged to a room; full procurement cycle across five roles
@@ -39,6 +46,11 @@ stock requisition approve/issue; trial balance balanced at the end; no console e
 A database created by release 0.3 (with its demo data) was started with 0.4: migration 0003 applied, new
 ledger accounts added, system roles received the new permissions once, the 0.4 demo outlets/menu/stores/
 suppliers were added once (re-running is a no-op), existing reservations kept, books balanced.
+
+## Defects found and fixed during 0.5 testing
+- PostgreSQL has no `LIKE` on DATE columns (birthday job) → compare on a text cast.
+- The command-line demo upgrade did not add new ledger accounts (only app start-up did) → both paths share the upgrade.
+- The old booking API accepted any non-"pay at hotel" option as online payment → kept for compatibility.
 
 ## Defects found and fixed during 0.4 testing
 - Drinks sold in the restaurant were deducted from the kitchen store → menu items can now name their issuing

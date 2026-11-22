@@ -12,6 +12,7 @@ export default function Folio({ id }: { id: number }) {
   const [reverse, setReverse] = useState<any>(null);
   const [due, setDue] = useState<any>(null);
   const toast = useToast();
+  const gw = useLoad(() => get(`/api/payments/gateway-status`), []);
   useEffect(() => {
     const r = st.data?.reservation;
     if (r && r.status === "checked_in") get(`/api/reservations/${r.id}/checkout-preview`).then(setDue).catch(() => setDue(null)); else setDue(null);
@@ -27,6 +28,7 @@ export default function Folio({ id }: { id: number }) {
             <div className="row gap-s wrap">
               {open && can("folio.post_charge") && <Button kind="secondary" onClick={() => setModal("charge")}>Post charge</Button>}
               {open && can("payments.receive") && <Button onClick={() => setModal("pay")}>Take payment</Button>}
+              {open && can("payments.receive") && (gw.data?.providers || []).length > 0 && <Button kind="secondary" onClick={() => setModal("link")}>Payment link</Button>}
               {open && can("folio.adjust") && <Button kind="secondary" onClick={() => setModal("allowance")}>Allowance</Button>}
               {can("payments.refund_request") && (due ? due.balance_due < 0 : f.totals.balance < 0) && <Button kind="secondary" onClick={() => setModal("refund")}>Request refund</Button>}
               <Button kind="secondary" onClick={() => openFile(`/api/folios/${id}/invoice.pdf`, `${f.number}.pdf`, true).catch(e => toast("error", errText(e)))}>Invoice PDF</Button>
@@ -57,6 +59,7 @@ export default function Folio({ id }: { id: number }) {
 
           {modal === "charge" && <ChargeModal folio={f} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {modal === "pay" && <PayModal folio={f} methods={methods.data?.items || []} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
+          {modal === "link" && <PaymentLinkModal folio={f} due={due ? due.balance_due : f.totals.balance} onClose={() => setModal(null)} />}
           {modal === "allowance" && <AllowanceModal folio={f} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {modal === "refund" && <RefundModal folio={f} methods={methods.data?.items || []} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {reverse && <ReverseModal folio={f} line={reverse} onClose={() => setReverse(null)} onDone={() => { setReverse(null); st.reload(); }} />}
@@ -154,4 +157,20 @@ function RefundModal({ folio, methods, onClose, onDone }: any) {
         <Field label="Amount (₦)"><Input value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></Field>
         <Field label="Reason" wide><Textarea value={f.reason} onChange={e => setF({ ...f, reason: e.target.value })} /></Field>
       </div></div></Modal>;
+}
+
+function PaymentLinkModal({ folio, due, onClose }: any) {
+  const { hotel } = useAuth();
+  const [f, setF] = useState({ amount: due > 0 ? (due / 100).toFixed(2) : "", email: folio.guest.email || "", send: true });
+  const [link, setLink] = useState<any>(null);
+  const { busy, run } = useAction();
+  return <Modal title="Online payment link" onClose={onClose} footer={<><Button kind="secondary" onClick={onClose}>Close</Button>
+    {!link && <Button busy={busy} disabled={!(toMinor(f.amount) > 0) || !f.email} onClick={async () => { const r = await run(() => post(`/api/folios/${folio.id}/payment-link`, { amount: toMinor(f.amount), email: f.email, send: f.send }), "Payment link created"); if (r) setLink(r); }}>Create link</Button>}</>}>
+    {link ? <><p>Share this secure link with the guest. The payment is added to the folio automatically once the provider confirms it.</p>
+      <p className="mono small" style={{ wordBreak: "break-all" }}><a href={link.authorization_url} target="_blank" rel="noreferrer">{link.authorization_url}</a></p>
+      <p className="muted small">{money(link.amount, hotel!.currency)} · {link.provider} · reference {link.reference}{f.send ? ` · emailed to ${f.email}` : ""}</p></> :
+      <div className="form-grid"><Field label={`Amount (${hotel!.currency})`}><Input inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></Field>
+        <Field label="Guest email"><Input type="email" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></Field>
+        <label className="check"><input type="checkbox" checked={f.send} onChange={e => setF({ ...f, send: e.target.checked })} /> Email the link to the guest</label></div>}
+  </Modal>;
 }

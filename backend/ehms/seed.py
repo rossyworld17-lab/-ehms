@@ -65,6 +65,10 @@ def seed_demo() -> None:
     with db.tx() as c:
         existing = c.one("SELECT id FROM organisations WHERE code = 'DEMO'")
     if existing:
+        from .rbac import apply_permission_upgrades
+        with db.tx() as c:
+            seed_chart_of_accounts(c, existing["id"])
+            apply_permission_upgrades(c, existing["id"])
         _upgrade_demo(existing["id"])
         return
     with db.tx() as c:
@@ -213,6 +217,28 @@ def seed_demo() -> None:
                                         "created_at": now_iso(), "started_at": now_iso(), "completed_at": now_iso()})
         c.update("rooms", rooms["205"]["id"], {"service_status": "maintenance", "service_note": "Air-conditioner compressor replacement (demo)"})
     seed_fnb_and_stores(hid, org, users)
+    seed_finance_demo(hid, org, users)
+
+
+def seed_finance_demo(hid: int, org: int, users: dict) -> None:
+    """Release 0.5 demo: a booking-engine promo code, this year's revenue/expense budget and two expense claims."""
+    import datetime as _dt
+    from .services import business_date, next_number
+    with get_db().tx() as c:
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        c.insert("promo_codes", {"hotel_id": hid, "code": "WELCOME10", "description": "10% off the room for direct online bookings (demo)",
+                                 "discount_type": "percent", "value": 10, "valid_from": on.isoformat(), "valid_to": (on + _dt.timedelta(days=365)).isoformat(),
+                                 "min_nights": 1, "active": 1, "created_by": users.get("general_manager"), "created_at": now_iso()})
+        acct = {r["system_key"]: r["id"] for r in c.all("SELECT id, system_key FROM accounts WHERE organisation_id = ? AND system_key IS NOT NULL", [org])}
+        for key, monthly in (("rev_room", 1_500_000_000), ("rev_fnb", 400_000_000), ("exp_utilities", 120_000_000), ("exp_food", 150_000_000), ("exp_supplies", 40_000_000)):
+            for m in range(1, 13):
+                c.insert("budget_lines", {"hotel_id": hid, "account_id": acct[key], "period": f"{on.year}-{m:02d}", "amount": monthly})
+        for dept, key, amount, desc, payee, who in (("maintenance", "exp_maintenance", 4_500_000, "Generator servicing — emergency call-out (demo)", "PowerFix Ltd", "general_manager"),
+                                                    ("housekeeping", "exp_supplies", 1_850_000, "Extra cleaning chemicals for deep clean (demo)", "Market purchase", "housekeeping_manager")):
+            c.insert("expense_claims", {"hotel_id": hid, "number": next_number(c, hid, "expense", "EXP"), "department": dept, "account_id": acct[key],
+                                        "description": desc, "payee": payee, "amount": amount, "status": "submitted", "requested_by": users.get(who) or users["general_manager"],
+                                        "expense_date": on.isoformat(), "created_at": now_iso()})
 
 
 NEW_DEMO_STAFF_04 = [("fnbmanager@demo.ehms", "Tolu Bankole (Restaurant Mgr)", "restaurant_manager"),
@@ -227,8 +253,20 @@ def _upgrade_demo(org: int) -> None:
     db = get_db()
     with db.tx() as c:
         hid = c.scalar("SELECT id FROM hotels WHERE organisation_id = ? AND code = 'CGL'", [org])
-        if not hid or c.one("SELECT id FROM stores WHERE hotel_id = ?", [hid]):
+        if not hid:
             return
+        if c.one("SELECT id FROM stores WHERE hotel_id = ?", [hid]):
+            users = {r["code"]: r["uid"] for r in c.all("SELECT ro.code, MIN(u.id) AS uid FROM users u JOIN user_roles ur ON ur.user_id = u.id "
+                                                        "JOIN roles ro ON ro.id = ur.role_id WHERE u.organisation_id = ? GROUP BY ro.code", [org])}
+            needs_05 = not c.one("SELECT id FROM promo_codes WHERE hotel_id = ?", [hid])
+        else:
+            needs_05 = None
+    if needs_05 is not None:
+        if needs_05:
+            seed_finance_demo(hid, org, users)
+            print("Added release 0.5 demo data (promo code, budget, expense claims).")
+        return
+    with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
         users = {r["code"]: r["uid"] for r in c.all("SELECT ro.code, MIN(u.id) AS uid FROM users u JOIN user_roles ur ON ur.user_id = u.id "
                                                     "JOIN roles ro ON ro.id = ur.role_id WHERE u.organisation_id = ? GROUP BY ro.code", [org])}
@@ -241,6 +279,7 @@ def _upgrade_demo(org: int) -> None:
             c.execute("INSERT INTO user_hotels (user_id, hotel_id) VALUES (?, ?)", [uid, hid])
             users[role] = uid
     seed_fnb_and_stores(hid, org, users)
+    seed_finance_demo(hid, org, users)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

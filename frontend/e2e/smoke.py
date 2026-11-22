@@ -50,7 +50,9 @@ def main():
                                 ("/admin/hotel", "13_hotel_settings", "Hotel profile"), ("/admin/rooms", "14_rooms_rates", "Room categories"),
                                 ("/admin/audit", "15_audit", "Audit trail"), ("/profile", "16_profile", "Two-step verification"),
                                 ("/pos", "40_pos", "Point of sale"), ("/kitchen", "41_kitchen", "Kitchen display"), ("/pos-setup", "42_pos_setup", "POS setup"),
-                                ("/inventory", "43_inventory", "Inventory & stores"), ("/procurement", "44_procurement", "Procurement")]:
+                                ("/inventory", "43_inventory", "Inventory & stores"), ("/procurement", "44_procurement", "Procurement"),
+                                ("/finance", "50_finance", "Finance operations"), ("/promotions", "51_promotions", "WELCOME10"),
+                                ("/admin/messaging", "52_messaging", "Day-before arrival reminder")]:
             visit(page, path, shot, txt)
         # accounting tabs
         page.goto(f"{BASE}/#/accounting")
@@ -151,6 +153,19 @@ def main():
         for tab in ("Requisitions & quotes", "Purchase orders", "Supplier invoices", "Suppliers"):
             page.get_by_role("tab", name=tab).click()
             page.wait_for_timeout(300)
+        page.goto(f"{BASE}/#/finance")
+        page.wait_for_selector("[role=tab]")
+        page.wait_for_timeout(600)
+        for tab in ("Bank reconciliation", "Budget vs actual", "Periods", "Online payments", "Cash flow", "Expense claims"):
+            page.get_by_role("tab", name=tab).click()
+            page.wait_for_timeout(400)
+        page.screenshot(path=f"{SHOTS}/53_expenses.png")
+        page.locator(".bell").click()
+        page.wait_for_timeout(300)
+        page.goto(f"{BASE}/#/admin/messaging")
+        page.get_by_role("tab", name="Delivery log").click()
+        page.get_by_role("button", name="Run reminders & deliver now").click()
+        page.wait_for_timeout(800)
         page.goto(f"{BASE}/#/pos-setup")
         page.wait_for_selector("[role=tab]")
         page.wait_for_timeout(600)
@@ -175,6 +190,17 @@ def main():
         c.get_by_role("button", name="Confirm payment").click()
         expect(c.get_by_text("Settled").first).to_be_visible(timeout=8000)
         c.screenshot(path=f"{SHOTS}/45_pos_settled.png")
+
+        # ---------------- booking engine promo code (0.5)
+        g = browser.new_context(viewport={"width": 1280, "height": 900}).new_page()
+        g.on("pageerror", lambda e: errors.append(f"JS error (portal promo): {e}"))
+        g.goto(f"{BASE}/#/book/CGL")
+        g.get_by_label("Promo code").fill("WELCOME10")
+        g.get_by_role("button", name="Check availability").click()
+        expect(g.get_by_text("Promo code applied").first).to_be_visible(timeout=8000)
+        g.screenshot(path=f"{SHOTS}/54_portal_promo.png")
+        g.goto(f"{BASE}/payment-return?reference=UNKNOWN")
+        expect(g.get_by_text("We could not check this payment")).to_be_visible(timeout=8000)
 
         # ---------------- mobile layout
         m = browser.new_context(viewport={"width": 390, "height": 844}).new_page()

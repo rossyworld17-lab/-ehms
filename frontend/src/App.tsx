@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get } from "./api";
@@ -20,10 +20,12 @@ import Approvals from "./pages/Approvals";
 import { Users, Roles, AuditLog } from "./pages/Admin";
 import HotelSettings, { RoomSetup } from "./pages/Settings";
 import Profile from "./pages/Profile";
-import BookingPortal from "./pages/BookingPortal";
+import BookingPortal, { PaymentReturn } from "./pages/BookingPortal";
 import Pos, { Kitchen, PosSetup } from "./pages/Pos";
 import Inventory, { ItemDetail } from "./pages/Inventory";
 import Procurement from "./pages/Procurement";
+import Finance from "./pages/Finance";
+import Messaging, { NotificationBell, Promotions } from "./pages/Messaging";
 import { Spinner } from "./ui";
 
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
@@ -48,6 +50,8 @@ const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Finance", items: [
     { to: "/accounting", label: "Accounting", icon: <MdAccountBalance />, perm: "accounting.view" },
     { to: "/approvals", label: "Approvals", icon: <MdVerified />, perm: "approvals.view" },
+    { to: "/finance", label: "Finance operations", icon: <MdReceiptLong />, any: ["finance.expenses.request", "accounting.reconcile", "accounting.view"] },
+    { to: "/promotions", label: "Promotions", icon: <MdLocalOffer />, perm: "promotions.manage" },
     { to: "/reports", label: "Reports", icon: <MdAssessment />, perm: "reports.view" },
   ]},
   { group: "Administration", items: [
@@ -56,6 +60,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/admin/hotel", label: "Hotel settings", icon: <MdSettings />, perm: "admin.settings.manage" },
     { to: "/admin/rooms", label: "Rooms & rates", icon: <MdMeetingRoom />, perm: "rooms.manage" },
     { to: "/admin/audit", label: "Audit trail", icon: <MdHistory />, perm: "admin.audit.view" },
+    { to: "/admin/messaging", label: "Messaging", icon: <MdMail />, perm: "admin.notifications.manage" },
   ]},
 ];
 
@@ -78,7 +83,7 @@ function Shell({ children, path }: { children: React.ReactNode; path: string }) 
         <div className="brand"><span className="logo">E</span><span className="brand-t">EHMS<small>Hotel Management</small></span></div>
         <nav>
           {NAV.map(g => {
-            const items = g.items.filter(i => !i.perm || can(i.perm));
+            const items = g.items.filter(i => (!i.perm || can(i.perm)) && (!i.any || i.any.some(p => can(p))));
             if (!items.length) return null;
             return <div key={g.group} className="nav-g"><div className="nav-gt">{g.group}</div>
               {items.map(i => <a key={i.to} href={"#" + i.to} className={active(i.to) ? "on" : ""} title={i.label}
@@ -103,6 +108,7 @@ function Shell({ children, path }: { children: React.ReactNode; path: string }) 
             </form>
           )}
           <div className="spacer" />
+          <NotificationBell />
           <div className="usermenu">
             <button className="user-btn" onClick={() => setMenu(m => !m)} aria-haspopup="menu">
               <span className="avatar">{user?.full_name.split(" ").map(p => p[0]).slice(0, 2).join("")}</span>
@@ -128,6 +134,7 @@ export default function App() {
   const { user, ready, hotel, can } = useAuth();
   const [path, q] = useRoute();
 
+  if (window.location.pathname === "/payment-return") return <PaymentReturn />;
   if (path.startsWith("/book/")) return <BookingPortal code={path.split("/")[2] || ""} />;
   if (!ready) return <Spinner text="Starting EHMS…" />;
   if (path === "/forgot") return <ForgotPassword />;
@@ -146,6 +153,9 @@ export default function App() {
     case seg[0] === "inventory" && seg[1] === "items" && !!seg[2]: page = guard("inventory.view", <ItemDetail id={Number(seg[2])} />); break;
     case path === "/inventory": page = guard("inventory.view", <Inventory q={q} />); break;
     case path === "/procurement": page = guard("procurement.view", <Procurement q={q} />); break;
+    case path === "/finance": page = ["finance.expenses.request", "accounting.reconcile", "accounting.view"].some(can) ? <Finance q={q} /> : <Forbidden />; break;
+    case path === "/promotions": page = guard("promotions.manage", <Promotions />); break;
+    case path === "/admin/messaging": page = guard("admin.notifications.manage", <Messaging />); break;
     case path === "/rooms": page = guard("rooms.view", <RoomBoard />); break;
     case path === "/reservations/new": page = guard("reservations.create", <NewReservation q={q} />); break;
     case seg[0] === "reservations" && !!seg[1]: page = guard("reservations.view", <ReservationDetail id={Number(seg[1])} />); break;
