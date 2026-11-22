@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get } from "./api";
@@ -20,6 +21,9 @@ import { Users, Roles, AuditLog } from "./pages/Admin";
 import HotelSettings, { RoomSetup } from "./pages/Settings";
 import Profile from "./pages/Profile";
 import BookingPortal from "./pages/BookingPortal";
+import Pos, { Kitchen, PosSetup } from "./pages/Pos";
+import Inventory, { ItemDetail } from "./pages/Inventory";
+import Procurement from "./pages/Procurement";
 import { Spinner } from "./ui";
 
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
@@ -31,6 +35,15 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/calendar", label: "Availability calendar", icon: <MdCalendarMonth />, perm: "reservations.view" },
     { to: "/guests", label: "Guests", icon: <MdPeople />, perm: "guests.view" },
     { to: "/housekeeping", label: "Housekeeping", icon: <MdCleaningServices />, perm: "housekeeping.view" },
+  ]},
+  { group: "Food & beverage", items: [
+    { to: "/pos", label: "Point of sale", icon: <MdPointOfSale />, perm: "pos.view" },
+    { to: "/kitchen", label: "Kitchen display", icon: <MdSoupKitchen />, perm: "kitchen.view" },
+    { to: "/pos-setup", label: "Menu & outlets", icon: <MdRestaurantMenu />, perm: "pos.manage" },
+  ]},
+  { group: "Supply chain", items: [
+    { to: "/inventory", label: "Inventory & stores", icon: <MdInventory2 />, perm: "inventory.view" },
+    { to: "/procurement", label: "Procurement", icon: <MdShoppingCart />, perm: "procurement.view" },
   ]},
   { group: "Finance", items: [
     { to: "/accounting", label: "Accounting", icon: <MdAccountBalance />, perm: "accounting.view" },
@@ -58,7 +71,7 @@ function Shell({ children, path }: { children: React.ReactNode; path: string }) 
     get(`/api/hotels/${hotel.id}`).then(h => setBdate(h.business_date)).catch(() => setBdate(""));
     if (can("approvals.view")) get(`/api/hotels/${hotel.id}/approvals`).then(a => setPending(a.items.length)).catch(() => setPending(0));
   }, [hotel?.id, path]);
-  const active = (to: string) => (to === "/" ? path === "/" : path.startsWith(to));
+  const active = (to: string) => (to === "/" ? path === "/" : path === to || path.startsWith(to + "/"));
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""}`}>
       <aside className="side">
@@ -125,7 +138,14 @@ export default function App() {
   const guard = (perm: string, el: React.ReactNode) => (can(perm) ? el : <Forbidden />);
   let page: React.ReactNode;
   switch (true) {
-    case path === "/": page = can("dashboard.view") ? <Dashboard /> : can("housekeeping.view") ? <Housekeeping /> : <Profile />; break;
+    case path === "/": page = can("dashboard.view") ? <Dashboard /> : can("housekeeping.view") ? <Housekeeping /> : can("pos.view") ? <Pos />
+      : can("kitchen.view") ? <Kitchen /> : can("inventory.view") ? <Inventory q={q} /> : can("procurement.view") ? <Procurement q={q} /> : <Profile />; break;
+    case path === "/pos": page = guard("pos.view", <Pos />); break;
+    case path === "/kitchen": page = guard("kitchen.view", <Kitchen />); break;
+    case path === "/pos-setup": page = guard("pos.manage", <PosSetup />); break;
+    case seg[0] === "inventory" && seg[1] === "items" && !!seg[2]: page = guard("inventory.view", <ItemDetail id={Number(seg[2])} />); break;
+    case path === "/inventory": page = guard("inventory.view", <Inventory q={q} />); break;
+    case path === "/procurement": page = guard("procurement.view", <Procurement q={q} />); break;
     case path === "/rooms": page = guard("rooms.view", <RoomBoard />); break;
     case path === "/reservations/new": page = guard("reservations.create", <NewReservation q={q} />); break;
     case seg[0] === "reservations" && !!seg[1]: page = guard("reservations.view", <ReservationDetail id={Number(seg[1])} />); break;

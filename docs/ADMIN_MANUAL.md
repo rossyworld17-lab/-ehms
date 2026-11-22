@@ -22,7 +22,31 @@ to view or adjust any role, or create custom roles. Safeguards:
 - You can only grant permissions you hold yourself (prevents privilege escalation).
 - Sensitive permissions: `guests.identity.view`, `reservations.override_rate`, `reservations.overbook`,
   `folio.adjust`, `payments.refund_approve`, `accounting.post_manual`, `admin.*`.
-- Roles for modules not yet released (restaurant, stores, HR …) currently carry dashboard access only.
+- Release 0.4 permissions: `pos.*` (view, order, settle, post_to_room, discount, void, shift, manage), `kitchen.view`,
+  `kitchen.update`, `inventory.*` (view, manage, requisition, approve, issue, adjust) and `procurement.*` (view,
+  suppliers, requisition, order, approve, approve_high, receive, invoice, invoice_approve, pay). Sensitive ones:
+  `pos.void`, `pos.discount`, `inventory.adjust`, `procurement.approve_high`, `procurement.invoice_approve`,
+  `procurement.pay`. The restaurant, kitchen, inventory, storekeeper and procurement role templates now carry them.
+- Upgrading: when a new release adds permissions, existing **system** roles receive them once on first start-up;
+  if you later remove one it is not re-added. Custom roles are never changed.
+- Roles for modules not yet released (HR, maintenance, security …) carry dashboard access only.
+
+## Restaurant, stores and procurement setup (release 0.4)
+1. **Inventory → Stores**: create stores (main, kitchen, bar, housekeeping …). "Allow negative stock" lets sales
+   continue when recipe stock runs out (stock goes negative and is corrected by the next count); it is off by
+   default so that stock records stay accurate.
+2. **Inventory → Item catalogue**: register items with unit, standard cost, reorder level/quantity, and tick
+   "Track batches & expiry" for perishables. Post **opening balances** with *Adjust → Opening balance*
+   (credited to Owner's Equity).
+3. **Menu & outlets**: create outlets with an issuing store, tables, categories, items and recipes.
+4. **Procurement → Suppliers**: enter suppliers, payment terms and withholding-tax rate (confirm the applicable
+   rate for each supplier category with your tax adviser). Bank details are masked for users without
+   `procurement.suppliers` or `procurement.pay`.
+5. Approval settings (`PUT /api/hotels/{id}/procurement/settings`, requires `admin.settings.manage`):
+   `high_value_threshold` (default ₦500,000 — POs above it need `procurement.approve_high`) and
+   `invoice_tolerance_bp` (default 50 = 0.5 %, minimum ₦100).
+6. New ledger accounts are added automatically: 2010 Goods Received Not Invoiced, 5310 Cost of Food & Beverage
+   Sold, 5320 Housekeeping & Guest Supplies, 5950 Inventory Shrinkage & Wastage, 5960 Purchase Price Variance.
 
 ## Accounts and sessions
 - **Suspend/Activate** a user; suspension ends their sessions immediately.

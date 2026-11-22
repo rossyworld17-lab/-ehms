@@ -122,6 +122,7 @@ DEFAULT_ACCOUNTS = [
     ("1110", "City Ledger (Corporate Receivables)", "asset", "city_ledger"),
     ("1200", "Inventory", "asset", "inventory"),
     ("2000", "Accounts Payable", "liability", "ap"),
+    ("2010", "Goods Received Not Invoiced", "liability", "grni"),
     ("2100", "VAT Payable", "liability", "vat_payable"),
     ("2110", "Service Charge Payable", "liability", "service_charge_payable"),
     ("2120", "Withholding Tax Payable", "liability", "wht_payable"),
@@ -138,11 +139,57 @@ DEFAULT_ACCOUNTS = [
     ("5100", "Utilities", "expense", "exp_utilities"),
     ("5200", "Fuel & Power", "expense", "exp_fuel"),
     ("5300", "Food Supplies", "expense", "exp_food"),
+    ("5310", "Cost of Food & Beverage Sold", "expense", "cogs_fnb"),
+    ("5320", "Housekeeping & Guest Supplies", "expense", "exp_supplies"),
     ("5400", "Repairs & Maintenance", "expense", "exp_maintenance"),
     ("5500", "Marketing", "expense", "exp_marketing"),
     ("5600", "Security", "expense", "exp_security"),
     ("5900", "General & Administrative", "expense", "exp_admin"),
+    ("5950", "Inventory Shrinkage & Wastage", "expense", "inv_variance"),
+    ("5960", "Purchase Price Variance", "expense", "ppv"),
 ]
+
+# Expense account used when stock is issued to (consumed by) a department.
+DEPARTMENT_EXPENSE_KEYS = {"kitchen": "exp_food", "fnb": "exp_food", "bar": "exp_food", "housekeeping": "exp_supplies",
+                           "laundry": "exp_supplies", "front_office": "exp_admin", "maintenance": "exp_maintenance",
+                           "security": "exp_security", "admin": "exp_admin", "marketing": "exp_marketing", "other": "exp_admin"}
+EXPENSE_KEYS = ("exp_salaries", "exp_utilities", "exp_fuel", "exp_food", "exp_supplies", "exp_maintenance", "exp_marketing",
+                "exp_security", "exp_admin")
+
+
+def hotel_setting(c: Connection, hotel_id: int, key: str, default: str | None = None) -> str | None:
+    v = c.scalar("SELECT value FROM system_settings WHERE hotel_id = ? AND key = ?", [hotel_id, key])
+    return default if v is None else v
+
+
+def set_hotel_setting(c: Connection, hotel_id: int, key: str, value: str) -> None:
+    if c.one("SELECT id FROM system_settings WHERE hotel_id = ? AND key = ?", [hotel_id, key]):
+        c.execute("UPDATE system_settings SET value = ? WHERE hotel_id = ? AND key = ?", [value, hotel_id, key])
+    else:
+        c.execute("INSERT INTO system_settings (hotel_id, key, value) VALUES (?, ?, ?)", [hotel_id, key, value])
+
+
+# ------------------------------------------------------------------ quantities
+def to_milli(value, field: str = "quantity", allow_zero: bool = False) -> int:
+    """Convert a decimal quantity (number or string, up to 3 decimals) to integer thousandths."""
+    import decimal
+    if isinstance(value, bool) or value in (None, ""):
+        raise bad_request(f"'{field}' is required", {"field": field})
+    try:
+        d = decimal.Decimal(str(value).strip())
+    except decimal.InvalidOperation:
+        raise bad_request(f"'{field}' must be a number", {"field": field})
+    if d != d.quantize(decimal.Decimal("0.001")):
+        raise bad_request(f"'{field}' allows at most 3 decimal places", {"field": field})
+    m = int(d * 1000)
+    if m < 0 or (m == 0 and not allow_zero):
+        raise bad_request(f"'{field}' must be greater than zero", {"field": field})
+    return m
+
+
+def from_milli(m: int | None) -> float:
+    return 0.0 if m is None else m / 1000
+
 
 
 def seed_chart_of_accounts(c: Connection, organisation_id: int) -> None:

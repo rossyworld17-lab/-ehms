@@ -48,6 +48,35 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "reports.view": ("reports", "View operational reports"),
     "reports.financial": ("reports", "View financial reports and exports"),
     "approvals.view": ("approvals", "View approval requests"),
+    # --- release 0.4: restaurant & bar POS, kitchen display
+    "pos.view": ("pos", "View POS outlets, open orders and menus"),
+    "pos.order": ("pos", "Open orders, add items and send them to the kitchen"),
+    "pos.settle": ("pos", "Take payment and settle orders"),
+    "pos.post_to_room": ("pos", "Charge orders to an in-house guest's room folio"),
+    "pos.discount": ("pos", "Apply discounts to orders"),
+    "pos.void": ("pos", "Void order items or whole orders"),
+    "pos.shift": ("pos", "Open and close a cashier shift"),
+    "pos.manage": ("pos", "Configure outlets, tables, menus and recipes"),
+    "kitchen.view": ("kitchen", "View the kitchen display"),
+    "kitchen.update": ("kitchen", "Update preparation status of kitchen orders"),
+    # --- release 0.4: inventory & stores
+    "inventory.view": ("inventory", "View stock balances, movements and items"),
+    "inventory.manage": ("inventory", "Maintain the item catalogue and stores"),
+    "inventory.requisition": ("inventory", "Request stock from a store"),
+    "inventory.approve": ("inventory", "Approve or reject stock requisitions"),
+    "inventory.issue": ("inventory", "Issue and transfer stock"),
+    "inventory.adjust": ("inventory", "Post stock adjustments, wastage and stock counts"),
+    # --- release 0.4: procurement
+    "procurement.view": ("procurement", "View suppliers, requisitions, purchase orders and invoices"),
+    "procurement.suppliers": ("procurement", "Create and edit supplier records"),
+    "procurement.requisition": ("procurement", "Raise purchase requisitions"),
+    "procurement.order": ("procurement", "Record quotations and raise purchase orders"),
+    "procurement.approve": ("procurement", "Approve requisitions and purchase orders up to the high-value threshold"),
+    "procurement.approve_high": ("procurement", "Approve purchase orders above the high-value threshold"),
+    "procurement.receive": ("procurement", "Receive goods against purchase orders (GRN)"),
+    "procurement.invoice": ("procurement", "Record supplier invoices"),
+    "procurement.invoice_approve": ("procurement", "Approve supplier invoices for payment"),
+    "procurement.pay": ("procurement", "Record supplier payments"),
 }
 
 ALL = list(PERMISSIONS)
@@ -57,6 +86,8 @@ _FRONT = ["dashboard.view", "rooms.view", "guests.view", "guests.manage", "reser
           "folio.view", "folio.post_charge", "payments.receive", "payments.refund_request", "housekeeping.view", "reports.view"]
 _FIN = ["dashboard.view", "folio.view", "accounting.view", "accounting.post_manual", "reports.view", "reports.financial",
         "approvals.view", "guests.view", "reservations.view"]
+_POS_ALL = [p for p in PERMISSIONS if p.startswith("pos.")]
+_INV_ALL = [p for p in PERMISSIONS if p.startswith("inventory.")]
 _VIEW_ALL = [p for p in ALL if p.endswith(".view") or p in ("reports.financial",)]
 
 # code: (name, description, permissions)
@@ -72,24 +103,33 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "reservations_officer": ("Reservations Officer", "Booking administration",
                              ["dashboard.view", "rooms.view", "guests.view", "guests.manage", "reservations.view", "reservations.create",
                               "reservations.modify", "reservations.cancel", "folio.view", "payments.receive", "reports.view"]),
-    "accountant": ("Accountant", "Accounting and payments", _FIN + ["payments.receive"]),
+    "accountant": ("Accountant", "Accounting and payments", _FIN + ["payments.receive", "procurement.view", "procurement.invoice",
+                                                                    "procurement.pay", "inventory.view", "pos.view"]),
     "finance_manager": ("Finance Manager", "Financial control", _FIN + ["accounting.manage_accounts", "payments.refund_approve",
-                                                                         "folio.adjust", "admin.settings.manage", "admin.audit.view"]),
+                                                                         "folio.adjust", "admin.settings.manage", "admin.audit.view",
+                                                                         "procurement.view", "procurement.approve", "procurement.approve_high",
+                                                                         "procurement.invoice_approve", "inventory.view", "pos.view"]),
     "auditor": ("Auditor", "Read-only audit access", _VIEW_ALL + ["admin.audit.view"]),
     "hr_manager": ("Human Resources Manager", "Employee administration", ["dashboard.view", "admin.users.view"]),
     "hr_officer": ("HR Officer", "HR administration", ["dashboard.view"]),
     "housekeeping_manager": ("Housekeeping Manager", "Cleaning and room readiness",
                              ["dashboard.view", "rooms.view", "rooms.status.update", "housekeeping.view", "housekeeping.assign",
-                              "housekeeping.update", "housekeeping.inspect", "reports.view"]),
+                              "housekeeping.update", "housekeeping.inspect", "reports.view",
+                              "inventory.view", "inventory.requisition"]),
     "housekeeping_staff": ("Housekeeping Staff", "Room cleaning", ["rooms.view", "housekeeping.view", "housekeeping.update"]),
-    "restaurant_manager": ("Restaurant Manager", "Outlets and POS", ["dashboard.view", "guests.view", "folio.view", "folio.post_charge"]),
-    "restaurant_cashier": ("Restaurant Cashier", "POS cashier", ["guests.view", "folio.post_charge"]),
-    "waiter": ("Waiter / Waitress", "Food and beverage service", ["dashboard.view"]),
-    "chef": ("Chef / Kitchen Staff", "Kitchen operations", ["dashboard.view"]),
-    "inventory_manager": ("Inventory Manager", "Inventory control", ["dashboard.view"]),
-    "storekeeper": ("Storekeeper", "Stores", ["dashboard.view"]),
-    "procurement_officer": ("Procurement Officer", "Purchasing", ["dashboard.view"]),
-    "maintenance_manager": ("Maintenance Manager", "Assets and repairs", ["dashboard.view", "rooms.view", "rooms.block"]),
+    "restaurant_manager": ("Restaurant Manager", "Outlets and POS", ["dashboard.view", "guests.view", "folio.view", "folio.post_charge"] + _POS_ALL
+                           + ["kitchen.view", "inventory.view", "inventory.requisition", "reports.view"]),
+    "restaurant_cashier": ("Restaurant Cashier", "POS cashier", ["guests.view", "folio.post_charge", "pos.view", "pos.order", "pos.settle",
+                                                                 "pos.post_to_room", "pos.shift"]),
+    "waiter": ("Waiter / Waitress", "Food and beverage service", ["pos.view", "pos.order", "kitchen.view"]),
+    "chef": ("Chef / Kitchen Staff", "Kitchen operations", ["kitchen.view", "kitchen.update", "inventory.view", "inventory.requisition"]),
+    "inventory_manager": ("Inventory Manager", "Inventory control", ["dashboard.view", "reports.view", "procurement.view", "procurement.requisition",
+                                                                     "procurement.receive"] + _INV_ALL),
+    "storekeeper": ("Storekeeper", "Stores", ["inventory.view", "inventory.requisition", "inventory.issue", "procurement.view", "procurement.receive"]),
+    "procurement_officer": ("Procurement Officer", "Purchasing", ["dashboard.view", "inventory.view", "procurement.view", "procurement.suppliers",
+                                                                  "procurement.requisition", "procurement.order", "procurement.receive", "reports.view"]),
+    "maintenance_manager": ("Maintenance Manager", "Assets and repairs", ["dashboard.view", "rooms.view", "rooms.block",
+                                                                      "inventory.view", "inventory.requisition", "procurement.requisition"]),
     "maintenance_technician": ("Maintenance Technician", "Repairs", ["rooms.view"]),
     "security_officer": ("Security Officer", "Security and incidents", ["dashboard.view", "rooms.view"]),
     "marketing_manager": ("Marketing Manager", "Marketing", ["dashboard.view", "guests.view", "reports.view"]),
@@ -118,3 +158,31 @@ def seed_permissions_and_roles(c, organisation_id: int) -> dict[str, int]:
             c.execute("INSERT INTO role_permissions (role_id, permission_code) VALUES (?, ?)", [rid, p])
         role_ids[code] = rid
     return role_ids
+
+
+# Permissions added after the first release. On upgrade they are granted once to the system roles whose
+# default template includes them; afterwards administrators stay in full control of every role.
+INTRODUCED: dict[str, list[str]] = {
+    "0.4": [p for p in PERMISSIONS if p.split(".")[0] in ("pos", "kitchen", "inventory", "procurement")],
+}
+
+
+def apply_permission_upgrades(c, organisation_id: int) -> list[str]:
+    """Grant permissions introduced in later releases to existing system roles (runs once per release)."""
+    seed_permissions_and_roles(c, organisation_id)
+    applied = []
+    for version, perms in INTRODUCED.items():
+        key = f"rbac.upgrade.{version}.org{organisation_id}"
+        if c.one("SELECT id FROM system_settings WHERE hotel_id IS NULL AND key = ?", [key]):
+            continue
+        for code, (_, _, defaults) in DEFAULT_ROLES.items():
+            role = c.one("SELECT id FROM roles WHERE organisation_id = ? AND code = ? AND is_system = 1", [organisation_id, code])
+            if not role:
+                continue
+            have = {r["permission_code"] for r in c.all("SELECT permission_code FROM role_permissions WHERE role_id = ?", [role["id"]])}
+            for p in perms:
+                if p in defaults and p not in have:
+                    c.execute("INSERT INTO role_permissions (role_id, permission_code) VALUES (?, ?)", [role["id"], p])
+        c.execute("INSERT INTO system_settings (hotel_id, key, value) VALUES (NULL, ?, ?)", [key, "applied"])
+        applied.append(version)
+    return applied

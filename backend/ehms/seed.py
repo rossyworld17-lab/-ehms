@@ -63,8 +63,11 @@ def seed_demo() -> None:
     from .services import account_id, next_number, post_journal
     db = get_db()
     with db.tx() as c:
-        if c.one("SELECT id FROM organisations WHERE code = 'DEMO'"):
-            return
+        existing = c.one("SELECT id FROM organisations WHERE code = 'DEMO'")
+    if existing:
+        _upgrade_demo(existing["id"])
+        return
+    with db.tx() as c:
         org = c.insert("organisations", {"code": "DEMO", "name": "DEMO — Crestview Hospitality Group", "created_at": now_iso()})
         roles = seed_permissions_and_roles(c, org)
         seed_chart_of_accounts(c, org)
@@ -106,7 +109,14 @@ def seed_demo() -> None:
                  ("hkmanager@demo.ehms", "Patience Douglas (HK Mgr)", "housekeeping_manager", False),
                  ("housekeeper@demo.ehms", "Mary Iwu (Housekeeper)", "housekeeping_staff", False),
                  ("housekeeper2@demo.ehms", "Esther Ojo (Housekeeper)", "housekeeping_staff", False),
-                 ("auditor@demo.ehms", "Daniel Ikeh (Auditor)", "auditor", True)]
+                 ("auditor@demo.ehms", "Daniel Ikeh (Auditor)", "auditor", True),
+                 ("fnbmanager@demo.ehms", "Tolu Bankole (Restaurant Mgr)", "restaurant_manager", False),
+                 ("cashier@demo.ehms", "Chika Obi (Restaurant Cashier)", "restaurant_cashier", False),
+                 ("waiter@demo.ehms", "Sani Bello (Waiter)", "waiter", False),
+                 ("chef@demo.ehms", "Funmi Lawal (Chef)", "chef", False),
+                 ("stores@demo.ehms", "Musa Garba (Storekeeper)", "storekeeper", False),
+                 ("inventory@demo.ehms", "Grace Udo (Inventory Mgr)", "inventory_manager", False),
+                 ("procurement@demo.ehms", "Yemi Alade (Procurement)", "procurement_officer", False)]
         users = {}
         for email, name, role, all_h in staff:
             uid = c.insert("users", {"organisation_id": org, "email": email, "full_name": name, "password_hash": security.hash_password(DEMO_PASSWORD),
@@ -202,6 +212,146 @@ def seed_demo() -> None:
                                         "priority": 1, "assigned_to": users["housekeeping_staff"], "business_date": today.isoformat(),
                                         "created_at": now_iso(), "started_at": now_iso(), "completed_at": now_iso()})
         c.update("rooms", rooms["205"]["id"], {"service_status": "maintenance", "service_note": "Air-conditioner compressor replacement (demo)"})
+    seed_fnb_and_stores(hid, org, users)
+
+
+NEW_DEMO_STAFF_04 = [("fnbmanager@demo.ehms", "Tolu Bankole (Restaurant Mgr)", "restaurant_manager"),
+                     ("cashier@demo.ehms", "Chika Obi (Restaurant Cashier)", "restaurant_cashier"), ("waiter@demo.ehms", "Sani Bello (Waiter)", "waiter"),
+                     ("chef@demo.ehms", "Funmi Lawal (Chef)", "chef"), ("stores@demo.ehms", "Musa Garba (Storekeeper)", "storekeeper"),
+                     ("inventory@demo.ehms", "Grace Udo (Inventory Mgr)", "inventory_manager"),
+                     ("procurement@demo.ehms", "Yemi Alade (Procurement)", "procurement_officer")]
+
+
+def _upgrade_demo(org: int) -> None:
+    """A demo database created by an earlier release: add the release 0.4 demo staff, stores, menu and suppliers once."""
+    db = get_db()
+    with db.tx() as c:
+        hid = c.scalar("SELECT id FROM hotels WHERE organisation_id = ? AND code = 'CGL'", [org])
+        if not hid or c.one("SELECT id FROM stores WHERE hotel_id = ?", [hid]):
+            return
+        roles = seed_permissions_and_roles(c, org)
+        users = {r["code"]: r["uid"] for r in c.all("SELECT ro.code, MIN(u.id) AS uid FROM users u JOIN user_roles ur ON ur.user_id = u.id "
+                                                    "JOIN roles ro ON ro.id = ur.role_id WHERE u.organisation_id = ? GROUP BY ro.code", [org])}
+        for email, name, role in NEW_DEMO_STAFF_04:
+            if c.one("SELECT id FROM users WHERE email = ?", [email]):
+                continue
+            uid = c.insert("users", {"organisation_id": org, "email": email, "full_name": name, "password_hash": security.hash_password(DEMO_PASSWORD),
+                                     "all_hotels": 0, "created_at": now_iso(), "password_changed_at": now_iso()})
+            c.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [uid, roles[role]])
+            c.execute("INSERT INTO user_hotels (user_id, hotel_id) VALUES (?, ?)", [uid, hid])
+            users[role] = uid
+    seed_fnb_and_stores(hid, org, users)
+    print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
+
+
+# ------------------------------------------------------------------ release 0.4 demo: stores, menu, suppliers
+STORES = [("MAIN", "Main Store", "main"), ("KIT", "Kitchen Store", "kitchen"), ("BAR", "Bar Store", "bar"), ("HSK", "Housekeeping Store", "housekeeping")]
+# code, name, category, unit, unit cost (kobo), reorder level, reorder qty, track expiry, {store: opening qty}
+ITEMS = [
+    ("RICE", "Rice (parboiled)", "food", "kg", 150000, 20, 50, 0, {"MAIN": 100, "KIT": 25}),
+    ("CHKN", "Chicken (whole, frozen)", "food", "kg", 450000, 10, 30, 1, {"MAIN": 40, "KIT": 15}),
+    ("BEEF", "Beef (boneless)", "food", "kg", 550000, 8, 20, 1, {"MAIN": 25, "KIT": 10}),
+    ("TOM", "Tomato paste", "food", "kg", 200000, 5, 15, 1, {"MAIN": 20, "KIT": 6}),
+    ("OIL", "Vegetable oil", "food", "litre", 250000, 10, 20, 0, {"MAIN": 40, "KIT": 10}),
+    ("PLNT", "Plantain", "food", "kg", 120000, 10, 30, 0, {"KIT": 20}),
+    ("FISH", "Croaker fish", "food", "kg", 600000, 5, 15, 1, {"MAIN": 15, "KIT": 6}),
+    ("YAM", "Yam", "food", "kg", 100000, 10, 30, 0, {"MAIN": 50, "KIT": 12}),
+    ("EGG", "Eggs", "food", "piece", 15000, 60, 180, 1, {"KIT": 120}),
+    ("BRD", "Bread loaf", "food", "piece", 120000, 10, 20, 1, {"KIT": 12}),
+    ("SDRK", "Soft drink (35cl)", "beverage", "bottle", 25000, 48, 120, 1, {"MAIN": 120, "BAR": 60}),
+    ("WATR", "Table water (75cl)", "beverage", "bottle", 20000, 48, 120, 0, {"MAIN": 200, "BAR": 80}),
+    ("BEER", "Lager beer (60cl)", "beverage", "bottle", 70000, 48, 96, 1, {"MAIN": 96, "BAR": 48}),
+    ("WINE", "House red wine (75cl)", "beverage", "bottle", 800000, 6, 12, 0, {"MAIN": 18, "BAR": 6}),
+    ("JUIC", "Orange juice (1L)", "beverage", "carton", 180000, 10, 24, 1, {"BAR": 12, "MAIN": 24}),
+    ("SOAP", "Guest soap (40g)", "toiletries", "piece", 15000, 200, 500, 0, {"HSK": 400, "MAIN": 600}),
+    ("SHMP", "Shampoo sachet", "toiletries", "piece", 12000, 200, 500, 0, {"HSK": 350}),
+    ("TOWL", "Bath towel", "linen", "piece", 650000, 40, 60, 0, {"HSK": 80}),
+    ("DTRG", "Laundry detergent", "cleaning", "kg", 180000, 10, 25, 0, {"HSK": 30, "MAIN": 20}),
+    ("DSL", "Diesel (generator)", "fuel", "litre", 120000, 500, 2000, 0, {"MAIN": 1500}),
+]
+# category, kind, items: code, name, price (kobo), station, recipe [(item code, qty per portion)]
+MENU = [
+    ("Mains", "food", [("JRC", "Jollof rice & chicken", 850000, "kitchen", [("RICE", 0.2), ("CHKN", 0.3), ("TOM", 0.03), ("OIL", 0.03)]),
+                       ("FRC", "Fried rice & beef", 900000, "kitchen", [("RICE", 0.2), ("BEEF", 0.2), ("OIL", 0.03)]),
+                       ("PFS", "Peppered croaker fish", 1200000, "grill", [("FISH", 0.5), ("OIL", 0.02)]),
+                       ("YPE", "Yam & egg sauce", 650000, "kitchen", [("YAM", 0.4), ("EGG", 2), ("TOM", 0.02), ("OIL", 0.02)])]),
+    ("Sides", "food", [("DOD", "Fried plantain (dodo)", 250000, "kitchen", [("PLNT", 0.25), ("OIL", 0.02)]),
+                       ("TST", "Toast & butter", 200000, "kitchen", [("BRD", 0.25)])]),
+    ("Soft drinks", "beverage", [("SDK", "Soft drink", 100000, "bar", [("SDRK", 1)]),
+                                 ("WTR", "Table water", 80000, "bar", [("WATR", 1)]),
+                                 ("OJ", "Fresh orange juice (glass)", 180000, "bar", [("JUIC", 0.25)])]),
+    ("Beer & wine", "beverage", [("LGR", "Lager beer", 200000, "bar", [("BEER", 1)]),
+                                 ("RWG", "House red wine (glass)", 350000, "bar", [("WINE", 0.2)]),
+                                 ("RWB", "House red wine (bottle)", 2400000, "bar", [("WINE", 1)])]),
+]
+SUPPLIERS = [("SUP001", "Lagos Fresh Foods Ltd (demo)", "Food", "Adaeze Nnaji", 500, 30),
+             ("SUP002", "Victoria Beverages Distributors (demo)", "Beverages", "Kunle Afolabi", 500, 14),
+             ("SUP003", "CleanPro Supplies Nig. (demo)", "Housekeeping", "Hauwa Sule", 500, 30),
+             ("SUP004", "PowerFuel Energy (demo)", "Fuel", "Obinna Eze", 500, 7)]
+
+
+def seed_fnb_and_stores(hid: int, org: int, users: dict) -> None:
+    """Stores with opening stock (posted through the real stock ledger and journal), outlets, tables,
+    menu with recipes, suppliers and one approved purchase order awaiting delivery."""
+    from .services import account_id, business_date, post_journal
+    from .stock import apply_movement
+    import datetime as _dt
+    db = get_db()
+    with db.tx() as c:
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        stores = {code: c.insert("stores", {"hotel_id": hid, "code": code, "name": name, "kind": kind, "allow_negative": 0, "active": 1})
+                  for code, name, kind in STORES}
+        store_rows = {code: c.one("SELECT * FROM stores WHERE id = ?", [sid]) for code, sid in stores.items()}
+        items = {}
+        opening_value = 0
+        for code, name, cat, unit, cost, rl, rq, exp, qtys in ITEMS:
+            iid = c.insert("inventory_items", {"hotel_id": hid, "code": code, "name": name, "category": cat, "unit": unit, "last_cost": cost,
+                                               "reorder_level_milli": rl * 1000, "reorder_qty_milli": rq * 1000, "track_expiry": exp, "active": 1,
+                                               "created_at": now_iso()})
+            items[code] = c.one("SELECT * FROM inventory_items WHERE id = ?", [iid])
+            for scode, q in qtys.items():
+                expiry = (on + _dt.timedelta(days=12 if code in ("BRD", "EGG") else 120)).isoformat() if exp else None
+                value = cost * q
+                apply_movement(c, hid, items[code], store_rows[scode], "opening", q * 1000, value, "opening", "OPENING", users["storekeeper"], on,
+                               reason="Opening balance (demo)", batch_no="OPEN-1" if exp else None, expiry_date=expiry)
+                opening_value += value
+        post_journal(c, hid, on, "Opening stock balances (demo)", "inventory", "OPENING", [
+            (account_id(c, org, "inventory"), opening_value, 0, None, "Opening stock"),
+            (account_id(c, org, "equity"), 0, opening_value, None, "Opening stock")], users["storekeeper"])
+        outlets = {}
+        for code, name, kind, store in (("REST", "Savanna Restaurant", "restaurant", "KIT"), ("BAR", "Lagoon Bar", "bar", "BAR"),
+                                        ("RSV", "In-Room Dining", "room_service", "KIT")):
+            outlets[code] = c.insert("outlets", {"hotel_id": hid, "code": code, "name": name, "kind": kind, "store_id": stores[store], "active": 1})
+        for i in range(1, 11):
+            c.insert("pos_tables", {"outlet_id": outlets["REST"], "code": f"T{i}", "area": "Terrace" if i > 7 else "Main hall", "seats": 2 if i % 3 == 0 else 4, "active": 1})
+        for i in range(1, 7):
+            c.insert("pos_tables", {"outlet_id": outlets["BAR"], "code": f"B{i}", "area": "Bar", "seats": 2, "active": 1})
+        for sort, (cat, kind, entries) in enumerate(MENU):
+            cid = c.insert("menu_categories", {"hotel_id": hid, "name": cat, "kind": kind, "sort_order": sort, "active": 1})
+            for code, name, price, station, recipe in entries:
+                mid = c.insert("menu_items", {"hotel_id": hid, "category_id": cid, "code": code, "name": name, "price": price, "station": station,
+                                              "issue_store_id": stores["BAR"] if kind == "beverage" else None, "available": 1, "active": 1})
+                for icode, q in recipe:
+                    c.insert("recipe_lines", {"menu_item_id": mid, "item_id": items[icode]["id"], "quantity_milli": int(round(q * 1000))})
+        sup = {}
+        for code, name, cat, contact, wht, terms in SUPPLIERS:
+            sup[code] = c.insert("suppliers", {"organisation_id": org, "code": code, "name": name, "category": cat, "contact_name": contact,
+                                               "phone": "+234 800 000 0000", "email": f"{code.lower()}@supplier.demo", "tax_id": f"TIN-DEMO-{code[-3:]}",
+                                               "bank_name": "Demo Bank", "bank_account_name": name, "bank_account_number": f"00{code[-3:]}123456",
+                                               "payment_terms_days": terms, "wht_bp": wht, "active": 1, "created_at": now_iso()})
+        # an approved purchase order awaiting delivery (ready to receive in the demo)
+        po_id = c.insert("purchase_orders", {"hotel_id": hid, "number": f"PO-{hotel['code']}-DEMO01", "supplier_id": sup["SUP001"], "store_id": stores["MAIN"],
+                                             "status": "approved", "order_date": on.isoformat(),
+                                             "expected_date": (on + _dt.timedelta(days=2)).isoformat(), "total": 0,
+                                             "approval_level": "standard", "note": "Weekly fresh food order (demo)", "created_by": users["procurement_officer"],
+                                             "approved_by": users["finance_manager"], "created_at": now_iso(), "approved_at": now_iso()})
+        total = 0
+        for icode, q in (("CHKN", 30), ("RICE", 50), ("FISH", 10)):
+            it = items[icode]
+            c.insert("purchase_order_lines", {"po_id": po_id, "item_id": it["id"], "description": it["name"], "quantity_milli": q * 1000, "unit_cost": it["last_cost"]})
+            total += q * it["last_cost"]
+        c.update("purchase_orders", po_id, {"total": total})
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -69,7 +69,65 @@ listed below.
 ## Accounting and reports
 Finance users see the trial balance, profit & loss, balance sheet, journal (click an entry to see its lines),
 chart of accounts and can post manual journal entries (debits must equal credits). **Reports** lists the
-reports for your role; run one and export it to Excel, CSV or PDF.
+reports for your role; run one and export it to Excel, CSV or PDF. Release 0.4 adds restaurant & bar sales by
+outlet, stock valuation, low stock / reorder list, expiring stock, stock movements and supplier payables.
+Exports are recorded in the audit trail.
+
+## Point of sale (restaurant, bar, in-room dining)
+1. Choose the outlet at the top. Cashiers **Open shift** and enter the cash float before the first payment.
+2. Tap a free table (green) to open an order, or use **Takeaway** / **Room service** (pick the in-house guest
+   by room number or name). Tables with an open order turn gold; a green dot means food is ready to serve.
+3. Tap menu items to add them (tap again to add more). Use − / + to change quantities before sending.
+4. **Send to kitchen**: items appear on the kitchen display for their station. Once sent, an item can only be
+   removed with **Void** (needs authorisation and a reason).
+5. **Print bill** for the guest. Other actions: **Discount** (reason required), **Split bill** (move chosen
+   items to a new bill), **Merge** (join another open order), **Move table**, **Void order**.
+6. **Settle**: choose cash, POS card (enter the slip reference), bank transfer (enter the reference) or
+   **Charge to room**; use **+ Split payment** to combine tenders. Cash can exceed the bill (change is shown);
+   other tenders cannot. Settling deducts recipe ingredients from stock automatically. If an ingredient has
+   run out in the issuing store the sale is refused, and nothing is charged, until stock is replenished.
+7. At the end of your shift click the shift chip → **Close shift**, count the drawer and enter the amount.
+   Any difference from the expected cash needs an explanation.
+
+## Kitchen display
+Tickets show the table or room, waiter and minutes since sending (amber after 10 minutes, red after 20).
+Filter by station. Kitchen staff tap **Start** and **Ready**; service staff tap **Served** (on the display or
+in the POS). The page refreshes every 10 seconds.
+
+## Menu & outlets (managers)
+Create categories and items (price before service charge and exclusive taxes, preparation station, and the
+store ingredients are issued from, e.g. drinks from the bar store). **Recipe** lists the ingredients per
+portion; the estimated cost and food-cost percentage are shown. Mark items **Sold out** when the kitchen runs
+out. Outlets need an issuing store; add tables per outlet. **Cashier shifts** shows every shift and its
+variance; **Kitchen performance** shows preparation times by station.
+
+## Inventory & stores
+- **Stock by store** and **Item catalogue** show quantities and values at weighted average cost; click an item
+  for its balances, batches and full movement history.
+- **Request stock**: ask a store for items either for a department (e.g. housekeeping toiletries) or for another
+  store. A different authorised person approves; the storekeeper then **Issue stock**. Issues to a department
+  are charged to that department's expense account.
+- **Transfer** moves stock between stores directly. **Adjust / write off** records wastage, damage, expiry,
+  corrections or opening balances, always with a reason.
+- **Stock counts**: start a count for a store, enter counted quantities, **Save**, then **Post count**; balances
+  are set to the counted figures and the difference is posted to Inventory Shrinkage & Wastage.
+- **Alerts** lists items at or below their reorder level and batches expiring within 30 days.
+
+## Procurement
+1. **Requisitions & quotes** → **New requisition**: department, items (or a description for services),
+   quantities and estimated costs. An approver approves it (not the requester).
+2. Procurement records **quotations** from suppliers; the comparison highlights the cheapest price per line.
+   Raise the **PO** from the chosen quotation (or at the estimate).
+3. **Purchase orders** above the high-value threshold (default ₦500,000) need a senior approver; nobody can
+   approve their own PO.
+4. **Receive goods** against an approved PO: enter quantities received and rejected, and batch/expiry for
+   expiry-tracked items. Stock increases immediately; partial deliveries are allowed.
+5. **Supplier invoices** → **Record invoice**: the system compares it with the goods received. A difference
+   above the tolerance is flagged and the approver must explain it. Invoices without a PO (utilities, fuel) need
+   an expense account.
+6. After approval, **Pay** by bank transfer or cash. Withholding tax at the supplier's rate is deducted and the
+   net amount to pay is shown.
+The **Overview** tab shows items awaiting approval, open orders, payables ageing and spend by supplier.
 
 ## Booking engine (guests)
 Share `https://<your-domain>/#/book/<HOTEL_CODE>`. Guests check availability, see the full price including

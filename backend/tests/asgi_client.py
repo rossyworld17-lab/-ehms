@@ -101,6 +101,9 @@ class Client:
     def put(self, path, json=None, **kw):
         return self.request("PUT", path, json_body=json or {}, **kw)
 
+    def delete(self, path, **kw):
+        return self.request("DELETE", path, **kw)
+
     def login(self, email: str, password: str = "Demo@12345") -> dict:
         r = self.post("/api/auth/login", {"email": email, "password": password}, token=None)
         assert r.status_code == 200, r.text

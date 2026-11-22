@@ -33,6 +33,9 @@ export default function Dashboard() {
                 <span className="chip">Housekeeping open: <b>{d.tasks.housekeeping_open}</b></span>
                 <span className="chip">Awaiting inspection: <b>{d.tasks.awaiting_inspection}</b></span>
                 {can("approvals.view") && <a className="chip" href="#/approvals">Approvals pending: <b>{d.tasks.approvals_pending}</b></a>}
+                {can("pos.view") && <a className="chip" href="#/pos">Open restaurant orders: <b>{d.tasks.open_pos_orders}</b></a>}
+                {can("inventory.view") && <a className={`chip ${d.tasks.low_stock_items ? "chip-warn" : ""}`} href="#/inventory?tab=alerts">Low-stock items: <b>{d.tasks.low_stock_items}</b></a>}
+                {can("procurement.view") && <a className="chip" href="#/procurement">POs awaiting approval: <b>{d.tasks.purchase_orders_pending}</b> · invoices: <b>{d.tasks.supplier_invoices_pending}</b></a>}
               </div>
             </Card>
             <Card title="Next 14 days — rooms on the books">

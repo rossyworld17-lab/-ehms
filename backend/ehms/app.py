@@ -105,6 +105,13 @@ def create_app() -> Starlette:
         applied = migrate()
         if applied:
             log.info("Applied migrations: %s", applied)
+        from .rbac import apply_permission_upgrades
+        from .services import seed_chart_of_accounts
+        with get_db().tx() as c:
+            for org in c.all("SELECT id FROM organisations"):
+                seed_chart_of_accounts(c, org["id"])
+                if apply_permission_upgrades(c, org["id"]):
+                    log.info("Granted new release permissions to system roles for organisation %s", org["id"])
         if settings.seed_demo:
             from .seed import seed_demo
             seed_demo()

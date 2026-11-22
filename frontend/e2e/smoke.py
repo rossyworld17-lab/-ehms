@@ -48,7 +48,9 @@ def main():
                                 ("/accounting", "08_trial_balance", "Trial balance"), ("/reports", "09_reports", "Reports"), ("/approvals", "10_approvals", "Approvals"),
                                 ("/admin/users", "11_users", "Users & access"), ("/admin/roles", "12_roles", "Roles & permissions"),
                                 ("/admin/hotel", "13_hotel_settings", "Hotel profile"), ("/admin/rooms", "14_rooms_rates", "Room categories"),
-                                ("/admin/audit", "15_audit", "Audit trail"), ("/profile", "16_profile", "Two-step verification")]:
+                                ("/admin/audit", "15_audit", "Audit trail"), ("/profile", "16_profile", "Two-step verification"),
+                                ("/pos", "40_pos", "Point of sale"), ("/kitchen", "41_kitchen", "Kitchen display"), ("/pos-setup", "42_pos_setup", "POS setup"),
+                                ("/inventory", "43_inventory", "Inventory & stores"), ("/procurement", "44_procurement", "Procurement")]:
             visit(page, path, shot, txt)
         # accounting tabs
         page.goto(f"{BASE}/#/accounting")
@@ -132,6 +134,47 @@ def main():
         pub.get_by_role("button", name="Request booking").click()
         expect(pub.get_by_text("Thank you!")).to_be_visible(timeout=8000)
         pub.screenshot(path=f"{SHOTS}/25_booking_done.png")
+
+        # release 0.4 tabs (fresh administrator session)
+        page = browser.new_context(viewport={"width": 1440, "height": 900}).new_page()
+        page.on("pageerror", lambda e: errors.append(f"JS error (0.4 tabs): {e}"))
+        login(page, "admin@demo.ehms")
+        page.goto(f"{BASE}/#/inventory")
+        page.wait_for_selector("[role=tab]")
+        page.wait_for_timeout(600)
+        for tab in ("Item catalogue", "Requisitions", "Movements", "Stock counts", "Alerts", "Stores"):
+            page.get_by_role("tab", name=tab).click()
+            page.wait_for_timeout(300)
+        page.goto(f"{BASE}/#/procurement")
+        page.wait_for_selector("[role=tab]")
+        page.wait_for_timeout(600)
+        for tab in ("Requisitions & quotes", "Purchase orders", "Supplier invoices", "Suppliers"):
+            page.get_by_role("tab", name=tab).click()
+            page.wait_for_timeout(300)
+        page.goto(f"{BASE}/#/pos-setup")
+        page.wait_for_selector("[role=tab]")
+        page.wait_for_timeout(600)
+        for tab in ("Outlets & tables", "Cashier shifts", "Kitchen performance"):
+            page.get_by_role("tab", name=tab).click()
+            page.wait_for_timeout(300)
+
+        # ---------------- POS: cashier sells a takeaway lunch for cash
+        c = browser.new_context(viewport={"width": 1366, "height": 860}).new_page()
+        c.on("pageerror", lambda e: errors.append(f"JS error (pos): {e}"))
+        login(c, "cashier@demo.ehms")
+        c.goto(f"{BASE}/#/pos")
+        c.get_by_label("Outlet").select_option(label="Savanna Restaurant")
+        c.get_by_role("button", name="Open shift").click()
+        c.locator(".modal-f").get_by_role("button", name="Open shift").click()
+        c.get_by_role("button", name="Takeaway").click()
+        c.get_by_role("button", name="Open order").click()
+        c.locator(".menubtn", has_text="Fried rice").click()
+        c.get_by_role("button", name=re.compile("Send to kitchen")).click()
+        c.wait_for_timeout(500)
+        c.get_by_role("button", name="Settle").click()
+        c.get_by_role("button", name="Confirm payment").click()
+        expect(c.get_by_text("Settled").first).to_be_visible(timeout=8000)
+        c.screenshot(path=f"{SHOTS}/45_pos_settled.png")
 
         # ---------------- mobile layout
         m = browser.new_context(viewport={"width": 390, "height": 844}).new_page()

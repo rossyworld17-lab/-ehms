@@ -8,7 +8,7 @@ import io
 from starlette.responses import Response
 
 from ..db import get_db
-from ..http import Ctx, bad_request, forbidden, not_found, route
+from ..http import Ctx, audit, bad_request, forbidden, not_found, route
 from ..services import business_date, get_hotel, parse_date
 
 
@@ -115,6 +115,11 @@ def _report_rows(c, ctx: Ctx, hid: int, name: str) -> tuple[str, list[str], list
                      "AND fl.kind IN ('charge','adjustment') GROUP BY fl.department ORDER BY fl.department", [hid, d])
         pays = c.all("SELECT pm.name, p.kind, SUM(p.amount) AS amount FROM payments p JOIN payment_methods pm ON pm.id = p.method_id "
                      "JOIN journal_entries je ON je.id = p.journal_entry_id WHERE p.hotel_id = ? AND je.entry_date = ? GROUP BY pm.name, p.kind", [hid, d])
+        from .pos import pos_direct_revenue
+        direct = pos_direct_revenue(c, hid, d, d)
+        if direct["orders"]:
+            rows.append({"department": "fnb (POS paid at outlet)", "lines": direct["orders"], "net": direct["net"], "svc": direct["service_charge"],
+                         "tax": direct["tax"], "total": direct["total"]})
         out = [[r["department"], r["lines"], money(r["net"], cur), money(r["svc"], cur), money(r["tax"], cur), money(r["total"], cur)] for r in rows]
         out.append(["TOTAL", sum(r["lines"] for r in rows), money(sum(r["net"] for r in rows), cur), money(sum(r["svc"] for r in rows), cur),
                     money(sum(r["tax"] for r in rows), cur), money(sum(r["total"] for r in rows), cur)])
@@ -144,18 +149,91 @@ def _report_rows(c, ctx: Ctx, hid: int, name: str) -> tuple[str, list[str], list
                      "GROUP BY f.number, g.first_name, g.last_name, r.reference, r.status ORDER BY balance DESC", [hid])
         return "Outstanding guest balances", ["Folio", "Guest", "Reservation", "Status", "Balance"], \
             [[r["number"], r["guest"], r["reference"] or "", r["status"] or "", money(r["balance"], cur)] for r in rows if r["balance"]]
+    if name == "outlet_sales":
+        d_from = parse_date(ctx.q("from", bdate.isoformat()), "from").isoformat()
+        d_to = parse_date(ctx.q("to", bdate.isoformat()), "to").isoformat()
+        rows = c.all("SELECT ou.name AS outlet, COUNT(o.id) AS orders, COALESCE(SUM(o.covers),0) AS covers, COALESCE(SUM(o.discount_amount),0) AS discounts, "
+                     "COALESCE(SUM(o.net_amount),0) AS net, COALESCE(SUM(o.service_charge),0) AS svc, COALESCE(SUM(o.tax_amount),0) AS tax, "
+                     "COALESCE(SUM(o.total_amount),0) AS total FROM pos_orders o JOIN outlets ou ON ou.id = o.outlet_id WHERE o.hotel_id = ? "
+                     "AND o.status = 'settled' AND o.business_date >= ? AND o.business_date <= ? GROUP BY ou.name ORDER BY total DESC", [hid, d_from, d_to])
+        items = c.all("SELECT i.name, SUM(i.quantity) AS qty, SUM(i.quantity * i.unit_price) AS gross FROM pos_order_items i JOIN pos_orders o ON o.id = i.order_id "
+                      "WHERE o.hotel_id = ? AND o.status = 'settled' AND i.kitchen_status <> 'void' AND o.business_date >= ? AND o.business_date <= ? "
+                      "GROUP BY i.name ORDER BY gross DESC", [hid, d_from, d_to])
+        voids = c.scalar("SELECT COUNT(*) FROM pos_order_items i JOIN pos_orders o ON o.id = i.order_id WHERE o.hotel_id = ? AND i.kitchen_status = 'void' "
+                         "AND o.business_date >= ? AND o.business_date <= ?", [hid, d_from, d_to])
+        out = [[r["outlet"], r["orders"], r["covers"], money(r["discounts"], cur), money(r["net"], cur), money(r["svc"], cur), money(r["tax"], cur),
+                money(r["total"], cur)] for r in rows]
+        out.append(["TOTAL", sum(r["orders"] for r in rows), sum(r["covers"] for r in rows), money(sum(r["discounts"] for r in rows), cur),
+                    money(sum(r["net"] for r in rows), cur), money(sum(r["svc"] for r in rows), cur), money(sum(r["tax"] for r in rows), cur),
+                    money(sum(r["total"] for r in rows), cur)])
+        out.append([f"Voided items: {voids}", "", "", "", "", "", "", ""])
+        out += [[f"  {i['name']}", int(i["qty"]), "", "", money(i["gross"], cur), "", "", ""] for i in items]
+        return f"Outlet sales {d_from} to {d_to}", ["Outlet / item", "Orders / qty", "Covers", "Discounts", "Net", "Service charge", "Tax", "Total"], out
+    if name in ("stock_valuation", "low_stock", "stock_movements", "expiring_stock"):
+        if not ctx.can("inventory.view"):
+            raise forbidden("Inventory reports require inventory.view")
+        if name == "stock_valuation":
+            rows = c.all("SELECT s.name AS store, i.code, i.name, i.category, i.unit, l.quantity_milli, l.value FROM stock_levels l "
+                         "JOIN inventory_items i ON i.id = l.item_id JOIN stores s ON s.id = l.store_id WHERE s.hotel_id = ? AND l.quantity_milli <> 0 "
+                         "ORDER BY s.name, i.category, i.name", [hid])
+            out = [[r["store"], r["code"], r["name"], r["category"], f"{r['quantity_milli'] / 1000:g} {r['unit']}",
+                    money(r["value"] * 1000 // r["quantity_milli"] if r["quantity_milli"] > 0 else 0, cur), money(r["value"], cur)] for r in rows]
+            out.append(["TOTAL", "", "", "", "", "", money(sum(r["value"] for r in rows), cur)])
+            return f"Stock valuation (weighted average cost) — {bdate}", ["Store", "Code", "Item", "Category", "On hand", "Avg cost", "Value"], out
+        if name == "low_stock":
+            rows = c.all("SELECT i.code, i.name, i.unit, i.reorder_level_milli, i.reorder_qty_milli, i.last_cost, COALESCE(SUM(l.quantity_milli),0) AS q "
+                         "FROM inventory_items i LEFT JOIN stock_levels l ON l.item_id = i.id WHERE i.hotel_id = ? AND i.active = 1 AND i.reorder_level_milli > 0 "
+                         "GROUP BY i.id, i.code, i.name, i.unit, i.reorder_level_milli, i.reorder_qty_milli, i.last_cost "
+                         "HAVING COALESCE(SUM(l.quantity_milli),0) <= i.reorder_level_milli ORDER BY i.name", [hid])
+            return f"Items at or below reorder level — {bdate}", ["Code", "Item", "On hand", "Reorder level", "Suggested order", "Est. cost"], \
+                [[r["code"], r["name"], f"{r['q'] / 1000:g} {r['unit']}", f"{r['reorder_level_milli'] / 1000:g}", f"{r['reorder_qty_milli'] / 1000:g}",
+                  money(r["reorder_qty_milli"] * r["last_cost"] // 1000, cur)] for r in rows]
+        if name == "expiring_stock":
+            limit = (bdate + dt.timedelta(days=int(ctx.q("days", 30)))).isoformat()
+            rows = c.all("SELECT b.expiry_date, b.batch_no, b.quantity_milli, i.name, i.unit, s.name AS store FROM stock_batches b JOIN inventory_items i ON i.id = b.item_id "
+                         "JOIN stores s ON s.id = b.store_id WHERE s.hotel_id = ? AND b.quantity_milli > 0 AND b.expiry_date IS NOT NULL AND b.expiry_date <= ? "
+                         "ORDER BY b.expiry_date", [hid, limit])
+            return f"Stock expiring by {limit}", ["Expiry", "Item", "Store", "Batch", "Quantity", "Status"], \
+                [[r["expiry_date"], r["name"], r["store"], r["batch_no"] or "", f"{r['quantity_milli'] / 1000:g} {r['unit']}",
+                  "EXPIRED" if r["expiry_date"] < bdate.isoformat() else "expiring"] for r in rows]
+        d_from = parse_date(ctx.q("from", bdate.replace(day=1).isoformat()), "from").isoformat()
+        d_to = parse_date(ctx.q("to", bdate.isoformat()), "to").isoformat()
+        rows = c.all("SELECT m.business_date, m.movement_type, m.source_ref, i.name, i.unit, s.name AS store, m.quantity_milli, m.value, m.department, m.reason, "
+                     "u.full_name AS user_name FROM stock_movements m JOIN inventory_items i ON i.id = m.item_id JOIN stores s ON s.id = m.store_id "
+                     "LEFT JOIN users u ON u.id = m.created_by WHERE m.hotel_id = ? AND m.business_date >= ? AND m.business_date <= ? ORDER BY m.id", [hid, d_from, d_to])
+        return f"Stock movements {d_from} to {d_to}", ["Date", "Type", "Reference", "Item", "Store", "Quantity", "Value", "Department", "Reason", "User"], \
+            [[r["business_date"], r["movement_type"], r["source_ref"] or "", r["name"], r["store"], f"{r['quantity_milli'] / 1000:g} {r['unit']}",
+              money(r["value"], cur), r["department"] or "", r["reason"] or "", r["user_name"] or ""] for r in rows]
+    if name == "payables":
+        if not ctx.can("procurement.view"):
+            raise forbidden("The payables report requires procurement.view")
+        rows = c.all("SELECT s.name AS supplier, i.number, i.invoice_no, i.invoice_date, i.due_date, i.amount, i.amount_paid, i.status FROM supplier_invoices i "
+                     "JOIN suppliers s ON s.id = i.supplier_id WHERE i.hotel_id = ? AND i.status IN ('approved','part_paid') ORDER BY i.due_date", [hid])
+        out = []
+        for r in rows:
+            days = (bdate - dt.date.fromisoformat(r["due_date"])).days
+            out.append([r["supplier"], r["number"], r["invoice_no"], r["invoice_date"], r["due_date"], "current" if days <= 0 else f"{days} days overdue",
+                        money(r["amount"], cur), money(r["amount_paid"], cur), money(r["amount"] - r["amount_paid"], cur)])
+        out.append(["TOTAL", "", "", "", "", "", "", "", money(sum(r["amount"] - r["amount_paid"] for r in rows), cur)])
+        return f"Supplier payables — {bdate}", ["Supplier", "Invoice", "Supplier ref", "Date", "Due", "Ageing", "Amount", "Paid", "Outstanding"], out
     raise not_found("Report")
 
 
 REPORTS = {"arrivals": "Arrivals", "departures": "Departures", "in_house": "In-house guests", "daily_revenue": "Daily revenue",
-           "occupancy": "Occupancy & ADR / RevPAR", "outstanding_balances": "Outstanding guest balances"}
+           "occupancy": "Occupancy & ADR / RevPAR", "outstanding_balances": "Outstanding guest balances",
+           "outlet_sales": "Restaurant & bar sales by outlet", "stock_valuation": "Stock valuation", "low_stock": "Low stock / reorder list",
+           "expiring_stock": "Expiring stock", "stock_movements": "Stock movements", "payables": "Supplier payables & ageing"}
+# reports that need more than reports.view
+REPORT_PERMS = {"daily_revenue": "reports.financial", "outstanding_balances": "reports.financial", "outlet_sales": "reports.financial",
+                "stock_valuation": "inventory.view", "low_stock": "inventory.view", "expiring_stock": "inventory.view",
+                "stock_movements": "inventory.view", "payables": "procurement.view"}
 
 
 @route("GET", "/api/hotels/{hotel_id:int}/reports", perm="reports.view", tag="reports", summary="List available reports")
 def list_reports(ctx: Ctx):
     ctx.check_hotel(ctx.path["hotel_id"])
-    fin = {"daily_revenue", "outstanding_balances"}
-    return {"items": [{"code": k, "name": v, "financial": k in fin} for k, v in REPORTS.items() if k not in fin or ctx.can("reports.financial")]}
+    return {"items": [{"code": k, "name": v, "financial": REPORT_PERMS.get(k) == "reports.financial"}
+                      for k, v in REPORTS.items() if k not in REPORT_PERMS or ctx.can(REPORT_PERMS[k])]}
 
 
 @route("GET", "/api/hotels/{hotel_id:int}/reports/{name}", perm="reports.view", tag="reports",
@@ -163,9 +241,15 @@ def list_reports(ctx: Ctx):
 def run_report(ctx: Ctx):
     hid = ctx.check_hotel(ctx.path["hotel_id"])
     fmt = ctx.q("format", "json")
+    name = ctx.path["name"]
+    if name in REPORT_PERMS and not ctx.can(REPORT_PERMS[name]):
+        raise forbidden(f"This report requires {REPORT_PERMS[name]}")
     with get_db().tx() as c:
-        title, cols, rows = _report_rows(c, ctx, hid, ctx.path["name"])
+        title, cols, rows = _report_rows(c, ctx, hid, name)
         hotel_name = get_hotel(c, hid)["name"]
+        if fmt != "json":
+            # FR-BI-006: exports of reports leave an audit record
+            audit(c, ctx, "report.exported", "report", name, title, new={"format": fmt, "rows": len(rows), "query": ctx.query}, hotel_id=hid)
     fname = ctx.path["name"]
     if fmt == "json":
         return {"title": title, "columns": cols, "rows": rows}

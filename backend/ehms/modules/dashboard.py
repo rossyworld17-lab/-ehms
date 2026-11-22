@@ -54,6 +54,17 @@ def dashboard(ctx: Ctx):
         hk_pending = c.scalar("SELECT COUNT(*) FROM housekeeping_tasks WHERE hotel_id = ? AND status IN ('pending','in_progress','rejected')", [hid])
         hk_inspect = c.scalar("SELECT COUNT(*) FROM housekeeping_tasks WHERE hotel_id = ? AND status = 'completed'", [hid])
         approvals = c.scalar("SELECT COUNT(*) FROM approvals WHERE hotel_id = ? AND status = 'pending'", [hid])
+        from .pos import pos_direct_revenue
+        pos_today = pos_direct_revenue(c, hid, d, d)
+        if pos_today["net"]:
+            revenue_today.append({"department": "fnb_outlet", "amount": pos_today["net"]})
+        low_stock = c.scalar("SELECT COUNT(*) FROM (SELECT i.id FROM inventory_items i LEFT JOIN stock_levels l ON l.item_id = i.id WHERE i.hotel_id = ? "
+                             "AND i.active = 1 AND i.reorder_level_milli > 0 GROUP BY i.id, i.reorder_level_milli "
+                             "HAVING COALESCE(SUM(l.quantity_milli),0) <= i.reorder_level_milli) x", [hid])
+        open_orders = c.scalar("SELECT COUNT(*) FROM pos_orders WHERE hotel_id = ? AND status = 'open'", [hid])
+        po_pending = c.scalar("SELECT COUNT(*) FROM purchase_orders WHERE hotel_id = ? AND status = 'pending_approval'", [hid])
+        inv_pending = c.scalar("SELECT COUNT(*) FROM supplier_invoices WHERE hotel_id = ? AND status = 'pending_approval'", [hid])
+        req_pending = c.scalar("SELECT COUNT(*) FROM stock_requisitions WHERE hotel_id = ? AND status IN ('pending','approved')", [hid])
         today = kpis_for(c, hid, bdate)
         trend = [kpis_for(c, hid, bdate - dt.timedelta(days=i)) for i in range(29, -1, -1)]
         forecast = []
@@ -72,10 +83,15 @@ def dashboard(ctx: Ctx):
         mtd = c.all("SELECT fl.department, COALESCE(SUM(fl.net_amount),0) AS amount FROM folio_lines fl JOIN folios f ON f.id = fl.folio_id "
                     "WHERE f.hotel_id = ? AND fl.kind IN ('charge','adjustment') AND fl.business_date >= ? AND fl.business_date <= ? GROUP BY fl.department",
                     [hid, month_start, d])
+        pos_mtd = pos_direct_revenue(c, hid, month_start, d)
+        if pos_mtd["net"]:
+            mtd.append({"department": "fnb_outlet", "amount": pos_mtd["net"]})
     return {"business_date": d, "hotel": {"id": hotel["id"], "name": hotel["name"], "currency": hotel["currency"]},
             "today": today, "room_status": status,
             "front_office": {"arrivals_expected": arrivals, "arrived": arrived, "departures_expected": departures, "departed": departed,
                              "in_house_guests": guests_in, "pending_reservations": pending},
             "revenue_today": revenue_today, "revenue_mtd": mtd, "outstanding_balances": outstanding, "payments_today": payments_today,
-            "tasks": {"housekeeping_open": hk_pending, "awaiting_inspection": hk_inspect, "approvals_pending": approvals},
+            "tasks": {"housekeeping_open": hk_pending, "awaiting_inspection": hk_inspect, "approvals_pending": approvals,
+                      "low_stock_items": low_stock, "open_pos_orders": open_orders, "purchase_orders_pending": po_pending,
+                      "supplier_invoices_pending": inv_pending, "stock_requisitions_open": req_pending},
             "trend": trend, "forecast": forecast, "booking_sources": sources, "room_type_mix": by_type}

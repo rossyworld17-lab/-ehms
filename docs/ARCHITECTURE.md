@@ -10,6 +10,8 @@ ASGI app (Starlette + Uvicorn)  ──  /api/*  REST endpoints, OpenAPI at /api/
   ├─ http.py        routing, authentication, permission & hotel-scope checks, errors, rate limits
   ├─ modules/       auth · admin · properties · rooms · guests · reservations · frontoffice
   │                 accounting · housekeeping · dashboard · reports · booking (public)
+  │                 pos (+ kitchen display) · inventory · procurement            (release 0.4)
+  ├─ stock.py       perpetual stock ledger (weighted average cost, FEFO batches)  (release 0.4)
   ├─ services.py    numbering, business date, tax engine, double-entry posting, notifications
   ├─ security.py    scrypt hashing, JWT, TOTP (RFC 6238)
   └─ db.py          thin SQL layer, one transaction per request action
@@ -38,6 +40,11 @@ design system (navy / champagne gold) instead of a utility framework, which keep
 | Third-party honesty | Messages are stored as `not_configured` when no provider exists; online-gateway payments return HTTP 501 until a gateway is configured. Nothing reports success that did not happen. |
 | Multi-property | Organisation → hotels. Users have `all_hotels` or explicit hotel assignments; every hotel-scoped endpoint calls `ctx.check_hotel()`. Reports can be per hotel or consolidated. |
 | Sensitive data | Guest identification fields are masked unless the user holds `guests.identity.view`; card data is never stored (only terminal approval references). |
+| Stock quantities | Integer thousandths of the item's unit (`*_milli` columns) — 0.25 kg is exact on SQLite and PostgreSQL. |
+| Stock valuation | Weighted average cost per item per store. Each stock level stores quantity **and** carrying value; an outflow removes value in proportion (all of it when the store empties), so the stock sub-ledger always equals the Inventory GL account (asserted by the tests). Batches with expiry dates are depleted first-expiry-first-out. `stock_movements` is append-only (DB triggers). |
+| POS settlement | One transaction: validate tenders (only cash may be over-tendered), post one balanced journal (Dr tenders / guest ledger, Cr F&B revenue, service charge, VAT), write folio lines for room charges, deduct recipe ingredients (each menu item's own store or the outlet's) and post cost of sales. If any ingredient is short the whole settlement rolls back. |
+| Procurement accounting | GRN: Dr Inventory / expense, Cr Goods Received Not Invoiced. Invoice approval: Dr GRNI (uninvoiced receipts) ± Purchase Price Variance, Cr Accounts Payable. Payment: Dr AP, Cr bank (net), Cr Withholding Tax Payable. Maker-checker on requisitions, POs (with a configurable high-value tier) and invoices. |
+| Upgrades | Migrations apply on start-up. Permissions introduced by a release are granted once to existing system roles (`rbac.INTRODUCED`, marker in `system_settings`); missing ledger accounts are added. |
 | Sessions | Server-side session rows behind every JWT: logout, password change, suspension and admin revocation take effect immediately; idle timeout is enforced on each request. |
 
 ## Database
@@ -53,6 +60,9 @@ to run manually, `--render postgresql` to print the DDL). Main tables:
 | Guests & stays | guests, reservations, folios, folio_lines, payments, approvals |
 | Ledger | journal_entries, journal_lines |
 | Operations | housekeeping_tasks, notifications |
+| Inventory (0.4) | stores, inventory_items, stock_levels, stock_batches, stock_movements, stock_requisitions(+_lines), stock_counts(+_lines) |
+| POS (0.4) | outlets, pos_tables, menu_categories, menu_items, recipe_lines, cashier_shifts, pos_orders, pos_order_items, pos_payments |
+| Procurement (0.4) | suppliers, purchase_requisitions(+_lines), supplier_quotes(+_lines), purchase_orders(+_lines), goods_receipts(+_lines), supplier_invoices, supplier_payments |
 | Control | audit_logs, schema_migrations |
 
 All foreign keys, unique constraints (room numbers per hotel, reservation references, idempotency keys,
@@ -105,4 +115,43 @@ erDiagram
   ROOMS ||--o{ HOUSEKEEPING_TASKS : "cleaned via"
   HOTELS ||--o{ NOTIFICATIONS : sends
   USERS ||--o{ AUDIT_LOGS : "actions recorded"
+```
+
+## Entity-relationship diagram (release 0.4: POS, inventory, procurement)
+
+```mermaid
+erDiagram
+  HOTELS ||--o{ STORES : has
+  HOTELS ||--o{ INVENTORY_ITEMS : catalogues
+  INVENTORY_ITEMS ||--o{ STOCK_LEVELS : "balance per store"
+  STORES ||--o{ STOCK_LEVELS : holds
+  INVENTORY_ITEMS ||--o{ STOCK_BATCHES : "batches / expiry"
+  INVENTORY_ITEMS ||--o{ STOCK_MOVEMENTS : "append-only history"
+  STOCK_MOVEMENTS }o--o| JOURNAL_ENTRIES : "valued in"
+  STORES ||--o{ STOCK_REQUISITIONS : "issues from"
+  STORES ||--o{ STOCK_COUNTS : counted
+  HOTELS ||--o{ OUTLETS : runs
+  OUTLETS }o--o| STORES : "issuing store"
+  OUTLETS ||--o{ POS_TABLES : seats
+  MENU_CATEGORIES ||--o{ MENU_ITEMS : groups
+  MENU_ITEMS ||--o{ RECIPE_LINES : "recipe"
+  RECIPE_LINES }o--|| INVENTORY_ITEMS : consumes
+  OUTLETS ||--o{ CASHIER_SHIFTS : "cash drawer"
+  OUTLETS ||--o{ POS_ORDERS : sells
+  POS_TABLES ||--o{ POS_ORDERS : "dine-in"
+  RESERVATIONS ||--o{ POS_ORDERS : "room service"
+  POS_ORDERS ||--o{ POS_ORDER_ITEMS : contains
+  POS_ORDERS ||--o{ POS_PAYMENTS : "settled by"
+  POS_PAYMENTS }o--o| FOLIO_LINES : "charge to room"
+  POS_ORDERS }o--o| JOURNAL_ENTRIES : "sale + cost of sales"
+  ORGANISATIONS ||--o{ SUPPLIERS : "supplier register"
+  PURCHASE_REQUISITIONS ||--o{ SUPPLIER_QUOTES : "quotations"
+  SUPPLIERS ||--o{ PURCHASE_ORDERS : "orders"
+  PURCHASE_REQUISITIONS ||--o{ PURCHASE_ORDERS : "ordered as"
+  PURCHASE_ORDERS ||--o{ GOODS_RECEIPTS : "received via GRN"
+  PURCHASE_ORDERS ||--o{ SUPPLIER_INVOICES : "matched to"
+  SUPPLIER_INVOICES ||--o{ SUPPLIER_PAYMENTS : "paid by"
+  GOODS_RECEIPTS }o--|| JOURNAL_ENTRIES : "Dr Inventory / Cr GRNI"
+  SUPPLIER_INVOICES }o--o| JOURNAL_ENTRIES : "Dr GRNI / Cr AP"
+  SUPPLIER_PAYMENTS }o--|| JOURNAL_ENTRIES : "Dr AP / Cr Bank, WHT"
 ```

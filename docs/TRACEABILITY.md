@@ -1,17 +1,17 @@
 # Requirements traceability
 
-Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.3.
+Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.4.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md
 
-Summary: **36 implemented**, **26 partial**, **65 planned** (of 127).
+Summary: **57 implemented**, **25 partial**, **45 planned** (of 127).
 
 | ID | Requirement | Status | Notes |
 |---|---|---|---|
 | FR-ADM-001 | Create, edit, deactivate and manage user accounts. | Implemented | admin.py users CRUD/suspend |
 | FR-ADM-002 | Configure roles and permissions by module, action, property, branch and organisational scope. | Implemented | roles/permissions, hotel scope; branch=hotel |
 | FR-ADM-003 | Support password policies, account lockout and multi-factor authentication. | Implemented | password policy, lockout, TOTP MFA |
-| FR-ADM-004 | Configure hotel identity, contact details, room categories, facilities, services, outlets and departments. | Partial | hotel profile, room categories, departments; outlets with POS phase |
+| FR-ADM-004 | Configure hotel identity, contact details, room categories, facilities, services, outlets and departments. | Implemented | hotel profile, room categories, departments; restaurant/bar/room-service outlets with tables (0.4) |
 | FR-ADM-005 | Configure currencies, exchange rates, taxes, service charges and payment methods. | Partial | taxes, service charge, payment methods; exchange rates planned |
 | FR-ADM-006 | Maintain administrative audit logs and configurable notification templates and business rules. | Partial | audit logs; notification templates planned |
 | FR-PRP-001 | Register multiple hotel properties and branches, each with a unique identifier. | Implemented | multi-hotel |
@@ -50,26 +50,26 @@ Summary: **36 implemented**, **26 partial**, **65 planned** (of 127).
 | FR-CRM-003 | Record feedback, complaints and service preferences for authorised staff. | Partial | preferences & notes; feedback module planned |
 | FR-CRM-004 | Support targeted campaigns subject to consent and applicable privacy rules. | Partial | consent captured; campaigns planned |
 | FR-CRM-005 | Provide guest satisfaction and retention reporting. | Planned |  |
-| FR-POS-001 | Support multiple outlets, menu categories and items with prices, tax, availability and optional images. | Planned |  |
-| FR-POS-002 | Support dine-in, takeaway, room service, table management, split bills and merged bills. | Planned |  |
-| FR-POS-003 | Create sales transactions and support multiple payment methods. | Planned |  |
-| FR-POS-004 | Post authorised room charges to guest folios and generate receipts. | Planned |  |
-| FR-POS-005 | Track cashier shifts, cash reconciliation, discounts and authorised voids. | Planned |  |
-| FR-POS-006 | Provide outlet sales reports and record recipe-based stock consumption. | Planned |  |
-| FR-KIT-001 | Transmit orders to the appropriate kitchen station and display pending orders. | Planned |  |
-| FR-KIT-002 | Allow kitchen staff to update order status, priority, preparation and completion times. | Planned |  |
-| FR-KIT-003 | Notify service staff when orders are ready and provide kitchen performance reports. | Planned |  |
+| FR-POS-001 | Support multiple outlets, menu categories and items with prices, tax, availability and optional images. | Implemented | outlets, menu categories & items, price, station, availability/sold-out, optional image URL; tax via hotel rules (0.4) |
+| FR-POS-002 | Support dine-in, takeaway, room service, table management, split bills and merged bills. | Implemented | dine-in tables, takeaway, room service; split bill by items, merge orders, move table (0.4) |
+| FR-POS-003 | Create sales transactions and support multiple payment methods. | Implemented | settlement with split tenders: cash (with change), POS card, transfer, room charge (0.4) |
+| FR-POS-004 | Post authorised room charges to guest folios and generate receipts. | Implemented | charge to in-house guest folio with net/service/tax split; 80 mm receipt PDF (0.4) |
+| FR-POS-005 | Track cashier shifts, cash reconciliation, discounts and authorised voids. | Implemented | cashier shifts with float, expected vs counted cash and variance note; authorised discounts & voids with reasons (0.4) |
+| FR-POS-006 | Provide outlet sales reports and record recipe-based stock consumption. | Implemented | outlet sales report; recipe-based stock consumption at settlement with cost of sales journal (0.4) |
+| FR-KIT-001 | Transmit orders to the appropriate kitchen station and display pending orders. | Implemented | items routed to kitchen/grill/pastry/bar stations; kitchen display with station filter (0.4) |
+| FR-KIT-002 | Allow kitchen staff to update order status, priority, preparation and completion times. | Implemented | sent → preparing → ready, rush priority, sent/started/ready/served timestamps (0.4) |
+| FR-KIT-003 | Notify service staff when orders are ready and provide kitchen performance reports. | Implemented | ready items flagged on POS tables and orders, in-app notification record for the waiter; kitchen performance report (0.4) |
 | FR-HSK-001 | Display rooms requiring cleaning and allow managers to assign tasks. | Implemented |  |
 | FR-HSK-002 | Allow staff to update cleaning progress and managers to inspect and approve rooms. | Implemented |  |
 | FR-HSK-003 | Update room readiness only after required cleaning and inspection. | Implemented |  |
-| FR-HSK-004 | Record damaged or missing items, lost-and-found items, linen and laundry movements. | Partial | damage/issue reporting; lost-and-found & linen planned |
+| FR-HSK-004 | Record damaged or missing items, lost-and-found items, linen and laundry movements. | Partial | damage/issue reporting; linen & toiletry stock via store requisitions (0.4); lost-and-found & laundry planned |
 | FR-HSK-005 | Support laundry service orders, charges and housekeeping productivity reports. | Planned | laundry module |
 | FR-FIN-001 | Provide a configurable chart of accounts and double-entry accounting. | Implemented |  |
-| FR-FIN-002 | Maintain a general ledger, accounts receivable, accounts payable, cashbook and bank accounts. | Partial | GL, guest & city ledger, cash/bank accounts; AP with procurement phase |
-| FR-FIN-003 | Record income and expenses by department, property and category. | Partial | income by department/property; expense categories via manual journals |
+| FR-FIN-002 | Maintain a general ledger, accounts receivable, accounts payable, cashbook and bank accounts. | Implemented | GL, guest & city ledger, accounts payable via supplier invoices, cash/bank accounts (0.4) |
+| FR-FIN-003 | Record income and expenses by department, property and category. | Partial | income by department/property; expenses by department via stock issues, GRN service lines and supplier invoices (0.4); expense claims planned |
 | FR-FIN-004 | Support budgets, budget-versus-actual analysis, payment allocation and reconciliation. | Planned | budgets, bank reconciliation |
 | FR-FIN-005 | Configure taxes, service charges, invoices, receipts, credit notes and debit notes. | Partial | taxes, service charge, invoices/receipts; credit/debit notes planned |
-| FR-FIN-006 | Support financial approval workflows, bank reconciliation and financial period closing. | Partial | refund approvals; period closing planned |
+| FR-FIN-006 | Support financial approval workflows, bank reconciliation and financial period closing. | Partial | maker-checker on refunds, requisitions, POs (amount thresholds) and supplier invoices (0.4); bank reconciliation & period close planned |
 | FR-FIN-007 | Generate trial balance, profit and loss, balance sheet, cash flow and departmental reports. | Partial | TB, P&L, balance sheet, departmental revenue; cash-flow statement planned |
 | FR-FIN-008 | Prevent unauthorised changes to posted transactions; use controlled reversals or adjustments. | Implemented | DB triggers + reversals |
 | FR-FIN-009 | Trace financial entries to originating operational transactions and preserve approval history. | Implemented | folio line → journal entry; approval history |
@@ -78,15 +78,15 @@ Summary: **36 implemented**, **26 partial**, **65 planned** (of 127).
 | FR-PAY-003 | Verify payment status through trusted gateway responses or reconciliation. | Partial | manual reconciliation refs; gateway verification planned |
 | FR-PAY-004 | Prevent duplicate payment processing and maintain payment history. | Implemented | idempotency keys + duplicate reference check |
 | FR-PAY-005 | Never store raw card security codes or sensitive card authentication data. | Implemented | no card data stored |
-| FR-INV-001 | Maintain an item catalogue with codes, categories, units, costs, selling prices and reorder levels. | Planned |  |
-| FR-INV-002 | Support multiple stores, receipts, issues, transfers, adjustments and stocktaking. | Planned |  |
-| FR-INV-003 | Calculate stock balances and generate low-stock alerts. | Planned |  |
-| FR-INV-004 | Support batches, expiry dates, FIFO and FEFO where configured. | Planned |  |
-| FR-INV-005 | Record departmental consumption, valuation, variances and auditable stock movements. | Planned |  |
-| FR-PRO-001 | Maintain supplier records and performance history. | Planned |  |
-| FR-PRO-002 | Support requisitions, quotations, purchase orders and approval workflows. | Planned |  |
-| FR-PRO-003 | Record goods received and compare orders, receipts and supplier invoices. | Planned |  |
-| FR-PRO-004 | Record supplier payments and generate procurement reports. | Planned |  |
+| FR-INV-001 | Maintain an item catalogue with codes, categories, units, costs, selling prices and reorder levels. | Implemented | item catalogue: code, barcode, category, unit, cost, sale price, reorder level & quantity (0.4) |
+| FR-INV-002 | Support multiple stores, receipts, issues, transfers, adjustments and stocktaking. | Implemented | multiple stores; receipts (GRN), issues, transfers, adjustments, wastage, stock counts (0.4) |
+| FR-INV-003 | Calculate stock balances and generate low-stock alerts. | Implemented | perpetual balances per store; low-stock alerts, dashboard count and reorder report (0.4) |
+| FR-INV-004 | Support batches, expiry dates, FIFO and FEFO where configured. | Partial | batches & expiry dates with FEFO depletion and expiry alerts (0.4); valuation is weighted average (FIFO costing not offered) |
+| FR-INV-005 | Record departmental consumption, valuation, variances and auditable stock movements. | Implemented | departmental issues, WAC valuation reconciled to the GL, count variances journalled, append-only movement ledger (0.4) |
+| FR-PRO-001 | Maintain supplier records and performance history. | Implemented | supplier register (bank details masked without permission), on-time & rejection performance, balances (0.4) |
+| FR-PRO-002 | Support requisitions, quotations, purchase orders and approval workflows. | Implemented | requisitions, quotations with price comparison, POs with standard/high-value approval and maker-checker (0.4) |
+| FR-PRO-003 | Record goods received and compare orders, receipts and supplier invoices. | Implemented | GRN with rejections, batch & expiry; three-way match of invoice to goods received with tolerance (0.4) |
+| FR-PRO-004 | Record supplier payments and generate procurement reports. | Implemented | supplier payments with withholding tax, idempotency; payables ageing, spend by supplier, payables report (0.4) |
 | FR-HR-001 | Maintain employee records, departments, job positions and employment documents. | Planned |  |
 | FR-HR-002 | Support recruitment, onboarding, separation and employee self-service. | Planned |  |
 | FR-HR-003 | Support attendance, configurable shifts, duty rosters and leave applications and approvals. | Planned |  |
@@ -119,9 +119,9 @@ Summary: **36 implemented**, **26 partial**, **65 planned** (of 127).
 | FR-BI-001 | Provide role-filtered dashboards for revenue, occupancy, ADR, RevPAR, rooms, reservations, cancellations, balances, expenses and departmenta | Partial | executive dashboard KPIs |
 | FR-BI-002 | Provide daily, weekly, monthly, quarterly and annual reports. | Partial | operational & financial reports with Excel/CSV/PDF export |
 | FR-BI-003 | Support relevant filters by date, department, property and transaction. | Planned |  |
-| FR-BI-004 | Export reports to PDF and spreadsheet formats. | Planned |  |
+| FR-BI-004 | Export reports to PDF and spreadsheet formats. | Implemented | every report exports to PDF, Excel and CSV |
 | FR-BI-005 | Compare periods and ensure financial reports use approved accounting records. | Planned |  |
-| FR-BI-006 | Audit sensitive report exports. | Planned |  |
+| FR-BI-006 | Audit sensitive report exports. | Implemented | report exports are written to the audit trail (0.4) |
 | FR-AI-001 | Provide an AI-assisted management interface for questions about data the user is authorised to access. | Planned |  |
 | FR-AI-002 | Forecast room demand, revenue and occupancy from relevant historical and booking data. | Planned |  |
 | FR-AI-003 | Identify unusual transaction patterns for human review. | Planned |  |

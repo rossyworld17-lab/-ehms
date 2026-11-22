@@ -121,6 +121,9 @@ const STATUS_CLASS: Record<string, string> = {
   dirty: "red", rejected: "red", cancelled: "grey", no_show: "red", checked_out: "grey", out_of_order: "red", out_of_service: "red", maintenance: "orange",
   blocked: "grey", vip_hold: "gold", active: "green", suspended: "amber", deactivated: "grey", open: "blue", closed: "grey", approved: "green",
   queued: "blue", sent: "green", failed: "red", not_configured: "amber",
+  settled: "green", voided: "grey", merged: "grey", new: "amber", preparing: "violet", ready: "green", served: "grey", void: "grey",
+  pending_approval: "amber", partially_received: "violet", received: "green", ordered: "teal", submitted: "amber", issued: "green",
+  part_paid: "violet", paid: "green", posted: "green", draft: "amber", matched: "green", variance: "orange", no_po: "blue", selected: "green",
 };
 export function Pill({ s, text }: { s: string; text?: string }) {
   return <span className={`pill pill-${STATUS_CLASS[s] || "grey"}`}>{text || label(s)}</span>;
