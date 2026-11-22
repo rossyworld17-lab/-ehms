@@ -5,12 +5,12 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
-> **Release 0.6 — adds laundry, human resources and payroll** to 0.5's online payments, finance operations and
-> communication centre and 0.4's restaurant POS, inventory and procurement. Traceability: 80 of 127 SRS
-> requirements implemented, 17 partial. Maintenance, security, events, CRM loyalty, sales, AI and channel
-> managers follow in [docs/ROADMAP.md](docs/ROADMAP.md); the [progress register](docs/PROGRESS.md) tracks status.
-> Nothing in the interface is a placeholder: screens and menu items appear only when the module behind them
-> works and the user has permission.
+> **Release 0.7 — adds maintenance & assets, security & lost property, and events & banqueting** to the
+> front office, restaurant POS, inventory, procurement, finance, payments, messaging, laundry, HR and payroll
+> modules of earlier releases. Traceability: 92 of 127 SRS requirements implemented, 17 partial. CRM loyalty
+> and feedback, sales & revenue management, AI and channel managers follow in [docs/ROADMAP.md](docs/ROADMAP.md);
+> the [progress register](docs/PROGRESS.md) tracks status. Nothing in the interface is a placeholder: screens and
+> menu items appear only when the module behind them works and the user has permission.
 
 ## What works today
 
@@ -30,6 +30,9 @@ and policy is configurable for other countries.
 | Restaurant & bar POS *(0.4)* | Outlets (restaurant, bar, in-room dining), table plan, menu with categories, stations and sold-out switch; dine-in / takeaway / room service; split bill, merge, move table; authorised discounts and voids with reasons; split tenders (cash with change, POS card, transfer, **charge to room folio**); cashier shifts with float, expected vs counted cash and variance; 80 mm receipt PDF |
 | Kitchen display *(0.4)* | Tickets by station (kitchen, grill, pastry, bar), oldest first with ageing colours, preparing → ready → served, rush flag, ready alerts on the POS, preparation-time report |
 | Inventory & stores *(0.4)* | Item catalogue with barcodes and reorder levels; multiple stores; perpetual stock at weighted average cost (always reconciles to the Inventory GL account); requisitions with approval, issues to departments, transfers, wastage and adjustments, stock counts with variance posting; batches and expiry dates (FEFO); low-stock and expiry alerts; **recipes deduct ingredients automatically when a POS order is settled** |
+| Maintenance *(0.7)* | Asset register with capitalisation and monthly straight-line depreciation; preventive schedules that raise work orders automatically; fault reporting by any staff (also from housekeeping checklists) with notifications; assignment, progress notes, spare parts from stores, vendor costs, room blocking until verified; independent verification; downtime and cost reports |
+| Security *(0.7)* | Incident register with severity alerts, investigation notes and restricted sensitive cases; visitor/contractor log with masked IDs; lost-and-found with ID-checked returns and holding periods; emergency contacts; key-card / access-control event intake API and log |
+| Events & banqueting *(0.7)* | Venues and capacities; enquiry → tentative → confirmed with venue-clash and capacity checks; quotation lines (venue, catering, beverage, equipment, décor…), quotation/invoice PDF; event folio for deposits and invoicing through the ledger; direct costs, staff allocation, profitability; venue calendar |
 | Laundry *(0.6)* | Guest laundry with price list, express surcharge, stage tracking (washing → drying → ironing → quality check → ready → delivered), lost/damaged items excluded from the bill, automatic folio charge on delivery; internal linen batches by department; daily summary |
 | HR *(0.6)* | Employee register with masked bank/statutory IDs, weekly duty rosters, attendance with overtime, staff self clock-in with lateness, leave types/balances with approval, confidential HR records, exits; **My HR** self-service (leave, payslips, attendance) |
 | Payroll *(0.6)* | Runs computed from salary structure, attendance, unpaid leave, bonuses, deductions and staff loans; configurable PAYE bands with rent relief, pension, NHF, NSITF, ITF (Nigerian defaults); maker-checker approval posting the payroll journal; salary payment, statutory remittances, bank schedule CSV, payslip PDFs |
@@ -64,6 +67,7 @@ Open <http://localhost:8000> and sign in with a demo account (password `Demo@123
 | hkmanager@demo.ehms / housekeeper@demo.ehms | Housekeeping |
 | fnbmanager@demo.ehms / cashier@demo.ehms / waiter@demo.ehms / chef@demo.ehms | Restaurant manager, cashier, waiter, chef *(0.4)* |
 | inventory@demo.ehms / stores@demo.ehms / procurement@demo.ehms | Inventory manager, storekeeper, procurement officer *(0.4)* |
+| maintenance@demo.ehms / technician@demo.ehms / security@demo.ehms / sales@demo.ehms | Maintenance manager, technician, security officer, sales manager *(0.7)* |
 | hrmanager@demo.ehms / hrofficer@demo.ehms | HR manager, HR officer *(0.6)* — every demo staff account also has an employee record for **My HR** |
 | auditor@demo.ehms | Auditor (read-only) |
 
@@ -89,7 +93,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for TLS, email, payment gateways, b
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q                       # 59 API/integration tests (SQLite)
+cd backend && python -m pytest -q                       # 64 API/integration tests (SQLite)
 TEST_DATABASE_URL=postgresql://... python -m pytest -q  # same suite on PostgreSQL
 python ../frontend/e2e/smoke.py                         # browser end-to-end (app running with demo data)
 ```

@@ -3,7 +3,7 @@
 Maintained per the master prompt: completed modules, partially completed modules, pending integrations,
 outstanding defects and test results. Requirement-level status is in [TRACEABILITY.md](TRACEABILITY.md).
 
-_Last updated: release 0.6._
+_Last updated: release 0.7._
 
 ## Completed modules (implemented, integrated and tested)
 
@@ -29,6 +29,9 @@ _Last updated: release 0.6._
 | Laundry (guest & internal linen) | **0.6** | folios, housekeeping |
 | HR: employees, rosters, attendance, leave, records, self-service | **0.6** | users, notifications, payroll |
 | Payroll with configurable statutory rules, loans, remittances | **0.6** | HR attendance & leave, ledger |
+| Maintenance & assets (depreciation, preventive schedules, work orders) | **0.7** | rooms, housekeeping, stores, ledger, worker |
+| Security: incidents, visitors, lost & found, emergency contacts, access events | **0.7** | rooms, guests, notifications |
+| Events & banqueting | **0.7** | folios, ledger, HR (staff allocation) |
 
 ## Partially completed
 
@@ -37,7 +40,6 @@ _Last updated: release 0.6._
 | CRM | profiles, history, repeat/VIP, consent | loyalty points, campaigns, surveys, feedback analysis |
 | Finance | AR, AP, cash/bank, approvals, reconciliation, budgets, cash flow, period close | credit/debit note documents, multi-currency |
 | Inventory | WAC valuation, FEFO depletion | optional FIFO costing, supplier returns, barcode scanner input |
-| Housekeeping | tasks, inspection, issue reporting, stock requisitions, laundry | lost-and-found register (with security, 0.7) |
 | HR | full HR & payroll | recruitment pipeline |
 
 ## Pending integrations (none are simulated)
@@ -47,18 +49,19 @@ _Last updated: release 0.6._
 | Paystack / Flutterwave | adapters built and tested against the documented APIs (simulated in tests); need live keys and webhook registration |
 | SMS (Termii) / WhatsApp Cloud API | adapters built; need provider accounts; until configured messages are stored `not_configured` |
 | Channel managers / OTAs | not connected |
-| Door locks, key cards, CCTV | not connected |
+| Door locks, key cards | event intake API built (`/api/integrations/access-events`, token-protected); vendor-specific adapters/key encoding need the lock vendor's SDK |
+| CCTV | not connected (incident records can hold references) |
 | E-invoicing | not connected |
 
 ## Outstanding defects
 
 None known. Defects found and fixed while building 0.4 are listed in [TEST_REPORT.md](TEST_REPORT.md).
 
-## Test results (release 0.6)
+## Test results (release 0.7)
 
 | Suite | Result |
 |---|---|
-| API / integration (`pytest`), SQLite | 59 passed, 0 failed |
-| API / integration (`pytest`), PostgreSQL 16 | 59 passed, 0 failed |
-| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, mobile self clock-in |
+| API / integration (`pytest`), SQLite | 64 passed, 0 failed |
+| API / integration (`pytest`), PostgreSQL 16 | 64 passed, 0 failed |
+| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report |
 | Upgrade from 0.3 and 0.4 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |

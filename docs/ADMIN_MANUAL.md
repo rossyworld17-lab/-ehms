@@ -100,3 +100,16 @@ requests through the guest profile. Appoint a data protection officer as your ob
 - New ledger accounts are added automatically: 1300 Staff Loans & Advances, 2130 Salaries & Wages Payable,
   2140 PAYE Payable, 2150 Pension Payable, 2160 NHF Payable, 2170 Other Statutory Deductions Payable, 5010
   Employer Pension & Statutory Contributions.
+
+## Maintenance, security and events (release 0.7)
+- Permissions: `maintenance.report` (most operational staff), `maintenance.work` (technicians),
+  `maintenance.manage` (maintenance manager), `maintenance.view`; `security.report`, `security.view`,
+  `security.manage`, `security.sensitive` (restricted incidents), `lostfound.manage`; `events.view`,
+  `events.manage` (sales), `events.invoice` (finance).
+- Depreciation is posted by finance (`accounting.post_manual`) once per month; capitalise assets when you
+  register them (existing assets as opening balance, new purchases against cash/bank).
+- The worker raises preventive work orders three days before they fall due and notifies the assignee.
+- Door-lock / key-card systems: set `EHMS_ACCESS_API_TOKEN` and have the vendor's gateway POST events to
+  `/api/integrations/access-events` with header `X-EHMS-Integration-Token` (body: `hotel_code`, `source`,
+  `events[{door, event, credential, person, occurred_at}]`).
+- New ledger accounts: 1500 Property, Plant & Equipment, 1510 Accumulated Depreciation, 5410 Depreciation.

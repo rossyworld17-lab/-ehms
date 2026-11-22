@@ -1,10 +1,10 @@
 # Requirements traceability
 
-Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.6.
+Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.7.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md
 
-Summary: **80 implemented**, **17 partial**, **30 planned** (of 127).
+Summary: **92 implemented**, **17 partial**, **18 planned** (of 127).
 
 | ID | Requirement | Status | Notes |
 |---|---|---|---|
@@ -62,7 +62,7 @@ Summary: **80 implemented**, **17 partial**, **30 planned** (of 127).
 | FR-HSK-001 | Display rooms requiring cleaning and allow managers to assign tasks. | Implemented |  |
 | FR-HSK-002 | Allow staff to update cleaning progress and managers to inspect and approve rooms. | Implemented |  |
 | FR-HSK-003 | Update room readiness only after required cleaning and inspection. | Implemented |  |
-| FR-HSK-004 | Record damaged or missing items, lost-and-found items, linen and laundry movements. | Implemented | damage/issue reporting; linen and laundry movements (internal batches, lost/damaged items) (0.6); lost-and-found register with security release |
+| FR-HSK-004 | Record damaged or missing items, lost-and-found items, linen and laundry movements. | Implemented | damage/issue reporting (raises maintenance work orders), linen & laundry movements (0.6), lost-and-found register with claims and disposal (0.7) |
 | FR-HSK-005 | Support laundry service orders, charges and housekeeping productivity reports. | Implemented | guest laundry orders with price list and express surcharge, billed to the folio on delivery; laundry summary (0.6) |
 | FR-FIN-001 | Provide a configurable chart of accounts and double-entry accounting. | Implemented |  |
 | FR-FIN-002 | Maintain a general ledger, accounts receivable, accounts payable, cashbook and bank accounts. | Implemented | GL, guest & city ledger, accounts payable via supplier invoices, cash/bank accounts (0.4) |
@@ -97,22 +97,22 @@ Summary: **80 implemented**, **17 partial**, **30 planned** (of 127).
 | FR-PAYR-003 | Support configurable statutory deductions and employer contributions. | Implemented | configurable PAYE bands, rent relief, pension, NHF, NSITF, ITF; rules stored with each run (0.6) |
 | FR-PAYR-004 | Support payroll review, approval, payslips, summaries and bank export where supported. | Implemented | review, maker-checker approval, payslip PDFs, totals, bank schedule CSV, statutory remittances (0.6) |
 | FR-PAYR-005 | Post approved payroll transactions to accounting and preserve restricted payroll history. | Implemented | approved payroll posts salary, employer contributions and statutory liabilities; restricted payroll history (0.6) |
-| FR-MNT-001 | Maintain an asset register with identifiers, location, acquisition details, cost, warranty and status. | Planned |  |
-| FR-MNT-002 | Register maintenance issues, generate work orders and assign technicians. | Planned |  |
-| FR-MNT-003 | Support preventive maintenance schedules, progress tracking and completion verification. | Planned |  |
-| FR-MNT-004 | Record downtime and maintenance costs and provide performance reports. | Planned |  |
-| FR-EVT-001 | Maintain venue details, capacities and event facilities. | Planned |  |
-| FR-EVT-002 | Manage enquiries, bookings, dates, times, layouts, quotations, deposits and payment schedules. | Planned |  |
-| FR-EVT-003 | Record catering, equipment and service requirements. | Planned |  |
-| FR-EVT-004 | Prevent conflicting confirmed bookings for the same venue and time. | Planned |  |
-| FR-EVT-005 | Generate event invoices, final bills and revenue reports. | Planned |  |
+| FR-MNT-001 | Maintain an asset register with identifiers, location, acquisition details, cost, warranty and status. | Implemented | asset register: code, category, location/room, serial, maker, supplier, cost, life, warranty, status; capitalisation and depreciation (0.7) |
+| FR-MNT-002 | Register maintenance issues, generate work orders and assign technicians. | Implemented | fault reporting by any authorised staff (incl. from housekeeping), work orders, assignment with notifications, room blocking (0.7) |
+| FR-MNT-003 | Support preventive maintenance schedules, progress tracking and completion verification. | Implemented | preventive schedules raising work orders automatically, progress notes, spare parts from stores, completion and independent verification (0.7) |
+| FR-MNT-004 | Record downtime and maintenance costs and provide performance reports. | Implemented | downtime, parts/vendor/labour costs per order and asset, performance summary (0.7) |
+| FR-EVT-001 | Maintain venue details, capacities and event facilities. | Implemented | venues with theatre/banquet/classroom capacities, area, rates and facilities (0.7) |
+| FR-EVT-002 | Manage enquiries, bookings, dates, times, layouts, quotations, deposits and payment schedules. | Implemented | enquiry → tentative → confirmed, dates/times, layouts, quotations, deposits on the event folio (0.7) |
+| FR-EVT-003 | Record catering, equipment and service requirements. | Implemented | catering, beverage, equipment, decoration, accommodation and service lines; staff allocation; direct costs (0.7) |
+| FR-EVT-004 | Prevent conflicting confirmed bookings for the same venue and time. | Implemented | tentative/confirmed holds cannot overlap on a venue; capacity checked (0.7) |
+| FR-EVT-005 | Generate event invoices, final bills and revenue reports. | Implemented | quotation/invoice PDF, invoicing to the event folio through the ledger, revenue & profitability summary (0.7) |
 | FR-SAL-001 | Maintain corporate customer accounts and negotiated rates. | Planned |  |
 | FR-SAL-002 | Support promotional campaigns, discount codes, sales targets and booking-source tracking. | Partial | promo/discount codes and booking-source tracking (0.5); campaigns and sales targets with CRM release |
 | FR-SAL-003 | Calculate ADR, RevPAR and occupancy percentage. | Planned |  |
 | FR-SAL-004 | Support historical performance comparisons and configurable rate plans. | Planned |  |
-| FR-SEC-001 | Record incidents with date, time, location, category, description, persons involved and actions taken. | Planned |  |
-| FR-SEC-002 | Restrict access to sensitive records and support investigation and resolution notes. | Planned |  |
-| FR-SEC-003 | Maintain lost-property records, emergency contacts and relevant access logs. | Planned |  |
+| FR-SEC-001 | Record incidents with date, time, location, category, description, persons involved and actions taken. | Implemented | incident register: time, location, category, severity, description, people, actions, police reference (0.7) |
+| FR-SEC-002 | Restrict access to sensitive records and support investigation and resolution notes. | Implemented | restricted incidents (assault, harassment, flagged cases) only for security.sensitive; investigation notes and resolution (0.7) |
+| FR-SEC-003 | Maintain lost-property records, emergency contacts and relevant access logs. | Implemented | lost-property register, emergency contacts, visitor/contractor log, access-control event intake and log (0.7) |
 | FR-CS-001 | Register complaints with category, priority, assigned officer and status. | Planned |  |
 | FR-CS-002 | Support escalation rules and record response and resolution times. | Planned |  |
 | FR-CS-003 | Collect guest feedback and satisfaction surveys and report service quality. | Planned |  |

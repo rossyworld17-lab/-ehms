@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get } from "./api";
@@ -28,6 +28,7 @@ import Finance from "./pages/Finance";
 import Messaging, { NotificationBell, Promotions } from "./pages/Messaging";
 import Laundry from "./pages/Laundry";
 import HR, { EmployeeDetail, MyHR, Payroll } from "./pages/HR";
+import { Events, Maintenance, Security } from "./pages/Operations";
 import { Spinner } from "./ui";
 
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
@@ -40,6 +41,9 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/guests", label: "Guests", icon: <MdPeople />, perm: "guests.view" },
     { to: "/housekeeping", label: "Housekeeping", icon: <MdCleaningServices />, perm: "housekeeping.view" },
     { to: "/laundry", label: "Laundry", icon: <MdLocalLaundryService />, perm: "laundry.view" },
+    { to: "/maintenance", label: "Maintenance", icon: <MdBuild />, perm: "maintenance.report" },
+    { to: "/security", label: "Security", icon: <MdShield />, any: ["security.view", "security.report", "lostfound.manage"] },
+    { to: "/events", label: "Events & banqueting", icon: <MdCelebration />, perm: "events.view" },
   ]},
   { group: "Food & beverage", items: [
     { to: "/pos", label: "Point of sale", icon: <MdPointOfSale />, perm: "pos.view" },
@@ -162,6 +166,9 @@ export default function App() {
     case path === "/inventory": page = guard("inventory.view", <Inventory q={q} />); break;
     case path === "/procurement": page = guard("procurement.view", <Procurement q={q} />); break;
     case path === "/finance": page = ["finance.expenses.request", "accounting.reconcile", "accounting.view"].some(can) ? <Finance q={q} /> : <Forbidden />; break;
+    case path === "/maintenance": page = guard("maintenance.report", <Maintenance q={q} />); break;
+    case path === "/security": page = ["security.view", "security.report", "lostfound.manage"].some(can) ? <Security q={q} /> : <Forbidden />; break;
+    case path === "/events": page = guard("events.view", <Events />); break;
     case path === "/laundry": page = guard("laundry.view", <Laundry />); break;
     case seg[0] === "hr" && seg[1] === "employees" && !!seg[2]: page = guard("hr.view", <EmployeeDetail id={Number(seg[2])} />); break;
     case path === "/hr": page = guard("hr.view", <HR q={q} />); break;

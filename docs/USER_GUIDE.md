@@ -136,6 +136,26 @@ note (it is not charged). **Deliver & charge room** posts the laundry charge to 
 **Linen batch**: internal laundry for a department (no charge). The daily summary lists revenue, batches and
 any lost or damaged items.
 
+## Maintenance
+**Report a fault** from the Maintenance page (any staff member with access; housekeepers can also tick "report
+to maintenance" when completing a room). Tick "take the room out of sale" for vacant rooms that cannot be sold.
+Maintenance managers assign technicians, raise due preventive work, and **Verify & close** completed jobs —
+verification puts a blocked room back in service (dirty, with a cleaning task). Technicians **Start work**,
+add notes, **Issue spare part** from a store and **Complete** with what was done. The Assets tab holds the
+register, schedules, history and costs; finance posts monthly depreciation from Performance.
+
+## Security
+**Report an incident** (when, where, category, severity). Assault/harassment and flagged cases are restricted to
+senior security staff. Security logs visitors and contractors (sign in / sign out), keeps the lost-and-found
+register (valuables go to the safe; returns need the claimant's details and, for valuables, an ID check; items
+can be disposed of or donated only after the holding period), and maintains emergency contacts.
+
+## Events & banqueting
+**New enquiry** → add venues and quotation lines → **Hold (tentative)** or **Confirm** (venue clashes and
+capacity are checked; confirmation opens an event folio). Send the **Quotation PDF**, take deposits on the
+folio, record direct costs and allocate staff. Finance **Invoices** the event (all lines post to the folio
+with taxes and service charge); then mark it completed. Revenue & profit shows the pipeline and margins.
+
 ## Human resources
 - **Employees**: register staff, link their system login, record exits. Pay and bank details are visible only
   to HR and payroll staff; confidential records (appraisals, disciplinary) only to holders of `hr.records`.

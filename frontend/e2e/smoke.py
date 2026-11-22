@@ -54,7 +54,8 @@ def main():
                                 ("/finance", "50_finance", "Finance operations"), ("/promotions", "51_promotions", "WELCOME10"),
                                 ("/admin/messaging", "52_messaging", "Day-before arrival reminder"),
                                 ("/laundry", "60_laundry", "Laundry"), ("/hr", "61_hr", "Human resources"), ("/payroll", "62_payroll", "Payroll"),
-                                ("/my-hr", "63_my_hr", "My HR")]:
+                                ("/my-hr", "63_my_hr", "My HR"), ("/maintenance", "70_maintenance", "Air-conditioner compressor"),
+                                ("/security", "71_security", "Report an incident"), ("/events", "72_events", "Okafor")]:
             visit(page, path, shot, txt)
         # accounting tabs
         page.goto(f"{BASE}/#/accounting")
@@ -207,6 +208,28 @@ def main():
         page.get_by_role("tab", name="Price list").click()
         expect(page.get_by_text("Native attire (agbada)")).to_be_visible(timeout=8000)
 
+        # ---------------- maintenance, security, events tabs (0.7)
+        for path, tabs in (("/maintenance", ("Assets", "Performance", "Work orders")), ("/security", ("Visitors & contractors", "Lost & found", "Emergency contacts", "Access log", "Incidents")),
+                           ("/events", ("All events", "Venue calendar", "Revenue & profit", "Venues", "Upcoming"))):
+            page.goto(f"{BASE}/#{path}")
+            page.wait_for_selector("[role=tab]")
+            page.wait_for_timeout(500)
+            for tab in tabs:
+                page.get_by_role("tab", name=tab).click()
+                page.wait_for_timeout(350)
+        page.goto(f"{BASE}/#/events")
+        page.locator("td", has_text="Okafor").first.click()
+        expect(page.get_by_text("Quotation total")).to_be_visible(timeout=8000)
+        page.screenshot(path=f"{SHOTS}/73_event.png")
+        page.keyboard.press("Escape")
+        sl = browser.new_context(viewport={"width": 1366, "height": 860}).new_page()
+        sl.on("pageerror", lambda e: errors.append(f"JS error (events): {e}"))
+        login(sl, "sales@demo.ehms")
+        sl.goto(f"{BASE}/#/events")
+        sl.locator("td", has_text="board meeting").first.click()
+        sl.get_by_role("button", name="Confirm").click()
+        expect(sl.get_by_text("Event confirmed")).to_be_visible(timeout=8000)
+
         # ---------------- payroll: HR prepares in the UI, finance approves (0.6)
         hr = browser.new_context(viewport={"width": 1366, "height": 860}).new_page()
         hr.on("pageerror", lambda e: errors.append(f"JS error (payroll): {e}"))
@@ -246,6 +269,12 @@ def main():
         m.get_by_role("button", name="Clock in").click()
         expect(m.get_by_text("Clocked in")).to_be_visible(timeout=8000)
         m.screenshot(path=f"{SHOTS}/66_mobile_my_hr.png", full_page=True)
+        m.goto(f"{BASE}/#/maintenance")
+        m.get_by_role("button", name="Report a fault").click()
+        m.get_by_label("What is wrong?").fill("Bathroom extractor fan noisy")
+        m.locator(".modal-f").get_by_role("button", name="Report").click()
+        expect(m.get_by_text("Fault reported to maintenance")).to_be_visible(timeout=8000)
+        m.screenshot(path=f"{SHOTS}/74_mobile_fault.png", full_page=True)
         browser.close()
 
     if errors:

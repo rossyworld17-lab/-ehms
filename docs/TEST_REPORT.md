@@ -1,10 +1,10 @@
-# Test report — release 0.6
+# Test report — release 0.7
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 59 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 64 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
@@ -27,6 +27,10 @@ a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for b
 | **HR (0.6)** | 2 | employee number generated; onboarding record; department manager sees no pay, masked bank details and no confidential records; exit needs a reason; self-service leave with working-day count, overlap and balance checks; staff cannot approve; manager approval marks attendance as leave and notifies the employee; self clock-in/out rules; managers cannot approve their own leave |
 | **Payroll (0.6)** | 2 | hand-checked payslip (₦350,000 fixed pay → pension ₦28,000, NHF ₦5,000, PAYE ₦39,560 under the 2026 bands); absence deduction, overtime, bonus, loan recovery; preparer cannot approve; approval posts net, PAYE and other liabilities and reduces loan balances; draft-only adjustments; payment needs a reference and clears salaries payable; PAYE remitted once; bank schedule; employees download only their own approved payslips; rule validation and permission |
 
+| **Maintenance (0.7)** | 2 | housekeeping issue raises a work order; receptionist's urgent fault blocks the room; technician cannot assign; assignment notifies; start before complete; spare part reduces stock and posts repairs expense; resolution required; technician cannot verify own work; verification returns the room to service as dirty with a cleaning task; preventive orders raised once per schedule and the schedule rolls forward on verification; opening-balance capitalisation, monthly depreciation once per month, capitalised cost locked |
+| **Security (0.7)** | 2 | high-severity alert to security staff; receptionist can report but not browse; resolution required; notes and police reference; harassment auto-restricted and hidden from non-sensitive users; visitor ID masked for non-managers; sign-out once; valuable lost item stored in the safe, released only with ID check, not disposable before the holding period; emergency contacts for all staff; access-event intake rejects missing/wrong tokens and records events |
+| **Events (0.7)** | 1 | enquiries never block; overlapping ballroom hold refused (venue clash); capacity enforced; confirmation opens an event folio; quotation totals with tax and service charge; quotation PDF; deposit on the folio; sales cannot invoice; complete only after invoice; finance invoices once to events and F&B revenue; folio balance = total − deposit; profit = net − direct costs; locked after invoicing; venue calendar and pipeline |
+
 Every 0.4 test ends with a ledger integrity check: total debits equal total credits, **and** the stock
 sub-ledger value equals the Inventory GL account balance.
 
@@ -39,8 +43,9 @@ sub-ledger value equals the Inventory GL account balance.
 3. **Cashier opens a shift, sells a takeaway meal and settles it in cash (0.4).**
 4. Finance operations (all tabs), Promotions, Messaging (run reminders), notification bell (0.5).
 5. Laundry price list, HR tabs and employee profile; HR manager prepares payroll in the UI and the finance manager approves it (0.6).
-6. Booking engine with promo code WELCOME10 shows the discount; the payment return page handles an unknown reference (0.5).
-7. Mobile layout (390 px) including My HR self clock-in.
+6. Maintenance, security and events tabs; event detail; sales manager confirms an event in the UI (0.7).
+7. Booking engine with promo code WELCOME10 shows the discount; the payment return page handles an unknown reference (0.5).
+8. Mobile layout (390 px) including My HR self clock-in and reporting a fault (0.7).
 
 Additional scripted browser walkthroughs for 0.4 (run during development): waiter → kitchen → cashier dine-in
 sale with change; room-service order charged to a room; full procurement cycle across five roles
@@ -51,6 +56,10 @@ stock requisition approve/issue; trial balance balanced at the end; no console e
 A database created by release 0.3 (with its demo data) was started with 0.4: migration 0003 applied, new
 ledger accounts added, system roles received the new permissions once, the 0.4 demo outlets/menu/stores/
 suppliers were added once (re-running is a no-op), existing reservations kept, books balanced.
+
+## Defects found and fixed during 0.7 testing
+- Staff who can report faults could not list or open their own reports → reporters see their own work orders.
+- Event profit showed "100% margin" before any costs were recorded → states that no costs are recorded yet.
 
 ## Defects found and fixed during 0.6 testing
 - Laundry staff could not search in-house guests (the lookup was POS-only) → laundry has its own lookup.

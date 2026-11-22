@@ -110,10 +110,20 @@ def complete(ctx: Ctx):
         issues = ctx.field("issues", required=False)
         c.update("housekeeping_tasks", t["id"], {"status": "completed", "completed_at": now_iso(), "issues": issues})
         room = c.one("SELECT * FROM rooms WHERE id = ?", [t["room_id"]])
+        wo = None
+        if issues and ctx.field("report_maintenance", required=False, default=False):
+            from ..services import next_number, queue_notification
+            from ..worker import _users_with
+            wo = next_number(c, t["hotel_id"], "work_order", "WO")
+            wid = c.insert("work_orders", {"hotel_id": t["hotel_id"], "number": wo, "room_id": room["id"], "title": f"Room {room['number']}: {str(issues)[:150]}",
+                                           "description": f"Reported by housekeeping (task #{t['id']})", "kind": "corrective", "priority": "normal", "status": "open",
+                                           "reported_by": ctx.user_id, "created_at": now_iso()})
+            for uid in _users_with(c, t["hotel_id"], "maintenance.manage"):
+                queue_notification(c, t["hotel_id"], "in_app", str(uid), "Fault reported by housekeeping", f"{wo}: room {room['number']} — {issues}", "work_order", wid)
         if room["occupancy"] == "vacant":
             c.update("rooms", room["id"], {"hk_status": "clean"})
-        audit(c, ctx, "hk.task_completed", "housekeeping_task", t["id"], room["number"], new={"issues": issues}, hotel_id=t["hotel_id"])
-    return {"ok": True}
+        audit(c, ctx, "hk.task_completed", "housekeeping_task", t["id"], room["number"], new={"issues": issues, "work_order": wo}, hotel_id=t["hotel_id"])
+    return {"ok": True, "work_order": wo}
 
 
 @route("POST", "/api/housekeeping/tasks/{task_id:int}/inspect", perm="housekeeping.inspect", tag="housekeeping",

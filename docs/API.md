@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **241**
+Total endpoints: **287**
 
 ## Accounting
 
@@ -79,6 +79,28 @@ Total endpoints: **241**
 | Method | Path | Purpose | Access |
 |---|---|---|---|
 | GET | `/api/hotels/{hotel_id}/dashboard` | Executive dashboard KPIs and trends | `dashboard.view` |
+
+## Events
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/venues` | Venues | `events.view` |
+| POST | `/api/hotels/{hotel_id}/venues` | Add or edit a venue (by code) | `events.manage` |
+| GET | `/api/hotels/{hotel_id}/venues/calendar` | Venue bookings between ?from and ?to (dates) | `events.view` |
+| GET | `/api/hotels/{hotel_id}/events` | Events (?status, ?from, ?to) | `events.view` |
+| POST | `/api/hotels/{hotel_id}/events` | Create an enquiry/booking: title, event_type, client, start_at, end_at, expected_guests, venues[{venue_id, start_at, end_at}], status | `events.manage` |
+| GET | `/api/events/{event_id}` | Event with venues, quotation items, totals, costs, staff and folio | `events.view` |
+| PATCH | `/api/events/{event_id}` | Edit event details (not after invoicing) | `events.manage` |
+| POST | `/api/events/{event_id}/venues` | Book another venue slot for the event | `events.manage` |
+| DELETE | `/api/event-venues/{slot_id}` | Remove a venue slot | `events.manage` |
+| POST | `/api/events/{event_id}/items` | Add a quotation line (kind venue/catering/beverage/equipment/decoration/accommodation/service/other, description, quantity, unit_price) | `events.manage` |
+| DELETE | `/api/event-items/{item_id}` | Remove a quotation line (before invoicing) | `events.manage` |
+| POST | `/api/events/{event_id}/status` | Move an event: tentative / confirmed (checks venue clashes and capacity; opens the event folio) / cancelled (reason) / completed | `events.manage` |
+| POST | `/api/events/{event_id}/invoice` | Post every quotation line to the event folio (with taxes and service charge); deposits already taken are credited | `events.invoice` |
+| POST | `/api/events/{event_id}/costs` | Record a direct event cost (for profitability) | `events.manage` |
+| POST | `/api/events/{event_id}/staff` | Allocate an employee to the event (employee_id, role) | `events.manage` |
+| GET | `/api/events/{event_id}/quotation.pdf` | Quotation / proforma invoice PDF | `events.view` |
+| GET | `/api/hotels/{hotel_id}/events/summary` | Events revenue and profitability for a period (?from, ?to) | `events.view` |
 
 ## Finance
 
@@ -212,6 +234,26 @@ Total endpoints: **241**
 | POST | `/api/laundry/orders/{order_id}/status` | Advance an order (washing → drying → ironing → quality_check → ready → delivered) or cancel it; delivery bills guest orders | `laundry.manage` |
 | GET | `/api/hotels/{hotel_id}/laundry/summary` | Laundry summary for a date range: orders, pieces, revenue, lost & damaged, internal linen by department | `laundry.view` |
 | GET | `/api/hotels/{hotel_id}/laundry/in-house` | Checked-in guests for a laundry order (?q room or name) | `laundry.manage` |
+
+## Maintenance
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/assets` | Asset register (?category, ?status, ?q) | `maintenance.view` |
+| POST | `/api/hotels/{hotel_id}/assets` | Register an asset; optionally capitalise it (funding: method_id paid now, or 'opening' for existing assets) | `maintenance.manage` |
+| PATCH | `/api/assets/{asset_id}` | Edit an asset | `maintenance.manage` |
+| GET | `/api/assets/{asset_id}` | Asset with schedules, maintenance history, costs and depreciation | `maintenance.view` |
+| POST | `/api/assets/{asset_id}/schedules` | Add a preventive maintenance schedule (title, frequency_days, next_due, checklist, assigned_to) | `maintenance.manage` |
+| POST | `/api/hotels/{hotel_id}/maintenance/raise-preventive` | Create work orders now for preventive schedules due within 3 days (the worker also does this daily) | `maintenance.manage` |
+| POST | `/api/hotels/{hotel_id}/assets/depreciate` | Post straight-line depreciation for a month (period YYYY-MM) for all capitalised assets (once per asset per month) | `accounting.post_manual` |
+| GET | `/api/hotels/{hotel_id}/work-orders` | Work orders (?status, ?mine=1, ?open=1); reporters see the faults they reported | `maintenance.report` |
+| POST | `/api/hotels/{hotel_id}/work-orders` | Report a fault / raise a work order (asset_id or room_id, title, description, priority, blocks_room) | `maintenance.report` |
+| GET | `/api/work-orders/{wo_id}` | Work order with notes and parts used | `maintenance.report` |
+| POST | `/api/work-orders/{wo_id}/assign` | Assign a technician and/or external service provider | `maintenance.manage` |
+| POST | `/api/work-orders/{wo_id}/status` | Move a work order: in_progress / on_hold / completed (assignee or manager), verified (manager, not the person who did the work), cancelled | `maintenance.view` |
+| POST | `/api/work-orders/{wo_id}/notes` | Add a progress note | `maintenance.view` |
+| POST | `/api/work-orders/{wo_id}/parts` | Issue spare parts from a store to the work order (Dr Repairs & Maintenance / Cr Inventory) | `maintenance.work` |
+| GET | `/api/hotels/{hotel_id}/maintenance/summary` | Maintenance performance: open/overdue orders, completed this period, average completion time, costs, upcoming preventive work | `maintenance.view` |
 
 ## Messaging
 
@@ -373,4 +415,23 @@ Total endpoints: **241**
 | GET | `/api/hotels/{hotel_id}/promo-codes` | Promotional codes | `promotions.manage` |
 | POST | `/api/hotels/{hotel_id}/promo-codes` | Create a promotional code | `promotions.manage` |
 | PATCH | `/api/promo-codes/{promo_id}` | Edit or deactivate a promotional code | `promotions.manage` |
+
+## Security
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/incidents` | Security incidents (?status, ?category); restricted cases only for security.sensitive | `security.view` |
+| POST | `/api/hotels/{hotel_id}/incidents` | Record an incident (occurred_at, location, category, severity, description, persons_involved, actions_taken, restricted) | `security.report` |
+| GET | `/api/incidents/{incident_id}` | Incident with investigation notes | `security.view` |
+| POST | `/api/incidents/{incident_id}/update` | Investigate: add a note, assign, set status (investigating / resolved needs resolution / closed) | `security.manage` |
+| GET | `/api/hotels/{hotel_id}/visitors` | Visitor & contractor log (?date, ?on_site=1) | `security.view` |
+| POST | `/api/hotels/{hotel_id}/visitors` | Sign a visitor, contractor or delivery in | `security.manage` |
+| POST | `/api/visitors/{visitor_id}/sign-out` | Sign a visitor out | `security.manage` |
+| GET | `/api/hotels/{hotel_id}/lost-found` | Lost & found register (?status, ?q) | `lostfound.manage` |
+| POST | `/api/hotels/{hotel_id}/lost-found` | Log a found item (description, category, location, room_id, valuable, stored_location); kept 90 days (180 if valuable) | `lostfound.manage` |
+| POST | `/api/lost-found/{item_id}/release` | Return an item to its owner (claimant name & contact, ID checked required for valuables) or dispose/donate after the holding period | `lostfound.manage` |
+| GET | `/api/hotels/{hotel_id}/emergency-contacts` | Emergency contacts (any signed-in staff member) | signed in |
+| PUT | `/api/hotels/{hotel_id}/emergency-contacts` | Replace the emergency contact list: items[{name, role, phone, notes}] | `security.manage` |
+| POST | `/api/integrations/access-events` | Door-lock / key-card / access-control systems push events here (header X-EHMS-Integration-Token) | public |
+| GET | `/api/hotels/{hotel_id}/access-events` | Access-control event log (?door, ?date) | `security.view` |
 

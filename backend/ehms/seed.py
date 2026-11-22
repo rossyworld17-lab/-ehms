@@ -122,7 +122,11 @@ def seed_demo() -> None:
                  ("inventory@demo.ehms", "Grace Udo (Inventory Mgr)", "inventory_manager", False),
                  ("procurement@demo.ehms", "Yemi Alade (Procurement)", "procurement_officer", False),
                  ("hrmanager@demo.ehms", "Amaka Eze (HR Mgr)", "hr_manager", False),
-                 ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer", False)]
+                 ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer", False),
+                 ("maintenance@demo.ehms", "Segun Adeyemi (Maintenance Mgr)", "maintenance_manager", False),
+                 ("technician@demo.ehms", "Ifeanyi Okeke (Technician)", "maintenance_technician", False),
+                 ("security@demo.ehms", "Bala Usman (Security)", "security_officer", False),
+                 ("sales@demo.ehms", "Zainab Lawal (Sales Mgr)", "sales_manager", False)]
         users = {}
         for email, name, role, all_h in staff:
             uid = c.insert("users", {"organisation_id": org, "email": email, "full_name": name, "password_hash": security.hash_password(DEMO_PASSWORD),
@@ -221,6 +225,77 @@ def seed_demo() -> None:
     seed_fnb_and_stores(hid, org, users)
     seed_finance_demo(hid, org, users)
     seed_hr_demo(hid, org)
+    seed_operations_demo(hid, org)
+
+
+def seed_operations_demo(hid: int, org: int) -> None:
+    """Release 0.7 demo: assets with preventive schedules, an open work order, venues and events, emergency contacts,
+    a lost-property item."""
+    import datetime as _dt
+    from .services import business_date, next_number
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM assets WHERE hotel_id = ?", [hid]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        uid = {r["code"]: r["uid"] for r in c.all("SELECT ro.code, MIN(u.id) AS uid FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles ro ON ro.id = ur.role_id "
+                                                   "WHERE u.organisation_id = ? GROUP BY ro.code", [org])}
+        tech = uid.get("maintenance_technician")
+        rooms = {r["number"]: r["id"] for r in c.all("SELECT id, number FROM rooms WHERE hotel_id = ?", [hid])}
+        assets = {}
+        for code, name, cat, loc, cost, life, freq, due_in in (
+                ("GEN-01", "Main diesel generator 500 kVA (demo)", "generator", "Power house", 4_500_000_000, 120, 30, 2),
+                ("GEN-02", "Standby generator 250 kVA (demo)", "generator", "Power house", 2_200_000_000, 120, 30, 12),
+                ("LIFT-01", "Passenger lift A (demo)", "elevator", "Main lobby", 3_800_000_000, 180, 90, 40),
+                ("PUMP-01", "Borehole pump (demo)", "pump", "Water treatment room", 350_000_000, 60, 60, 20),
+                ("AC-205", "Split AC unit room 205 (demo)", "air_conditioner", "Room 205", 85_000_000, 72, 90, 5),
+                ("FIRE-01", "Fire extinguishers — floor 1 (demo)", "fire_safety", "Floor 1 corridors", 60_000_000, 60, 180, 75),
+                ("CHILL-01", "Kitchen walk-in chiller (demo)", "refrigeration", "Main kitchen", 1_200_000_000, 96, 30, 1)):
+            aid = c.insert("assets", {"hotel_id": hid, "code": code, "name": name, "category": cat, "location": loc, "room_id": rooms.get("205") if code == "AC-205" else None,
+                                      "purchase_date": (on - _dt.timedelta(days=400)).isoformat(), "purchase_cost": cost, "useful_life_months": life,
+                                      "warranty_until": (on + _dt.timedelta(days=200)).isoformat() if code in ("LIFT-01", "CHILL-01") else None,
+                                      "status": "under_repair" if code == "AC-205" else "operational", "created_at": now_iso()})
+            c.insert("maintenance_schedules", {"asset_id": aid, "title": {"generator": "Oil, filter and load test", "elevator": "Statutory lift inspection",
+                                                                          "pump": "Pump service", "air_conditioner": "Filter clean & gas check", "fire_safety": "Extinguisher inspection",
+                                                                          "refrigeration": "Coil clean & temperature log check"}[cat],
+                                               "frequency_days": freq, "next_due": (on + _dt.timedelta(days=due_in)).isoformat(), "assigned_to": tech, "active": 1})
+            assets[code] = aid
+        c.insert("work_orders", {"hotel_id": hid, "number": next_number(c, hid, "work_order", "WO"), "asset_id": assets["AC-205"], "room_id": rooms.get("205"),
+                                 "title": "Air-conditioner compressor replacement (demo)", "description": "Compressor failed; room blocked.", "kind": "corrective",
+                                 "priority": "high", "status": "in_progress", "blocks_room": 1, "reported_by": uid.get("housekeeping_manager") or uid["general_manager"],
+                                 "assigned_to": tech, "due_date": (on + _dt.timedelta(days=1)).isoformat(), "created_at": now_iso(), "started_at": now_iso()})
+        if rooms.get("205"):
+            c.execute("UPDATE rooms SET service_note = ? WHERE id = ? AND service_status = 'maintenance'", [f"WO-{hotel['code']}-000001: Air-conditioner compressor replacement (demo)", rooms["205"]])
+        ball = c.insert("venues", {"hotel_id": hid, "code": "BALL", "name": "Grand Ballroom", "capacity_theatre": 400, "capacity_banquet": 300, "capacity_classroom": 200,
+                                   "area_sqm": 520, "hourly_rate": 15_000_000, "daily_rate": 120_000_000, "facilities": "Stage, PA system, projector, dance floor", "active": 1})
+        board = c.insert("venues", {"hotel_id": hid, "code": "BOARD", "name": "Executive Boardroom", "capacity_theatre": 0, "capacity_banquet": 0, "capacity_classroom": 16,
+                                    "area_sqm": 60, "hourly_rate": 2_500_000, "daily_rate": 18_000_000, "facilities": "Video conferencing, smart TV", "active": 1})
+        d1 = on + _dt.timedelta(days=14)
+        for title, etype, client, company, venue, days, guests, status, items in (
+                ("Okafor–Bello wedding reception (demo)", "wedding", "Chioma Okafor", None, ball, 14, 250, "confirmed",
+                 [("venue", "Grand Ballroom — full day", 1, 120_000_000), ("catering", "Buffet dinner per guest", 250, 1_200_000), ("beverage", "Soft drinks & water package per guest", 250, 300_000),
+                  ("decoration", "Floral décor & lighting", 1, 85_000_000)]),
+                ("Delta Energy quarterly board meeting (demo)", "meeting", "Kunle Adeyemi", "Delta Energy Services Ltd (demo)", board, 21, 12, "enquiry",
+                 [("venue", "Executive Boardroom — full day", 1, 18_000_000), ("catering", "Working lunch per guest", 12, 650_000)])):
+            day = on + _dt.timedelta(days=days)
+            eid = c.insert("events", {"hotel_id": hid, "number": next_number(c, hid, "event", "EVT"), "title": title, "event_type": etype, "status": "enquiry",
+                                      "client_name": client, "client_phone": "+234 800 000 1111", "client_email": f"{client.split()[0].lower()}@example.com", "company": company,
+                                      "start_at": f"{day.isoformat()}T10:00", "end_at": f"{day.isoformat()}T22:00" if etype == "wedding" else f"{day.isoformat()}T17:00",
+                                      "expected_guests": guests, "layout": "banquet" if etype == "wedding" else "boardroom", "deposit_required": 150_000_000 if etype == "wedding" else 0,
+                                      "sales_owner": uid.get("sales_manager"), "created_by": uid.get("sales_manager") or uid["general_manager"], "created_at": now_iso()})
+            c.insert("event_venues", {"event_id": eid, "venue_id": venue, "start_at": f"{day.isoformat()}T08:00", "end_at": f"{day.isoformat()}T23:00" if etype == "wedding" else f"{day.isoformat()}T18:00"})
+            for kind, desc, q, price in items:
+                c.insert("event_items", {"event_id": eid, "kind": kind, "description": desc, "quantity": q, "unit_price": price})
+            if status == "confirmed":
+                from .modules.events import _event_folio
+                e = c.one("SELECT * FROM events WHERE id = ?", [eid])
+                c.update("events", eid, {"status": "confirmed", "folio_id": _event_folio(c, e)})
+        for i, (name, role, phone) in enumerate((("Lagos State Emergency", "Police / Fire / Ambulance", "112"), ("Fire Service (Victoria Island)", "Fire", "+234 800 000 0112"),
+                                                  ("Reddington Hospital (demo)", "Hospital", "+234 800 000 0113"), ("Duty Manager", "Hotel duty manager", "+234 800 000 0114"))):
+            c.insert("emergency_contacts", {"hotel_id": hid, "name": name, "role": role, "phone": phone, "sort_order": i})
+        c.insert("lost_found", {"hotel_id": hid, "number": next_number(c, hid, "lost_found", "LF"), "found_at": now_iso(), "location": "Pool deck", "description": "Black leather wallet (demo)",
+                                "category": "documents", "valuable": 1, "stored_location": "Security safe", "found_by": uid.get("security_officer") or uid["general_manager"],
+                                "status": "stored", "dispose_after": (on + _dt.timedelta(days=180)).isoformat()})
 
 
 def seed_hr_demo(hid: int, org: int) -> None:
@@ -236,7 +311,9 @@ def seed_hr_demo(hid: int, org: int) -> None:
            "housekeeping_manager": ("housekeeping", "Executive Housekeeper", 35_000_000), "housekeeping_staff": ("housekeeping", "Room Attendant", 12_000_000),
            "restaurant_manager": ("fnb", "Restaurant Manager", 35_000_000), "restaurant_cashier": ("fnb", "Cashier", 14_000_000), "waiter": ("fnb", "Waiter", 11_000_000),
            "chef": ("kitchen", "Head Chef", 40_000_000), "storekeeper": ("admin", "Storekeeper", 15_000_000), "inventory_manager": ("admin", "Inventory Manager", 30_000_000),
-           "procurement_officer": ("admin", "Procurement Officer", 25_000_000), "hr_manager": ("hr", "HR Manager", 45_000_000), "hr_officer": ("hr", "HR Officer", 20_000_000)}
+           "procurement_officer": ("admin", "Procurement Officer", 25_000_000), "hr_manager": ("hr", "HR Manager", 45_000_000), "hr_officer": ("hr", "HR Officer", 20_000_000),
+           "maintenance_manager": ("maintenance", "Chief Engineer", 45_000_000), "maintenance_technician": ("maintenance", "Technician", 16_000_000),
+           "security_officer": ("security", "Security Supervisor", 15_000_000), "sales_manager": ("sales", "Sales Manager", 40_000_000)}
     with get_db().tx() as c:
         if c.one("SELECT id FROM laundry_prices WHERE hotel_id = ?", [hid]):
             return
@@ -295,6 +372,9 @@ NEW_DEMO_STAFF_04 = [("fnbmanager@demo.ehms", "Tolu Bankole (Restaurant Mgr)", "
                      ("hrmanager@demo.ehms", "Amaka Eze (HR Mgr)", "hr_manager"), ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer")]
 
 
+NEW_DEMO_STAFF_07 = [("maintenance@demo.ehms", "Segun Adeyemi (Maintenance Mgr)", "maintenance_manager"),
+                     ("technician@demo.ehms", "Ifeanyi Okeke (Technician)", "maintenance_technician"),
+                     ("security@demo.ehms", "Bala Usman (Security)", "security_officer"), ("sales@demo.ehms", "Zainab Lawal (Sales Mgr)", "sales_manager")]
 NEW_DEMO_STAFF_06 = [("hrmanager@demo.ehms", "Amaka Eze (HR Mgr)", "hr_manager"), ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer")]
 
 
@@ -329,6 +409,8 @@ def _upgrade_demo(org: int) -> None:
             print("Added release 0.5 demo data (promo code, budget, expense claims).")
         _add_new_staff(org, hid, NEW_DEMO_STAFF_06)
         seed_hr_demo(hid, org)
+        _add_new_staff(org, hid, NEW_DEMO_STAFF_07)
+        seed_operations_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -345,6 +427,8 @@ def _upgrade_demo(org: int) -> None:
     seed_fnb_and_stores(hid, org, users)
     seed_finance_demo(hid, org, users)
     seed_hr_demo(hid, org)
+    _add_new_staff(org, hid, NEW_DEMO_STAFF_07)
+    seed_operations_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 
