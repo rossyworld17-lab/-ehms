@@ -37,8 +37,30 @@ def free_rooms(c, hotel_id: int, room_type_id: int | None, arrival: str, departu
     return [r for r in rooms if r["id"] not in busy]
 
 
-def type_availability(c, hotel_id: int, arrival: dt.date, departure: dt.date, exclude_id: int | None = None) -> list[dict]:
-    """Rooms available per room type for every night in the range (minimum across nights)."""
+def block_holds(c, hotel_id: int, arrival: dt.date, departure: dt.date, skip_block: int | None = None) -> dict:
+    """Rooms still held by group blocks per (room_type_id, night): allotment minus rooms picked up into the block."""
+    blocks = c.all("SELECT b.id, b.arrival, b.departure, br.room_type_id, br.rooms FROM group_blocks b JOIN group_block_rooms br ON br.block_id = b.id "
+                   "WHERE b.hotel_id = ? AND b.status IN ('tentative','definite') AND b.arrival < ? AND b.departure > ?",
+                   [hotel_id, departure.isoformat(), arrival.isoformat()])
+    if not blocks:
+        return {}
+    picked = c.all(f"SELECT group_block_id, room_type_id, arrival, departure FROM reservations WHERE group_block_id IN ({','.join('?' * len({b['id'] for b in blocks}))}) "
+                   f"AND status IN {ACTIVE_RES}", list({b["id"] for b in blocks}))
+    held: dict = {}
+    for b in blocks:
+        if b["id"] == skip_block:
+            continue
+        for n in nights_between(max(arrival, dt.date.fromisoformat(b["arrival"])), min(departure, dt.date.fromisoformat(b["departure"]))):
+            ns = n.isoformat()
+            used = sum(1 for p in picked if p["group_block_id"] == b["id"] and p["room_type_id"] == b["room_type_id"] and p["arrival"] <= ns < p["departure"])
+            key = (b["room_type_id"], ns)
+            held[key] = held.get(key, 0) + max(0, b["rooms"] - used)
+    return held
+
+
+def type_availability(c, hotel_id: int, arrival: dt.date, departure: dt.date, exclude_id: int | None = None, for_block: int | None = None) -> list[dict]:
+    """Rooms available per room type for every night in the range (minimum across nights). Rooms held by group
+    blocks are not available to others; a booking into a block (for_block) may use that block's own allotment."""
     types = c.all("SELECT * FROM room_types WHERE hotel_id = ? AND active = 1 ORDER BY base_rate", [hotel_id])
     totals = {r["room_type_id"]: r["n"] for r in c.all(
         f"SELECT room_type_id, COUNT(*) AS n FROM rooms WHERE hotel_id = ? AND active = 1 AND service_status IN {SELLABLE_SERVICE} "
@@ -48,13 +70,14 @@ def type_availability(c, hotel_id: int, arrival: dt.date, departure: dt.date, ex
                 f"AND arrival < ? AND departure > ?{ex}", [hotel_id, departure.isoformat(), arrival.isoformat()] + ([exclude_id] if exclude_id else []))
     out = []
     nights = nights_between(arrival, departure)
+    held = block_holds(c, hotel_id, arrival, departure, skip_block=for_block)
     for t in types:
         total = totals.get(t["id"], 0)
         worst = total
         for n in nights:
             ns = n.isoformat()
             booked = sum(1 for r in res if r["room_type_id"] == t["id"] and r["arrival"] <= ns < r["departure"])
-            worst = min(worst, total - booked)
+            worst = min(worst, total - booked - held.get((t["id"], ns), 0))
         out.append({**t, "total_rooms": total, "available": max(worst, 0)})
     return out
 

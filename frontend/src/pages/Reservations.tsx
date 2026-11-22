@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ApiError, addDays, fmtDate, fmtDateTime, fromMinor, get, label, money, patch, post, toMinor } from "../api";
 import { navigate, useAuth } from "../state";
+import { CancelModal } from "./Billing";
 import { Button, Card, Confirm, Empty, Field, Input, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, errText, useAction, useLoad, useToast } from "../ui";
 import { DocumentsPanel } from "./Documents";
 
@@ -266,12 +267,7 @@ export function ReservationDetail({ id }: { id: number }) {
             </Card>
           </div>
 
-          {modal === "cancel" && <Confirm title="Cancel reservation" danger confirmText="Cancel reservation" needReason="Reason for cancellation" onClose={() => setModal(null)}
-            text={<p>Cancel {r.reference} for {r.guest.first_name} {r.guest.last_name}? Any deposit must be refunded or a cancellation fee posted from the folio.</p>}
-            onConfirm={reason => act(() => post(`/api/reservations/${id}/cancel`, { reason }), "Reservation cancelled")} />}
-          {modal === "noshow" && <Confirm title="Mark as no-show" danger confirmText="Mark no-show" onClose={() => setModal(null)}
-            text={<p>Mark {r.reference} as a no-show? This is only allowed on or after the arrival date.</p>}
-            onConfirm={() => act(() => post(`/api/reservations/${id}/no-show`), "Marked as no-show")} />}
+          {(modal === "cancel" || modal === "noshow") && <CancelModal res={r} kind={modal === "cancel" ? "cancel" : "no_show"} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {modal === "assign" && <AssignRoom r={r} onClose={() => setModal(null)} onDone={(room: string) => act(() => Promise.resolve(), `Room ${room} assigned`)} />}
           {modal === "modify" && <Modify r={r} onClose={() => setModal(null)} onSave={(body: any) => act(() => patch(`/api/reservations/${id}`, body), "Reservation updated")} />}
           {modal === "checkin" && <CheckIn r={r} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}

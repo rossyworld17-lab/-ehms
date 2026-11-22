@@ -1,10 +1,10 @@
 # Requirements traceability
 
-Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.9.
+Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.95.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md
 
-Summary: **119 implemented**, **8 partial**, **0 planned** (of 127).
+Summary: **127 implemented**, **0 partial**, **0 planned** (of 127).
 
 | ID | Requirement | Status | Notes |
 |---|---|---|---|
@@ -12,13 +12,13 @@ Summary: **119 implemented**, **8 partial**, **0 planned** (of 127).
 | FR-ADM-002 | Configure roles and permissions by module, action, property, branch and organisational scope. | Implemented | roles/permissions, hotel scope; branch=hotel |
 | FR-ADM-003 | Support password policies, account lockout and multi-factor authentication. | Implemented | password policy, lockout, TOTP MFA |
 | FR-ADM-004 | Configure hotel identity, contact details, room categories, facilities, services, outlets and departments. | Implemented | hotel profile, room categories, departments; restaurant/bar/room-service outlets with tables (0.4) |
-| FR-ADM-005 | Configure currencies, exchange rates, taxes, service charges and payment methods. | Partial | taxes, service charge, payment methods; exchange rates planned |
+| FR-ADM-005 | Configure currencies, exchange rates, taxes, service charges and payment methods. | Implemented | taxes, service charge, payment methods; exchange rates (0.95) |
 | FR-ADM-006 | Maintain administrative audit logs and configurable notification templates and business rules. | Implemented | audit logs; notification templates per event & channel; business rules (thresholds, tolerances) configurable (0.5) |
 | FR-PRP-001 | Register multiple hotel properties and branches, each with a unique identifier. | Implemented | multi-hotel |
 | FR-PRP-002 | Maintain property-specific rooms, rates, departments, staff, outlets and operational settings. | Implemented | per-hotel rooms, rates, departments, staff scope |
 | FR-PRP-003 | Provide consolidated organisation-level reports to authorised users. | Implemented | consolidated TB/P&L/BS |
 | FR-PRP-004 | Restrict users to properties and records permitted by their assigned scope. | Implemented | check_hotel() scoping |
-| FR-PRP-005 | Support property-specific currencies, taxes, time zones and business rules. | Partial | per-hotel currency/taxes/time zone stored; multi-currency conversion planned |
+| FR-PRP-005 | Support property-specific currencies, taxes, time zones and business rules. | Implemented | per-hotel currency, taxes, time zone, policies; foreign-currency payments converted to the hotel currency (0.95) |
 | FR-PMS-001 | Create room categories and rooms with unique identifiers, floor, capacity, facilities, description and rate plan. | Implemented |  |
 | FR-PMS-002 | Support Available, Reserved, Occupied, Dirty, Clean, Inspected, Out of Order, Out of Service, Under Maintenance and Blocked statuses. | Implemented | occupancy × housekeeping × service status |
 | FR-PMS-003 | Provide a visual room-status dashboard and occupancy history. | Implemented | live board; occupancy history by category (heat map) and by room (0.9) |
@@ -29,10 +29,10 @@ Summary: **119 implemented**, **8 partial**, **0 planned** (of 127).
 | FR-RES-001 | Create individual, group, corporate and walk-in reservations with guest, dates, room category, occupants, rate and special requests. | Implemented |  |
 | FR-RES-002 | Generate unique booking references and display availability for requested dates. | Implemented |  |
 | FR-RES-003 | Support Enquiry, Tentative, Confirmed, Checked In, Checked Out, Cancelled, No Show and Waitlisted statuses. | Implemented |  |
-| FR-RES-004 | Support deposits, advance payments, modifications, cancellation policies and applicable fees. | Partial | deposits, modifications, cancellation; automatic fee calculation planned |
+| FR-RES-004 | Support deposits, advance payments, modifications, cancellation policies and applicable fees. | Implemented | deposits, modifications; cancellation policies with automatic cancellation / no-show fees and audited waivers (0.95) |
 | FR-RES-005 | Generate booking confirmations and send configured notifications and reminders. | Implemented | confirmations by email; day-before reminders by email/SMS/WhatsApp via the background worker (0.5) |
 | FR-RES-006 | Maintain reservation history, identify potential duplicates and support corporate or negotiated rates. | Implemented | history, duplicate detection, corporate rate |
-| FR-RES-007 | Support group room blocks, rooming lists and reports by date, source, status and channel. | Partial | group/corporate bookings & reports; rooming lists planned |
+| FR-RES-007 | Support group room blocks, rooming lists and reports by date, source, status and channel. | Implemented | group blocks, rooming lists, pickup, release; reports by date, source, status (0.95) |
 | FR-BKG-001 | Provide a mobile-friendly online booking interface with date, room and guest search. | Implemented |  |
 | FR-BKG-002 | Display room descriptions, images, amenities, rates and applicable charges. | Implemented |  |
 | FR-BKG-003 | Allow guests to submit booking details, review total price and pay through approved gateways. | Implemented | pay at hotel or pay online through Paystack / Flutterwave hosted checkout; confirmed on verified payment (0.5) |
@@ -42,7 +42,7 @@ Summary: **119 implemented**, **8 partial**, **0 planned** (of 127).
 | FR-FO-002 | Support guest registration, lawful identification capture, walk-in registration and check-in. | Implemented |  |
 | FR-FO-003 | Support early check-in, late check-out, room allocation and room changes under configured rules. | Implemented |  |
 | FR-FO-004 | Generate guest folios and post room and approved service charges. | Implemented |  |
-| FR-FO-005 | Support split bills, shared accounts, deposits, adjustments and authorised refunds. | Partial | deposits, adjustments, refunds; split bills planned |
+| FR-FO-005 | Support split bills, shared accounts, deposits, adjustments and authorised refunds. | Implemented | extra folios per stay, whole/partial charge transfers, group master folio, deposits, adjustments, refunds (0.95) |
 | FR-FO-006 | Calculate outstanding balances, support check-out and issue invoices and receipts. | Implemented |  |
 | FR-FO-007 | Update room status after check-out and maintain guest stay history. | Implemented |  |
 | FR-CRM-001 | Maintain central guest profiles with contact details, preferences, booking history and communication preferences. | Implemented |  |
@@ -68,7 +68,7 @@ Summary: **119 implemented**, **8 partial**, **0 planned** (of 127).
 | FR-FIN-002 | Maintain a general ledger, accounts receivable, accounts payable, cashbook and bank accounts. | Implemented | GL, guest & city ledger, accounts payable via supplier invoices, cash/bank accounts (0.4) |
 | FR-FIN-003 | Record income and expenses by department, property and category. | Implemented | income by department/property; expenses by department via expense claims, stock issues, GRN and supplier invoices (0.5) |
 | FR-FIN-004 | Support budgets, budget-versus-actual analysis, payment allocation and reconciliation. | Implemented | monthly budgets, budget-vs-actual with variance; payment allocation; bank reconciliation with CSV import and auto-match (0.5) |
-| FR-FIN-005 | Configure taxes, service charges, invoices, receipts, credit notes and debit notes. | Partial | taxes, service charge, invoices/receipts; credit/debit notes planned |
+| FR-FIN-005 | Configure taxes, service charges, invoices, receipts, credit notes and debit notes. | Implemented | credit and debit notes with approval and PDF (0.95) |
 | FR-FIN-006 | Support financial approval workflows, bank reconciliation and financial period closing. | Implemented | maker-checker on refunds, requisitions, POs, invoices and expense claims; bank reconciliation; period close/reopen (0.5) |
 | FR-FIN-007 | Generate trial balance, profit and loss, balance sheet, cash flow and departmental reports. | Implemented | trial balance, P&L, balance sheet, departmental revenue and direct-method cash-flow statement (0.5) |
 | FR-FIN-008 | Prevent unauthorised changes to posted transactions; use controlled reversals or adjustments. | Implemented | DB triggers + reversals |
@@ -81,14 +81,14 @@ Summary: **119 implemented**, **8 partial**, **0 planned** (of 127).
 | FR-INV-001 | Maintain an item catalogue with codes, categories, units, costs, selling prices and reorder levels. | Implemented | item catalogue: code, barcode, category, unit, cost, sale price, reorder level & quantity (0.4) |
 | FR-INV-002 | Support multiple stores, receipts, issues, transfers, adjustments and stocktaking. | Implemented | multiple stores; receipts (GRN), issues, transfers, adjustments, wastage, stock counts (0.4) |
 | FR-INV-003 | Calculate stock balances and generate low-stock alerts. | Implemented | perpetual balances per store; low-stock alerts, dashboard count and reorder report (0.4) |
-| FR-INV-004 | Support batches, expiry dates, FIFO and FEFO where configured. | Partial | batches & expiry dates with FEFO depletion and expiry alerts (0.4); valuation is weighted average (FIFO costing not offered) |
+| FR-INV-004 | Support batches, expiry dates, FIFO and FEFO where configured. | Implemented | batches, expiry, FEFO depletion; FIFO costing option (0.95) |
 | FR-INV-005 | Record departmental consumption, valuation, variances and auditable stock movements. | Implemented | departmental issues, WAC valuation reconciled to the GL, count variances journalled, append-only movement ledger (0.4) |
 | FR-PRO-001 | Maintain supplier records and performance history. | Implemented | supplier register (bank details masked without permission), on-time & rejection performance, balances (0.4) |
 | FR-PRO-002 | Support requisitions, quotations, purchase orders and approval workflows. | Implemented | requisitions, quotations with price comparison, POs with standard/high-value approval and maker-checker (0.4) |
 | FR-PRO-003 | Record goods received and compare orders, receipts and supplier invoices. | Implemented | GRN with rejections, batch & expiry; three-way match of invoice to goods received with tolerance (0.4) |
 | FR-PRO-004 | Record supplier payments and generate procurement reports. | Implemented | supplier payments with withholding tax, idempotency; payables ageing, spend by supplier, payables report (0.4) |
 | FR-HR-001 | Maintain employee records, departments, job positions and employment documents. | Implemented | employee register: personal, employment, department, position, pay, bank & statutory IDs, qualifications (0.6) |
-| FR-HR-002 | Support recruitment, onboarding, separation and employee self-service. | Partial | onboarding & exit records, linked system logins and self-service (leave, payslips, clock-in) (0.6); recruitment pipeline planned |
+| FR-HR-002 | Support recruitment, onboarding, separation and employee self-service. | Implemented | recruitment pipeline, onboarding, separation, self-service (0.95) |
 | FR-HR-003 | Support attendance, configurable shifts, duty rosters and leave applications and approvals. | Implemented | shift templates & weekly rosters, attendance with overtime, self clock-in with lateness, leave types, balances and approval (0.6) |
 | FR-HR-004 | Maintain training, performance, disciplinary and incident records with restricted access. | Implemented | training, appraisal, disciplinary, commendation, transfer, promotion records restricted to hr.records (0.6) |
 | FR-HR-005 | Generate HR reports. | Implemented | headcount, attendance, leave balances (0.6); HR analytics: turnover, attendance, lateness, overtime, leave, payroll cost (0.9) |

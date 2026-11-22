@@ -2,12 +2,15 @@ import React, { useEffect, useState } from "react";
 import { fmtDateTime, fromMinor, get, label, money, patch, post, toMinor } from "../api";
 import { useAuth } from "../state";
 import { Button, Card, Field, Input, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad } from "../ui";
+import { CancellationPolicies, CostingSetting } from "./Billing";
 
 export default function HotelSettings() {
   const [tab, setTab] = useState("profile");
   return <div className="page">
     <div className="page-h"><div><h1>Hotel settings</h1><p className="muted">Profile, policies, taxes, payment methods and messaging</p></div></div>
-    <Tabs tabs={[{ id: "profile", label: "Profile & policies" }, { id: "taxes", label: "Taxes & charges" }, { id: "payments", label: "Payment methods" }, { id: "messages", label: "Message log" }]} value={tab} onChange={setTab} />
+    <Tabs tabs={[{ id: "profile", label: "Profile & policies" }, { id: "cancellation", label: "Cancellation policies" }, { id: "taxes", label: "Taxes & charges" }, { id: "payments", label: "Payment methods" },
+      { id: "stock", label: "Stock costing" }, { id: "messages", label: "Message log" }]} value={tab} onChange={setTab} />
+    {tab === "cancellation" && <CancellationPolicies />}{tab === "stock" && <CostingSetting />}
     {tab === "profile" && <Profile />}{tab === "taxes" && <Taxes />}{tab === "payments" && <PaymentMethods />}{tab === "messages" && <Messages />}
   </div>;
 }

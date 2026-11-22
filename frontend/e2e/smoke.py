@@ -252,6 +252,28 @@ def main():
         page.screenshot(path=f"{SHOTS}/92_document.png")
         page.keyboard.press("Escape")
 
+        # ---------------- groups, notes, exchange rates, policies, recruitment (0.95)
+        page.goto(f"{BASE}/#/groups")
+        page.locator("td", has_text="Okonkwo").first.click()
+        expect(page.get_by_text("Allotment")).to_be_visible(timeout=8000)
+        page.screenshot(path=f"{SHOTS}/95_group.png")
+        page.goto(f"{BASE}/#/finance?tab=notes")
+        expect(page.get_by_text("Goodwill credit")).to_be_visible(timeout=8000)
+        page.get_by_role("tab", name="Exchange rates", exact=True).click()
+        expect(page.locator("td", has_text="USD").first).to_be_visible(timeout=8000)
+        page.screenshot(path=f"{SHOTS}/96_fx.png")
+        page.goto(f"{BASE}/#/admin/hotel")
+        page.get_by_role("tab", name="Cancellation policies", exact=True).click()
+        expect(page.get_by_text("Non-refundable (advance purchase)")).to_be_visible(timeout=8000)
+        page.get_by_role("tab", name="Stock costing", exact=True).click()
+        expect(page.get_by_text("Weighted average cost")).to_be_visible(timeout=8000)
+        page.goto(f"{BASE}/#/hr?tab=recruitment")
+        page.locator("td", has_text="Front Desk Agent").first.click()
+        page.get_by_role("button", name="Tolu Adebayo").click()
+        expect(page.get_by_text("Next step")).to_be_visible(timeout=8000)
+        page.screenshot(path=f"{SHOTS}/97_applicant.png")
+        page.keyboard.press("Escape")
+
         if os.environ.get("DEMO_DB"):
             import sqlite3
             tok = sqlite3.connect(os.environ["DEMO_DB"]).execute("SELECT token FROM feedback WHERE submitted_at IS NULL LIMIT 1").fetchone()

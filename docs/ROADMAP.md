@@ -1,8 +1,8 @@
 # Roadmap
 
-The master prompt defines 12 build phases; the SRS groups them into 6. Release 0.9 status:
+The master prompt defines 12 build phases; the SRS groups them into 6. Release 0.95 status:
 
-| Master-prompt phase | SRS phase | Status in 0.9 |
+| Master-prompt phase | SRS phase | Status in 0.95 |
 |---|---|---|
 | 1. Requirements, architecture, database design | 1 | **Done** — architecture, schema, migrations, OpenAPI |
 | 2. Authentication, user management, hotel configuration | 1 | **Done** — RBAC, MFA, sessions, audit, multi-property configuration, taxes, payment methods |
@@ -18,7 +18,6 @@ The master prompt defines 12 build phases; the SRS groups them into 6. Release 0
 | 12. Security/performance testing, deployment | 6 | Docker, CI (SQLite + PostgreSQL), backups/restore, security headers done; external penetration test, load test, connection pooling, UAT and training pending |
 
 ## Remaining releases
-- **0.95** Group blocks & rooming lists, split folios / transfer charges, credit and debit notes, exchange rates & multi-currency, automatic cancellation fees, optional FIFO costing, recruitment pipeline.
 - **1.0** Hardening, performance, final acceptance documentation.
 
 ## Items needing project-owner decisions (SRS §17)

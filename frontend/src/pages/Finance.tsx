@@ -3,6 +3,7 @@ import { fmtDate, fmtDateTime, get, label, money, post, put, toMinor, fromMinor 
 import { useAuth } from "../state";
 import { Button, Card, Empty, Field, Input, Kpi, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad, useToast } from "../ui";
 import { RejectModal } from "./Inventory";
+import { ExchangeRates, NotesQueue } from "./Billing";
 
 export default function Finance({ q }: { q: URLSearchParams }) {
   const { can } = useAuth();
@@ -11,6 +12,8 @@ export default function Finance({ q }: { q: URLSearchParams }) {
     ...(can("accounting.reconcile") ? [{ id: "bank", label: "Bank reconciliation" }] : []),
     ...(can("accounting.view") ? [{ id: "budget", label: "Budget vs actual" }, { id: "periods", label: "Periods" }, { id: "online", label: "Online payments" }] : []),
     ...(can("reports.financial") ? [{ id: "cashflow", label: "Cash flow" }] : []),
+    ...(can("finance.notes.request") || can("finance.notes.approve") ? [{ id: "notes", label: "Credit & debit notes" }] : []),
+    ...(can("payments.receive") || can("finance.exchange_rates") ? [{ id: "fx", label: "Exchange rates" }] : []),
   ];
   const [tab, setTab] = useState(q.get("tab") || tabs[0]?.id || "expenses");
   useEffect(() => { const t = q.get("tab"); if (t) setTab(t); }, [q.get("tab")]);
@@ -23,6 +26,8 @@ export default function Finance({ q }: { q: URLSearchParams }) {
     {tab === "cashflow" && <CashFlow />}
     {tab === "periods" && <Periods />}
     {tab === "online" && <OnlinePayments />}
+    {tab === "notes" && <NotesQueue />}
+    {tab === "fx" && <ExchangeRates />}
   </div>;
 }
 

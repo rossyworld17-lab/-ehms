@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { fmtDate, fmtDateTime, get, label, money, openFile, post, toMinor, uid } from "../api";
 import { navigate, useAuth, useRoute } from "../state";
 import { Button, Card, Field, Input, Loadable, Modal, Pill, Select, Table, Textarea, errText, useAction, useLoad, useToast } from "../ui";
+import { FolioExtras } from "./Billing";
 
 export default function Folio({ id }: { id: number }) {
   const { hotel, can } = useAuth();
@@ -54,6 +55,7 @@ export default function Folio({ id }: { id: number }) {
               { h: "", r: l => open && can("folio.adjust") && l.kind === "charge" && !l.reversed ? <Button kind="ghost" onClick={() => setReverse(l)}>Reverse</Button> : null },
             ]} empty="No transactions yet" />
           </Card>
+          <FolioExtras folio={f} onChange={() => st.reload()} />
           {f.approvals.length > 0 && <Card title="Refund requests"><Table rows={f.approvals} cols={[
             { h: "Requested", r: a => fmtDateTime(a.created_at) }, { h: "Amount", r: a => money(a.amount, cur) }, { h: "Reason", r: a => a.reason },
             { h: "Status", r: a => <Pill s={a.status} /> }, { h: "Note", r: a => a.decision_note || "" }]} /></Card>}
@@ -98,7 +100,9 @@ function PayModal({ folio, methods, onClose, onDone }: any) {
     else setDue(folio.totals.balance);
   }, []);
   const usable = methods.filter((m: any) => m.active && m.kind !== "online");
-  const [f, setF] = useState({ method_id: "", amount: "", reference: "", note: "", company: "" });
+  const [f, setF] = useState({ method_id: "", amount: "", reference: "", note: "", company: "", currency: "" });
+  const rates = useLoad(() => get("/api/exchange-rates").catch(() => ({ latest: [] })), []);
+  const rate = (rates.data?.latest || []).find((x: any) => x.currency === f.currency);
   const [key] = useState(uid());
   const { busy, run } = useAction();
   useEffect(() => { if (due && due > 0 && !f.amount) setF(x => ({ ...x, amount: (due / 100).toFixed(2) })); }, [due]);
@@ -107,7 +111,8 @@ function PayModal({ folio, methods, onClose, onDone }: any) {
   const amt = toMinor(f.amount);
   return <Modal title="Take payment" onClose={onClose} footer={<><Button kind="secondary" onClick={onClose}>Close</Button>
     <Button busy={busy} disabled={!m || !(amt > 0) || (needRef && !f.reference.trim())} onClick={async () => {
-      const r = await run(() => post(`/api/folios/${folio.id}/payments`, { method_id: Number(f.method_id), amount: amt, reference: f.reference || undefined, note: f.note || undefined, company: f.company || undefined, idempotency_key: key }), "Payment recorded");
+      const money_ = f.currency ? { currency: f.currency, foreign_amount: amt } : { amount: amt };
+      const r = await run(() => post(`/api/folios/${folio.id}/payments`, { method_id: Number(f.method_id), ...money_, reference: f.reference || undefined, note: f.note || undefined, company: f.company || undefined, idempotency_key: key }), "Payment recorded");
       if (r) onDone();
     }}>Record payment</Button></>}>
     <div className="stack">
@@ -115,7 +120,10 @@ function PayModal({ folio, methods, onClose, onDone }: any) {
       <div className="form-grid">
         <Field label="Method"><Select value={f.method_id} onChange={e => setF({ ...f, method_id: e.target.value })}><option value="">Select…</option>
           {usable.map((x: any) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select></Field>
-        <Field label="Amount (₦)"><Input inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></Field>
+        {(rates.data?.latest || []).length > 0 && <Field label="Currency"><Select value={f.currency} onChange={e => setF({ ...f, currency: e.target.value, amount: "" })}>
+          <option value="">{hotel!.currency} (local)</option>{rates.data.latest.map((x: any) => <option key={x.currency} value={x.currency}>{x.currency}</option>)}</Select></Field>}
+        <Field label={f.currency ? `Amount (${f.currency})` : "Amount (₦)"} hint={rate && amt > 0 ? `= ${money(Math.round(amt * rate.rate_micro / 1e6), hotel!.currency)} at ${(rate.rate_micro / 1e6).toLocaleString()} (${rate.rate_date})` : undefined}>
+          <Input inputMode="decimal" value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></Field>
         <Field label={needRef ? "Reference (required)" : "Reference"} hint={m?.kind === "card_pos" ? "Terminal approval code — never enter card numbers" : m?.kind === "bank_transfer" ? "Bank transfer reference" : undefined}>
           <Input value={f.reference} onChange={e => setF({ ...f, reference: e.target.value })} /></Field>
         {m?.kind === "city_ledger" && <Field label="Company to bill"><Input value={f.company} onChange={e => setF({ ...f, company: e.target.value })} /></Field>}

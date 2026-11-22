@@ -148,3 +148,17 @@ requests through the guest profile. Appoint a data protection officer as your ob
   identity data) are sent to Anthropic to phrase the answer — record this in your data-protection register before
   enabling it. Questions are logged (`/api/hotels/{id}/assistant/log`, needs `admin.audit.view`).
 - Inventory lead time for reorder suggestions: hotel setting `inventory.lead_time_days` (default 7).
+
+## Groups, billing, currencies and recruitment (release 0.95)
+- Permissions: `reservations.groups`, `reservations.waive_fee` (front office manager, finance manager), `folio.transfer`
+  (reception), `finance.notes.request` (front office manager, accountant), `finance.notes.approve` (finance manager),
+  `finance.exchange_rates` (accountant, finance manager), `hr.recruit` (HR).
+- Cancellation policies: Hotel settings → Cancellation policies. Demo defaults: standard (free until 24 h, then first
+  night), non-refundable (100 %), groups (free until 7 days, then 50 %). Each booking keeps the policy it was made
+  under; a policy already used cannot be re-priced — create a new one.
+- Exchange rates are entered daily (base-currency units per 1 foreign unit, up to 6 decimals) and never edited;
+  a jump of more than 10 % triggers a warning. Foreign cash is booked to the payment method's account at its
+  converted value; banking differences are posted as normal bank charges or a manual journal.
+- Costing method: Hotel settings → Stock costing (needs `inventory.manage` and `accounting.view`). Change it at a
+  period end with your auditors' agreement; batches received before release 0.95 are costed at the average.
+- Recruitment data: anonymise unsuccessful applicants after closing an opening unless they agreed to be kept on file.

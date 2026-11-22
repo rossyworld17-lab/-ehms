@@ -230,6 +230,82 @@ def seed_demo() -> None:
     seed_operations_demo(hid, org)
     seed_crm_demo(hid, org)
     seed_bi_demo(hid, org)
+    seed_095_demo(hid, org)
+
+
+def seed_095_demo(hid: int, org: int) -> None:
+    """Release 0.95 demo: cancellation policies, exchange rates, a wedding group block with rooms picked up,
+    a job opening with applicants and a credit note awaiting approval."""
+    import datetime as _dt
+    import json as _json
+    from .services import business_date, next_number
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM cancellation_policies WHERE hotel_id = ?", [hid]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        uid = {r["code"]: r["uid"] for r in c.all("SELECT ro.code, MIN(u.id) AS uid FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles ro ON ro.id = ur.role_id "
+                                                   "WHERE u.organisation_id = ? GROUP BY ro.code", [org])}
+        c.insert("cancellation_policies", {"hotel_id": hid, "name": "Standard — free until 24 h before arrival", "free_until_hours": 24, "fee_type": "first_night",
+                                           "fee_value": 0, "no_show_fee_type": "first_night", "no_show_fee_value": 0, "is_default": 1, "active": 1, "created_at": now_iso()})
+        c.insert("cancellation_policies", {"hotel_id": hid, "name": "Non-refundable (advance purchase)", "free_until_hours": 0, "fee_type": "percent",
+                                           "fee_value": 10000, "no_show_fee_type": "percent", "no_show_fee_value": 10000, "is_default": 0, "active": 1, "created_at": now_iso()})
+        c.insert("cancellation_policies", {"hotel_id": hid, "name": "Groups — free until 7 days before", "free_until_hours": 168, "fee_type": "percent",
+                                           "fee_value": 5000, "no_show_fee_type": "first_night", "no_show_fee_value": 0, "is_default": 0, "active": 1, "created_at": now_iso()})
+        fin = uid.get("finance_manager") or uid["general_manager"]
+        for cur, rate in (("USD", 1_550_000_000), ("GBP", 1_960_000_000), ("EUR", 1_680_000_000)):
+            if not c.one("SELECT id FROM exchange_rates WHERE organisation_id = ? AND currency = ? AND rate_date = ?", [org, cur, on.isoformat()]):
+                c.insert("exchange_rates", {"organisation_id": org, "currency": cur, "rate_date": on.isoformat(), "rate_micro": rate,
+                                            "source": "Demo rate — enter your bank's rate daily", "created_by": fin, "created_at": now_iso()})
+        # wedding block in three weeks, two categories, three rooms already picked up
+        types = {t["code"]: t for t in c.all("SELECT * FROM room_types WHERE hotel_id = ?", [hid])}
+        a, d = on + _dt.timedelta(days=21), on + _dt.timedelta(days=23)
+        sales = uid.get("sales_manager") or uid["general_manager"]
+        contact = c.insert("guests", {"organisation_id": org, "first_name": "Adaeze", "last_name": "Okonkwo", "email": "adaeze.okonkwo@example.com", "phone": "+2348030000001",
+                                      "marketing_consent": 0, "created_at": now_iso()})
+        bid = c.insert("group_blocks", {"hotel_id": hid, "code": "OKONKWO-WED", "name": "Okonkwo–Bello wedding (demo)", "contact_guest_id": contact,
+                                        "arrival": a.isoformat(), "departure": d.isoformat(), "cutoff_date": (a - _dt.timedelta(days=7)).isoformat(),
+                                        "status": "definite", "billing": "individual", "notes": "Bride's family pays for rooms individually; reception in the ballroom.",
+                                        "created_by": sales, "created_at": now_iso()})
+        policy = c.scalar("SELECT id FROM cancellation_policies WHERE hotel_id = ? AND name LIKE ?", [hid, "Groups%"])
+        codes = list(types)
+        for code, n, rate in ((codes[0], 6, int(types[codes[0]]["base_rate"] * 0.85)), (codes[1] if len(codes) > 1 else codes[0], 2, int(types[codes[1] if len(codes) > 1 else codes[0]]["base_rate"] * 0.85))):
+            if not c.one("SELECT id FROM group_block_rooms WHERE block_id = ? AND room_type_id = ?", [bid, types[code]["id"]]):
+                c.insert("group_block_rooms", {"block_id": bid, "room_type_id": types[code]["id"], "rooms": n, "rate": rate})
+        rate0 = c.scalar("SELECT rate FROM group_block_rooms WHERE block_id = ? AND room_type_id = ?", [bid, types[codes[0]]["id"]])
+        for fn, ln in (("Chidi", "Okonkwo"), ("Funmi", "Bello"), ("Emeka", "Okonkwo")):
+            g = c.insert("guests", {"organisation_id": org, "first_name": fn, "last_name": ln, "marketing_consent": 0, "created_at": now_iso()})
+            c.insert("reservations", {"hotel_id": hid, "reference": next_number(c, hid, "reservation", "RES"), "guest_id": g, "status": "confirmed", "booking_type": "group",
+                                      "source": "group", "arrival": a.isoformat(), "departure": d.isoformat(), "adults": 2, "children": 0, "room_type_id": types[codes[0]]["id"],
+                                      "nightly_rate": rate0, "rate_overridden": 0, "discount_amount": 0, "deposit_required": 0, "group_name": "Okonkwo–Bello wedding (demo)",
+                                      "group_block_id": bid, "cancellation_policy_id": policy,
+                                      "locked_rates": _json.dumps({(a + _dt.timedelta(days=i)).isoformat(): rate0 for i in range(2)}),
+                                      "created_by": sales, "created_at": now_iso(), "updated_at": now_iso()})
+        # recruitment
+        hr = uid.get("hr_manager") or uid["general_manager"]
+        oid = c.insert("job_openings", {"hotel_id": hid, "reference": next_number(c, hid, "job_opening", "JOB", 4), "title": "Front Desk Agent", "department": "front_office",
+                                        "employment_type": "full_time", "positions": 2, "salary_min": 15_000_000, "salary_max": 20_000_000,
+                                        "description": "Check-in/out, reservations and guest service. OND/HND, hospitality experience preferred.",
+                                        "status": "open", "closing_date": (on + _dt.timedelta(days=14)).isoformat(), "created_by": hr, "created_at": now_iso()})
+        for fn, ln, stage, score in (("Tolu", "Adebayo", "interview", 4), ("Ibrahim", "Musa", "screening", None), ("Grace", "Eze", "applied", None), ("Kemi", "Ola", "rejected", 2)):
+            aid = c.insert("applicants", {"opening_id": oid, "first_name": fn, "last_name": ln, "email": f"{fn.lower()}.{ln.lower()}@example.com", "source": "Jobberman (demo)",
+                                          "stage": stage, "rating": score, "consent_to_retain": 0, "created_by": hr, "created_at": now_iso(), "updated_at": now_iso()})
+            c.insert("applicant_events", {"applicant_id": aid, "kind": "stage", "to_stage": "applied", "created_by": hr, "created_at": now_iso()})
+            if stage != "applied":
+                c.insert("applicant_events", {"applicant_id": aid, "kind": "stage", "from_stage": "applied", "to_stage": stage,
+                                              "note": "Did not meet the language requirement" if stage == "rejected" else None, "created_by": hr, "created_at": now_iso()})
+            if score:
+                c.insert("applicant_events", {"applicant_id": aid, "kind": "interview", "note": "Panel interview", "score": score, "created_by": hr, "created_at": now_iso()})
+        # a credit note waiting for approval on the latest checked-out stay
+        f = c.one("SELECT f.* FROM folios f JOIN reservations r ON r.id = f.reservation_id WHERE f.hotel_id = ? AND r.status = 'checked_out' ORDER BY f.id DESC", [hid])
+        fom = uid.get("front_office_manager")
+        if f and fom:
+            from .services import price_breakdown
+            bd = price_breakdown(c, hotel, "room", 1_000_000, on)
+            c.insert("customer_notes", {"hotel_id": hid, "number": next_number(c, hid, "credit_note", "CN"), "kind": "credit", "folio_id": f["id"], "department": "room",
+                                        "description": "Goodwill credit — air-conditioning fault", "reason": "Guest moved rooms at 1 a.m. because the AC failed (demo).",
+                                        "net_amount": bd["net"], "service_charge": bd["service_charge"], "tax_amount": bd["tax"], "total_amount": bd["total"],
+                                        "status": "pending_approval", "requested_by": fom, "created_at": now_iso()})
 
 
 def _demo_pdf(title: str, lines: list[str]) -> bytes:
@@ -551,6 +627,7 @@ def _upgrade_demo(org: int) -> None:
         seed_operations_demo(hid, org)
         seed_crm_demo(hid, org)
         seed_bi_demo(hid, org)
+        seed_095_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -571,6 +648,7 @@ def _upgrade_demo(org: int) -> None:
     seed_operations_demo(hid, org)
     seed_crm_demo(hid, org)
     seed_bi_demo(hid, org)
+    seed_095_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

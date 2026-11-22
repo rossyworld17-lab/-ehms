@@ -46,6 +46,8 @@ ENTITIES: dict[str, tuple[str, str, str, str]] = {
     "asset": ("assets", "hotel", "maintenance.view", "Asset"),
     "incident": ("security_incidents", "hotel", "security.view", "Security incident"),
     "report": ("report_schedules", "hotel", "reports.view", "Scheduled report output"),
+    "applicant": ("applicants", "opening", "hr.view", "Job applicant (CV, certificates)"),
+    "group": ("group_blocks", "hotel", "reservations.view", "Group block (contracts, rooming lists)"),
 }
 CATEGORIES = {
     "identity": 7, "contract": 10, "invoice": 7, "receipt": 7, "statement": 7, "licence": 10, "policy": 10, "certificate": 10,
@@ -111,6 +113,9 @@ def _entity(c, ctx: Ctx | None, etype: str, eid: int, org_id: int) -> dict:
         hid, org = row["id"], row["organisation_id"]
     elif scope == "org":
         hid, org = None, row["organisation_id"]
+    elif scope == "opening":
+        hid = c.scalar("SELECT hotel_id FROM job_openings WHERE id = ?", [row["opening_id"]])
+        org = c.scalar("SELECT organisation_id FROM hotels WHERE id = ?", [hid])
     else:
         hid = row["hotel_id"]
         org = c.scalar("SELECT organisation_id FROM hotels WHERE id = ?", [hid])

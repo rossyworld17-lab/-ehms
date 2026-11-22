@@ -60,6 +60,8 @@ def post_charge(c, ctx: Ctx | None, hotel: dict, folio: dict, department: str, d
 
 
 def post_room_night(c, ctx: Ctx | None, hotel: dict, r: dict, folio: dict, night: dt.date) -> int | None:
+    from .groups import room_night_folio
+    folio = room_night_folio(c, r, folio)
     ref = f"ROOM:{r['id']}:{night.isoformat()}"
     if c.one("SELECT id FROM folio_lines WHERE folio_id = ? AND reference = ? AND kind = 'charge'", [folio["id"], ref]):
         return None
@@ -160,6 +162,9 @@ def checkout_preview(ctx: Ctx):
         pending = []
         rt = c.one("SELECT * FROM room_types WHERE id = ?", [r["room_type_id"]])
         for n in nights_between(dt.date.fromisoformat(r["arrival"]), end):
+            from .groups import room_night_folio
+            if room_night_folio(c, r, folio)["id"] != folio["id"]:
+                continue  # billed to the group master folio
             if not c.one("SELECT id FROM folio_lines WHERE folio_id = ? AND reference = ?", [folio["id"], f"ROOM:{r['id']}:{n.isoformat()}"]):
                 from ..pricing import stay_night_rate
                 rate = stay_night_rate(c, r, rt, n) + max(0, r["adults"] - 2) * (rt.get("extra_person_charge") or 0)
@@ -192,6 +197,13 @@ def check_out(ctx: Ctx):
                            "The folio must be settled before check-out" if bal["balance"] > 0 else
                            "The guest has a credit balance; process a refund before check-out",
                            {"balance": bal["balance"]})
+        extra = c.all("SELECT * FROM folios WHERE linked_reservation_id = ? AND status = 'open'", [r["id"]])
+        for xf in extra:
+            xb = folio_balance(c, xf["id"])["balance"]
+            if xb != 0:
+                raise ApiError(409, "balance_outstanding", f"Folio {xf['number']} ({xf['window_name'] or 'extra'}) must be settled before check-out",
+                               {"balance": xb, "folio_id": xf["id"]})
+            c.update("folios", xf["id"], {"status": "closed", "closed_at": now_iso()})
         room = c.lock("rooms", r["room_id"])
         c.update("rooms", room["id"], {"occupancy": "vacant", "hk_status": "dirty"})
         _hk_task(c, hotel, room["id"], "checkout_clean", f"Departure {r['reference']}")
@@ -272,7 +284,22 @@ def get_folio(ctx: Ctx):
         for l in lines:
             l["reversed"] = l["id"] in reversed_ids
         approvals = c.all("SELECT * FROM approvals WHERE entity = 'folio' AND entity_id = ? ORDER BY id DESC", [f["id"]])
-        return {**f, "lines": lines, "guest": guest, "reservation": res, "totals": folio_balance(c, f["id"]), "approvals": approvals}
+        stay_id = f["reservation_id"] or f.get("linked_reservation_id")
+        if not res and stay_id:
+            res = c.one("SELECT r.id, r.reference, r.arrival, r.departure, r.status, rm.number AS room_number FROM reservations r "
+                        "LEFT JOIN rooms rm ON rm.id = r.room_id WHERE r.id = ?", [stay_id])
+        siblings = []
+        if stay_id:
+            siblings = c.all("SELECT id, number, window_name, status FROM folios WHERE (reservation_id = ? OR linked_reservation_id = ?) AND id <> ? ORDER BY id",
+                             [stay_id, stay_id, f["id"]])
+        if f.get("group_block_id"):
+            siblings += c.all("SELECT f.id, f.number, r.reference AS window_name, f.status FROM folios f JOIN reservations r ON r.id = f.reservation_id "
+                              "WHERE r.group_block_id = ? AND f.status = 'open' ORDER BY f.id", [f["group_block_id"]])
+        notes = c.all("SELECT id, number, kind, status, total_amount FROM customer_notes WHERE folio_id = ? ORDER BY id DESC", [f["id"]])
+        for s in siblings:
+            s["balance"] = folio_balance(c, s["id"])["balance"]
+        return {**f, "lines": lines, "guest": guest, "reservation": res, "totals": folio_balance(c, f["id"]), "approvals": approvals,
+                "other_folios": siblings, "notes": notes}
 
 
 @route("GET", "/api/reservations/{res_id:int}/folio", perm="folio.view", tag="folio", summary="Open (or create) the folio for a reservation")
@@ -350,20 +377,32 @@ def add_adjustment(ctx: Ctx):
 @route("POST", "/api/folios/{folio_id:int}/payments", perm="payments.receive", tag="payments",
        summary="Record a payment or deposit (cash, transfer, POS card, city ledger)")
 def add_payment(ctx: Ctx):
-    amount = to_minor(ctx.field("amount"))
-    if amount <= 0:
+    fx_cur = (ctx.field("currency", required=False, kind=str) or "").upper() or None
+    foreign = to_minor(ctx.field("foreign_amount"), "foreign_amount") if fx_cur else None
+    amount = to_minor(ctx.field("amount")) if not fx_cur else None
+    if (amount if amount is not None else foreign) <= 0:
         raise bad_request("Amount must be greater than zero")
     key = ctx.field("idempotency_key", kind=str)
     with get_db().tx() as c:
         existing = c.one("SELECT * FROM payments WHERE idempotency_key = ?", [key])
         if existing:
-            if existing["folio_id"] != int(ctx.path["folio_id"]) or existing["amount"] != amount:
+            same = existing["foreign_amount"] == foreign if fx_cur else existing["amount"] == amount
+            if existing["folio_id"] != int(ctx.path["folio_id"]) or not same:
                 raise conflict("This idempotency key was already used for a different payment")
             return {"id": existing["id"], "duplicate": True, "status": existing["status"]}
         f = _load_folio(c, ctx, ctx.path["folio_id"])
         if f["status"] != "open":
             raise conflict("This folio is closed")
         hotel = get_hotel(c, f["hotel_id"])
+        rate = None
+        if fx_cur:
+            if fx_cur == hotel["currency"]:
+                raise bad_request(f"{fx_cur} is the hotel's own currency; send amount instead")
+            from .billing import convert, rate_for
+            rate = rate_for(c, hotel["organisation_id"], fx_cur, business_date(hotel))
+            if not rate:
+                raise conflict(f"No {fx_cur} exchange rate has been recorded; finance must enter today's rate first")
+            amount = convert(foreign, rate["rate_micro"])
         m = c.one("SELECT * FROM payment_methods WHERE id = ? AND hotel_id = ? AND active = 1", [ctx.field("method_id", kind=int), f["hotel_id"]])
         if not m:
             raise bad_request("Payment method not found", {"field": "method_id"})
@@ -378,19 +417,21 @@ def add_payment(ctx: Ctx):
                          [f["hotel_id"], m["id"], ref, amount]):
             raise conflict("A payment with the same method, reference and amount already exists (possible duplicate)")
         bdate = business_date(hotel)
-        je = post_journal(c, hotel["id"], bdate, f"Payment {m['name']} on {f['number']}", "payment", ref or key, [
+        fx_note = f" ({fx_cur} {foreign / 100:,.2f} @ {rate['rate_micro'] / 1_000_000:g})" if fx_cur else ""
+        je = post_journal(c, hotel["id"], bdate, f"Payment {m['name']} on {f['number']}{fx_note}", "payment", ref or key, [
             (m["account_id"], amount, 0, None, f"{m['name']} {ref or ''}"),
             (account_id(c, hotel["organisation_id"], "guest_ledger"), 0, amount, None, f"Payment on {f['number']}")], ctx.user_id)
         pid = c.insert("payments", {"hotel_id": f["hotel_id"], "folio_id": f["id"], "method_id": m["id"], "kind": "payment", "amount": amount,
                                     "currency": hotel["currency"], "status": "completed", "reference": ref, "idempotency_key": key,
-                                    "note": ctx.field("note", required=False), "received_by": ctx.user_id, "journal_entry_id": je, "created_at": now_iso()})
+                                    "note": ctx.field("note", required=False), "received_by": ctx.user_id, "journal_entry_id": je, "created_at": now_iso(),
+                                    "foreign_currency": fx_cur, "foreign_amount": foreign, "exchange_rate_micro": rate["rate_micro"] if rate else None})
         c.insert("folio_lines", {"folio_id": f["id"], "business_date": bdate.isoformat(), "kind": "payment", "department": "payment",
-                                 "description": f"Payment — {m['name']}" + (f" ({ref})" if ref else ""), "quantity": 1, "net_amount": amount,
+                                 "description": f"Payment — {m['name']}" + (f" ({ref})" if ref else "") + fx_note, "quantity": 1, "net_amount": amount,
                                  "tax_amount": 0, "service_charge": 0, "total_amount": amount, "reference": ref, "payment_id": pid,
                                  "journal_entry_id": je, "posted_by": ctx.user_id, "posted_at": now_iso()})
         audit(c, ctx, "payment.received", "payment", pid, ref or key, new={"folio": f["number"], "amount": amount, "method": m["code"]}, hotel_id=f["hotel_id"])
         bal = folio_balance(c, f["id"])
-    return {"id": pid, "status": "completed", "balance": bal["balance"], "_created": True}
+    return {"id": pid, "status": "completed", "balance": bal["balance"], "amount": amount, "_created": True}
 
 
 @route("POST", "/api/folios/{folio_id:int}/refund-requests", perm="payments.refund_request", tag="payments",

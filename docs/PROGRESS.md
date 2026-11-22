@@ -3,7 +3,7 @@
 Maintained per the master prompt: completed modules, partially completed modules, pending integrations,
 outstanding defects and test results. Requirement-level status is in [TRACEABILITY.md](TRACEABILITY.md).
 
-_Last updated: release 0.9._
+_Last updated: release 0.95._
 
 ## Completed modules (implemented, integrated and tested)
 
@@ -38,14 +38,16 @@ _Last updated: release 0.9._
 | Forecasting, unusual-transaction review, rate & reorder recommendations | **0.9** | reservations, payments, POS, folios, procurement (requisitions), revenue (pricing rules), worker |
 | Management assistant "Ask EHMS" (built-in engine; optional Claude engine) | **0.9** | all modules through permission-checked tools; audit log |
 | Document store with versions, integrity check, retention, legal hold and access history | **0.9** | guests, reservations, employees, suppliers, events and other records; scheduled reports; backups |
+| Cancellation policies & fees, group blocks & rooming lists, split folios & transfers, credit/debit notes, exchange rates & foreign-currency payments | **0.95** | reservations, availability, booking engine, front office, folios, ledger, approvals |
+| FIFO costing option | **0.95** | stock ledger, POS recipes, inventory reports |
+| Recruitment pipeline | **0.95** | HR (employee creation), documents |
 
 ## Partially completed
 
 | Area | Done | Remaining |
 |---|---|---|
-| Finance | AR, AP, cash/bank, approvals, reconciliation, budgets, cash flow, period close | credit/debit note documents, multi-currency |
-| Inventory | WAC valuation, FEFO depletion | optional FIFO costing, supplier returns, barcode scanner input |
-| HR | full HR & payroll | recruitment pipeline |
+| Finance | everything in scope incl. credit/debit notes and foreign-currency receipts | foreign-currency bank accounts and revaluation (not required by the SRS) |
+| Inventory | WAC and FIFO costing, FEFO depletion | supplier returns as a separate document (use a negative adjustment with a reason), barcode scanner hardware input |
 
 ## Pending integrations (none are simulated)
 
@@ -62,11 +64,11 @@ _Last updated: release 0.9._
 
 None known. Defects found and fixed while building 0.4 are listed in [TEST_REPORT.md](TEST_REPORT.md).
 
-## Test results (release 0.9)
+## Test results (release 0.95)
 
 | Suite | Result |
 |---|---|
-| API / integration (`pytest`), SQLite | 77 passed, 0 failed |
-| API / integration (`pytest`), PostgreSQL 16 | 77 passed, 0 failed |
-| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report, guest relations and revenue tabs, public post-stay survey submitted on a phone-sized screen, all Insights tabs, two assistant questions answered, a document opened with its access history |
-| Upgrade from 0.3, 0.4, 0.7 and 0.8 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |
+| API / integration (`pytest`), SQLite | 85 passed, 0 failed |
+| API / integration (`pytest`), PostgreSQL 16 | 85 passed, 0 failed |
+| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report, guest relations and revenue tabs, public post-stay survey submitted on a phone-sized screen, all Insights tabs, two assistant questions answered, a document opened with its access history, group block detail, credit-note queue, exchange rates, cancellation policies, stock costing, applicant record |
+| Upgrade from 0.3, 0.4, 0.7, 0.8 and 0.9 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |

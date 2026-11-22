@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder, MdGroups,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get } from "./api";
@@ -34,6 +34,7 @@ import Revenue from "./pages/Revenue";
 import Insights from "./pages/Insights";
 import Assistant from "./pages/Assistant";
 import Documents from "./pages/Documents";
+import Groups, { GroupDetail } from "./pages/Groups";
 import { Spinner } from "./ui";
 
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
@@ -43,6 +44,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/rooms", label: "Room board", icon: <MdKingBed />, perm: "rooms.view" },
     { to: "/reservations", label: "Front desk & reservations", icon: <MdEventNote />, perm: "reservations.view" },
     { to: "/calendar", label: "Availability calendar", icon: <MdCalendarMonth />, perm: "reservations.view" },
+    { to: "/groups", label: "Groups & blocks", icon: <MdGroups />, perm: "reservations.view" },
     { to: "/guests", label: "Guests", icon: <MdPeople />, perm: "guests.view" },
     { to: "/housekeeping", label: "Housekeeping", icon: <MdCleaningServices />, perm: "housekeeping.view" },
     { to: "/laundry", label: "Laundry", icon: <MdLocalLaundryService />, perm: "laundry.view" },
@@ -184,6 +186,8 @@ export default function App() {
     case path === "/maintenance": page = guard("maintenance.report", <Maintenance q={q} />); break;
     case path === "/security": page = ["security.view", "security.report", "lostfound.manage"].some(can) ? <Security q={q} /> : <Forbidden />; break;
     case path === "/events": page = guard("events.view", <Events />); break;
+    case seg[0] === "groups" && !!seg[1]: page = guard("reservations.view", <GroupDetail id={Number(seg[1])} />); break;
+    case path === "/groups": page = guard("reservations.view", <Groups />); break;
     case path === "/insights": page = ["bi.view", "ai.anomalies.view", "ai.assistant", "bi.schedule"].some(can) ? <Insights q={q} /> : <Forbidden />; break;
     case path === "/assistant": page = guard("ai.assistant", <Assistant />); break;
     case seg[0] === "documents": page = ["documents.view", "documents.upload"].some(can) ? <Documents q={q} openId={seg[1] ? Number(seg[1]) : undefined} /> : <Forbidden />; break;

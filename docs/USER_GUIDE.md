@@ -194,6 +194,35 @@ changes. Finance approves (not the preparer) — this posts the salary journal a
 Accounts records the salary payment, exports the bank schedule and records PAYE, pension, NHF and other
 remittances. **Statutory rules** shows the rates in force; finance can change them.
 
+## Cancelling and no-shows
+**Cancel** and **No-show** show the fee the booking's policy applies (for example, the first night if the guest
+cancels less than 24 hours before arrival). The fee is posted to the folio automatically. Managers with the right
+permission can tick **Waive the fee** and give a reason. Guests can cancel online only while cancellation is free.
+
+## Groups & blocks
+**New group block**: name, dates, cut-off date, rooms per category and the group rate. Held rooms are not sold to
+other guests. Open the group and **Add rooming list** (paste or upload a CSV with first_name, last_name, email,
+phone, room_type, arrival, departure, adults) to create the reservations. The allotment table shows pickup;
+**Release unpicked rooms** gives rooms back (this also happens automatically after the cut-off date). Choose
+"Rooms to master folio" billing and **Open master folio** to bill all room nights to one account.
+
+## Splitting bills
+On a folio, **New folio (split bill)** opens a second folio for the stay (e.g. "Company account"). **Transfer
+charges** moves selected charges — or part of one — to it. Every folio of the stay must be settled before check-out.
+
+## Credit and debit notes
+**Credit / debit note** on a folio raises a note for approval. A finance approver (not you) approves it under
+Finance → Credit & debit notes; it is then posted to the folio with tax and service charge, and printable as PDF.
+A credit on a settled folio reopens it so you can request the refund.
+
+## Foreign-currency payments
+In **Take payment**, choose the currency (only currencies with a recorded rate are offered). The amount is
+converted at the day's rate and both amounts are kept. Finance records rates under Finance → Exchange rates.
+
+## Recruitment
+HR → Recruitment: create an opening, add applicants, and move them through screening, interview (record scores),
+offer (salary and start date) and **Hire**, which creates the employee record and moves the CV to it.
+
 ## Insights
 - **Analytics**: choose the property (or all), dates, grouping and comparison, then **Apply**. Green/red arrows show
   the change against the comparison period. Profit figures come from the general ledger and appear only if your

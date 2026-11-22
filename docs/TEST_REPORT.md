@@ -1,10 +1,10 @@
-# Test report — release 0.9
+# Test report — release 0.95
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 77 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 85 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
@@ -35,6 +35,9 @@ a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for b
 | **Documents (0.9)** | 2 | file-type whitelist, content-signature mismatch, invalid base64 and size limit refused; path in file name stripped; ID scan confidential by default and write-only for reception (hidden in lists, download refused and the refusal logged); GM downloads identical bytes; new version supersedes the old; lowering confidentiality restricted; deletion refused before retention and under legal hold, allowed after with the file erased and the record kept; retention only extendable; tampered file refused (integrity check) and logged; employee files need `hr.records`; employee documents need `hr.view` to list |
 | **BI (0.9)** | 2 | analytics KPIs, weekly series, previous-period and previous-year comparison; financial revenue equals the ledger's revenue accounts exactly and GOP = revenue − expenses; invalid granularity and inaccessible hotels refused; occupancy history and HR analytics; sales manager gets no financials and no HR analytics; waiter refused; scheduled report refused for a recipient without the report permission; generated as xlsx into Documents and notified; a user without the report permission cannot open it; due once per day; schedule suspends itself when its creator is suspended |
 | **AI (0.9)** | 4 | anomaly scan flags a large allowance and a manual cash journal, never twice; flag about yourself cannot be reviewed by you; accountant may view but not decide; note required; closed flags stay closed; forecast ranges consistent and revenue hidden without `reports.financial`; recommendations filtered by permission; proposed rule awaits approval and cannot be approved by its proposer; reorder recommendation creates a submitted requisition; assistant refused without `ai.assistant`, answers occupancy/revenue/forecast/feedback from tools, refuses to act, explains missing permissions, logs every question; Claude engine is offered only permitted tools, a forbidden tool call returns a permission error, and a provider failure falls back to the built-in engine (provider simulated) |
+| **Cancellation & groups (0.95)** | 3 | fee preview and posting inside the late window, none when early; waiver refused without permission, recorded with reason when allowed; non-refundable no-show = full stay; used policy cannot be re-priced; online cancellation refused after the free window; block larger than free rooms refused; held rooms reduce availability for others; rooming list creates bookings at the group rate (bad rows reported, good rows kept); pickup does not reduce availability twice; allotment cannot go below pickup; release frees exactly the unpicked rooms; worker releases after cut-off; reception cannot create blocks; master-folio billing posts room nights to the group folio and the guest checks out with nothing due |
+| **Folios & notes (0.95)** | 2 | extra folio opened; whole and partial transfers move balances without touching the ledger; a line cannot be transferred twice; check-out blocked until every folio is settled, then extra folios close; credit note cannot exceed charges; FOM cannot approve, finance cannot approve its own note; approval reopens a closed folio, reduces room revenue and VAT exactly; decided notes stay decided; rejection needs a note; debit note approved; PDF |
+| **FX, FIFO, recruitment (0.95)** | 3 | rate entry restricted, base currency and invalid rates refused, big jumps warned; foreign payment converted at the latest rate with both amounts stored; idempotent; unknown currency refused; WAC vs FIFO issue values hand-checked (180,000 vs 140,000) and the remaining value equals the dearer batch; recruitment visible only with `hr.view`; salary range validated; duplicate applicant refused; stages cannot be skipped; offer needs salary and date; rejection needs a note; hire creates the employee with the offered position/date and moves the CV; anonymisation of unsuccessful applicants |
 
 Every 0.4 test ends with a ledger integrity check: total debits equal total credits, **and** the stock
 sub-ledger value equals the Inventory GL account balance.
@@ -53,6 +56,7 @@ sub-ledger value equals the Inventory GL account balance.
 8. Mobile layout (390 px) including My HR self clock-in and reporting a fault (0.7).
 9. Guest relations and Sales & revenue (all tabs); a guest completes the post-stay survey on a phone-sized screen (0.8).
 10. Insights (all tabs), Ask EHMS (two questions), Documents (open a document and its access history) (0.9).
+11. Group block detail, credit-note queue, exchange rates, cancellation policies, stock costing, applicant record (0.95).
 
 Additional scripted browser walkthroughs for 0.4 (run during development): waiter → kitchen → cashier dine-in
 sale with change; room-service order charged to a room; full procurement cycle across five roles
@@ -63,6 +67,15 @@ stock requisition approve/issue; trial balance balanced at the end; no console e
 A database created by release 0.3 (with its demo data) was started with 0.4: migration 0003 applied, new
 ledger accounts added, system roles received the new permissions once, the 0.4 demo outlets/menu/stores/
 suppliers were added once (re-running is a no-op), existing reservations kept, books balanced.
+
+## Upgrade test (0.95) — passed
+A 0.9 demo database upgraded twice with 0.95: migration 0009 applied, new permissions granted, policies, rates,
+group block, opening and credit note added once, books balanced.
+
+## Defects found and fixed during 0.95 testing
+- Group reservations stored the rack rate as the nightly rate (the locked rate was right) → the group rate is stored, also when a group booking is changed.
+- Loading a rooming list as a sales manager failed for lack of guest-profile permission → loading a rooming list authorises creating those guests.
+- A test used a literal `%` in SQL, which PostgreSQL's driver rejects → parameter.
 
 ## Upgrade test (0.9) — passed
 A 0.8 demo database upgraded twice with 0.9: migration 0008 applied, BI/AI/document permissions granted to

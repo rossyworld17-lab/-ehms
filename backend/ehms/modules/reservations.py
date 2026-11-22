@@ -12,7 +12,7 @@ from .rooms import ACTIVE_RES, overlapping_room_reservations, type_availability
 
 EDITABLE_STATUSES = ("enquiry", "tentative", "confirmed", "waitlisted")
 BOOKING_TYPES = ("individual", "group", "corporate", "walk_in", "travel_agent", "vip", "event")
-SOURCES = ("front_desk", "phone", "email", "walk_in", "website", "booking_engine", "travel_agent", "corporate", "ota", "other")
+SOURCES = ("front_desk", "phone", "email", "walk_in", "website", "booking_engine", "travel_agent", "corporate", "ota", "group", "other")
 
 
 # ------------------------------------------------------------------ pricing
@@ -92,13 +92,13 @@ def _validate_common(c, ctx: Ctx, hotel: dict, data: dict, exclude_id: int | Non
 
 
 def _check_inventory(c, ctx: Ctx, hotel_id: int, rt: dict, arrival: dt.date, departure: dt.date, status: str,
-                     room_id: int | None, exclude_id: int | None, overbook_reason: str | None) -> list[str]:
+                     room_id: int | None, exclude_id: int | None, overbook_reason: str | None, block_id: int | None = None) -> list[str]:
     """Raises if the booking would overbook, unless an authorised override is supplied. Returns warnings."""
     warnings = []
     if status not in ACTIVE_RES:
         return warnings
     c.lock("room_types", rt["id"])  # serialise concurrent bookings of the same category (PostgreSQL row lock)
-    avail = next((t for t in type_availability(c, hotel_id, arrival, departure, exclude_id) if t["id"] == rt["id"]), None)
+    avail = next((t for t in type_availability(c, hotel_id, arrival, departure, exclude_id, for_block=block_id) if t["id"] == rt["id"]), None)
     if not avail or avail["available"] < 1:
         if not overbook_reason:
             raise conflict(f"No {rt['name']} rooms are available for every night of this stay", {"code": "no_availability"})
@@ -217,23 +217,36 @@ def create_reservation(ctx: Ctx):
         else:
             raise bad_request("Provide guest_id or guest details", {"field": "guest"})
         room_id = int(body["room_id"]) if body.get("room_id") else None
-        warnings = _check_inventory(c, ctx, hid, rt, arrival, departure, status, room_id, None, body.get("overbook_reason"))
+        block, block_rate = None, None
+        if body.get("group_block_id"):
+            from .groups import block_rate_for
+            block, block_rate = block_rate_for(c, ctx, hid, int(body["group_block_id"]), rt, arrival, departure)
+            booking_type = "group"
+        warnings = _check_inventory(c, ctx, hid, rt, arrival, departure, status, room_id, None, body.get("overbook_reason"), block["id"] if block else None)
         account = None
         if body.get("corporate_account_id"):
             account = c.one("SELECT * FROM corporate_accounts WHERE id = ? AND organisation_id = ? AND status = 'active'", [int(body["corporate_account_id"]), ctx.org_id])
             if not account:
                 raise bad_request("Corporate / agent account not found or not active", {"field": "corporate_account_id"})
-        q = quote(c, hotel, rt, arrival, departure, int(body.get("adults") or 1), int(body.get("children") or 0), booking_type, override, discount,
-                  account["id"] if account else None)
+        q = quote(c, hotel, rt, arrival, departure, int(body.get("adults") or 1), int(body.get("children") or 0), booking_type,
+                  override if override is not None else block_rate, discount, account["id"] if account else None)
+        if block and override is None:
+            for n in q["nights"]:
+                n["applied"] = [f"group rate ({block['code']})"]
+        policy_id = int(body["cancellation_policy_id"]) if body.get("cancellation_policy_id") else None
+        if policy_id and not c.one("SELECT id FROM cancellation_policies WHERE id = ? AND hotel_id = ? AND active = 1", [policy_id, hid]):
+            raise bad_request("Cancellation policy not found", {"field": "cancellation_policy_id"})
+        policy_id = policy_id or c.scalar("SELECT id FROM cancellation_policies WHERE hotel_id = ? AND is_default = 1 AND active = 1", [hid])
         ref = next_number(c, hid, "reservation", "RES")
         rid = c.insert("reservations", {
             "hotel_id": hid, "reference": ref, "guest_id": guest_id, "status": status, "booking_type": booking_type, "source": source,
             "arrival": arrival.isoformat(), "departure": departure.isoformat(), "adults": int(body.get("adults") or 1),
             "children": int(body.get("children") or 0), "room_type_id": rt["id"], "room_id": room_id,
-            "nightly_rate": override if override is not None else rt["base_rate"], "rate_overridden": 1 if override is not None else 0,
+            "nightly_rate": override if override is not None else (block_rate if block else rt["base_rate"]), "rate_overridden": 1 if override is not None else 0,
             "discount_amount": discount, "deposit_required": to_minor(body.get("deposit_required") or 0, "deposit_required"),
             "company_name": body.get("company_name") or (account["name"] if account else None), "group_name": body.get("group_name"),
-            "special_requests": body.get("special_requests"), "corporate_account_id": account["id"] if account else None, "locked_rates": q["locked_rates"],
+            "special_requests": body.get("special_requests"), "corporate_account_id": (account["id"] if account else (block["corporate_account_id"] if block else None)),
+            "locked_rates": q["locked_rates"], "cancellation_policy_id": policy_id, "group_block_id": block["id"] if block else None,
             "notes": body.get("notes"), "created_by": ctx.user_id, "created_at": now_iso(), "updated_at": now_iso()})
         audit(c, ctx, "reservation.created", "reservation", rid, ref, new={"status": status, "arrival": arrival.isoformat(),
               "departure": departure.isoformat(), "room_type": rt["code"], "room_id": room_id, "total": q["total"],
@@ -299,17 +312,21 @@ def modify_reservation(ctx: Ctx):
                 override = to_minor(body["nightly_rate"], "nightly_rate") if body["nightly_rate"] not in (None, "") else None
             if "discount_amount" in body:
                 discount = to_minor(body["discount_amount"] or 0, "discount_amount")
-        warnings = _check_inventory(c, ctx, r["hotel_id"], rt, arrival, departure, r["status"], room_id, r["id"], body.get("overbook_reason"))
+        block_rate = None
+        if r.get("group_block_id"):
+            from .groups import block_rate_for
+            _, block_rate = block_rate_for(c, ctx, r["hotel_id"], r["group_block_id"], rt, arrival, departure)
+        warnings = _check_inventory(c, ctx, r["hotel_id"], rt, arrival, departure, r["status"], room_id, r["id"], body.get("overbook_reason"), r.get("group_block_id"))
         changes = {"arrival": arrival.isoformat(), "departure": departure.isoformat(), "room_type_id": rt["id"], "room_id": room_id,
                    "adults": int(merged.get("adults") or 1), "children": int(merged.get("children") or 0),
-                   "nightly_rate": override if override is not None else rt["base_rate"], "rate_overridden": 1 if override is not None else 0,
+                   "nightly_rate": override if override is not None else (block_rate if block_rate is not None else rt["base_rate"]), "rate_overridden": 1 if override is not None else 0,
                    "discount_amount": discount, "updated_at": now_iso()}
         for f in ("special_requests", "notes", "company_name", "group_name", "source"):
             if f in body:
                 changes[f] = body[f]
         if "deposit_required" in body:
             changes["deposit_required"] = to_minor(body["deposit_required"] or 0, "deposit_required")
-        q = quote(c, hotel, rt, arrival, departure, changes["adults"], changes["children"], r["booking_type"], override, discount, r.get("corporate_account_id"))
+        q = quote(c, hotel, rt, arrival, departure, changes["adults"], changes["children"], r["booking_type"], override if override is not None else block_rate, discount, r.get("corporate_account_id"))
         fresh = json.loads(q["locked_rates"])
         if rt["id"] == r["room_type_id"] and override is None and r.get("locked_rates"):
             prior = json.loads(r["locked_rates"])      # keep the rates the guest was quoted for nights already booked
@@ -369,10 +386,13 @@ def cancel(ctx: Ctx):
         r = _load(c, ctx, ctx.path["res_id"])
         if r["status"] not in EDITABLE_STATUSES:
             raise conflict(f"A {r['status'].replace('_', ' ')} reservation cannot be cancelled")
+        from .billing import apply_fee
+        fee = apply_fee(c, ctx, get_hotel(c, r["hotel_id"]), r, "cancel", ctx.field("waive_fee_reason", required=False, kind=str)) if r["status"] in ("confirmed", "tentative") else {"fee": 0}
         c.update("reservations", r["id"], {"status": "cancelled", "cancelled_at": now_iso(), "cancel_reason": reason, "updated_at": now_iso()})
         audit(c, ctx, "reservation.cancelled", "reservation", r["id"], r["reference"], old={"status": r["status"]},
               new={"status": "cancelled", "reason": reason}, hotel_id=r["hotel_id"])
         out = reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]]))
+    out["cancellation_fee"] = fee
     if out["folio"] and out["folio"]["balance"] < 0:
         out["message"] = "The guest has a credit balance on the folio. Request a refund or post a cancellation fee from the folio."
     return out
@@ -386,6 +406,8 @@ def no_show(ctx: Ctx):
             raise conflict("Only confirmed or tentative reservations can be marked no-show")
         if dt.date.fromisoformat(r["arrival"]) > business_date(get_hotel(c, r["hotel_id"])):
             raise conflict("A reservation can only be marked no-show on or after its arrival date")
+        from .billing import apply_fee
+        fee = apply_fee(c, ctx, get_hotel(c, r["hotel_id"]), r, "no_show", ctx.field("waive_fee_reason", required=False, kind=str))
         c.update("reservations", r["id"], {"status": "no_show", "updated_at": now_iso()})
-        audit(c, ctx, "reservation.no_show", "reservation", r["id"], r["reference"], old={"status": r["status"]}, new={"status": "no_show"}, hotel_id=r["hotel_id"])
-        return reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]]))
+        audit(c, ctx, "reservation.no_show", "reservation", r["id"], r["reference"], old={"status": r["status"]}, new={"status": "no_show", "fee": fee["fee"]}, hotel_id=r["hotel_id"])
+        return {**reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]])), "cancellation_fee": fee}

@@ -4,6 +4,7 @@ import { useAuth } from "../state";
 import { Button, Card, Empty, Field, Input, Kpi, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad, useToast } from "../ui";
 import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
+import Recruitment from "./Recruitment";
 
 // ======================================================================== HR
 export default function HR({ q }: { q: URLSearchParams }) {
@@ -11,7 +12,8 @@ export default function HR({ q }: { q: URLSearchParams }) {
   useEffect(() => { const t = q.get("tab"); if (t) setTab(t); }, [q.get("tab")]);
   return <div className="page">
     <div className="page-h"><div><h1>Human resources</h1><p className="muted">Employees, duty rosters, attendance and leave</p></div></div>
-    <Tabs tabs={[{ id: "employees", label: "Employees" }, { id: "roster", label: "Roster" }, { id: "attendance", label: "Attendance" }, { id: "leave", label: "Leave" }]} value={tab} onChange={setTab} />
+    <Tabs tabs={[{ id: "employees", label: "Employees" }, { id: "roster", label: "Roster" }, { id: "attendance", label: "Attendance" }, { id: "leave", label: "Leave" }, { id: "recruitment", label: "Recruitment" }]} value={tab} onChange={setTab} />
+    {tab === "recruitment" && <Recruitment />}
     {tab === "employees" && <Employees />}
     {tab === "roster" && <Roster />}
     {tab === "attendance" && <Attendance />}

@@ -12,7 +12,7 @@ import os
 
 from ..db import get_db, now_iso
 from ..http import ApiError, Ctx, audit, bad_request, conflict, not_found, route
-from ..services import business_date, next_number, parse_date, queue_notification
+from ..services import business_date, get_hotel, next_number, parse_date, queue_notification
 from .reservations import quote
 from .rooms import type_availability
 
@@ -125,6 +125,7 @@ def public_book(ctx: Ctx):
                                         "source": "booking_engine", "arrival": a.isoformat(), "departure": d.isoformat(), "adults": adults,
                                         "children": children, "room_type_id": t["id"], "nightly_rate": t["base_rate"], "rate_overridden": 0,
                                         "discount_amount": q["discount"], "promo_code": promo["code"] if promo else None, "deposit_required": 0, "locked_rates": q["locked_rates"],
+                                        "cancellation_policy_id": c.scalar("SELECT id FROM cancellation_policies WHERE hotel_id = ? AND is_default = 1 AND active = 1", [h["id"]]),
                                         "special_requests": (b.get("special_requests") or "")[:1000],
                                         "notes": "Online booking — awaiting online payment" if pay_online else "Online booking — pay at hotel", "created_at": now_iso(), "updated_at": now_iso()})
         audit(c, None, "booking_engine.booking", "reservation", rid, ref, new={"total": q["total"], "ip": ctx.ip}, hotel_id=h["id"])
@@ -175,6 +176,10 @@ def public_cancel(ctx: Ctx):
             raise conflict("This booking can no longer be cancelled online")
         if dt.date.fromisoformat(r["arrival"]) <= business_date({"business_date": r["business_date"], "timezone": r["timezone"]}):
             raise conflict("Bookings cannot be cancelled online on or after the arrival date; please contact the hotel")
+        from .billing import fee_for
+        fee = fee_for(c, get_hotel(c, r["hotel_id"]), r, "cancel")
+        if fee["fee"] > 0:
+            raise conflict(f"The free-cancellation period has ended ({fee['explanation']}) Please contact the hotel to cancel.")
         if c.one("SELECT id FROM payments WHERE folio_id IN (SELECT id FROM folios WHERE reservation_id = ?)", [r["id"]]):
             raise conflict("This booking has a payment attached; please contact the hotel to cancel and arrange any refund")
         c.update("reservations", r["id"], {"status": "cancelled", "cancelled_at": now_iso(), "cancel_reason": "Cancelled by guest online", "updated_at": now_iso()})

@@ -45,6 +45,18 @@ def level(c: Connection, item_id: int, store_id: int, lock: bool = False) -> dic
     return row
 
 
+def costing_method(c: Connection, hotel_id: int) -> str:
+    """'wac' (weighted average, default) or 'fifo' — hotel setting inventory.costing (FR-INV-004)."""
+    v = c.scalar("SELECT value FROM system_settings WHERE hotel_id = ? AND key = 'inventory.costing'", [hotel_id])
+    return "fifo" if v == "fifo" else "wac"
+
+
+def _depletion_order(method: str) -> str:
+    # FIFO costing consumes the oldest receipts first; otherwise batches go first-expiry-first-out (FEFO)
+    return ("received_at, id" if method == "fifo"
+            else "CASE WHEN expiry_date IS NULL THEN 1 ELSE 0 END, expiry_date, received_at, id")
+
+
 def outflow_value(c: Connection, item: dict, store: dict, qty_milli: int) -> int:
     """Carrying value that removing qty_milli would take out of the store (positive number).
     Raises if stock is insufficient and the store does not allow negative balances."""
@@ -55,6 +67,22 @@ def outflow_value(c: Connection, item: dict, store: dict, qty_milli: int) -> int
                        f"{qty_milli / 1000:g} needed", {"code": "insufficient_stock", "item_id": item["id"], "available": have / 1000})
     if have <= 0:
         return _round_div(item["last_cost"] * qty_milli, 1000)
+    if costing_method(c, store["hotel_id"]) == "fifo":
+        avg = _round_div(lv["value"] * 1000, have)
+        need, value = min(qty_milli, have), 0
+        for b in c.all(f"SELECT * FROM stock_batches WHERE item_id = ? AND store_id = ? AND quantity_milli > 0 ORDER BY {_depletion_order('fifo')}",
+                       [item["id"], store["id"]]):
+            if need <= 0:
+                break
+            take = min(need, b["quantity_milli"])
+            value += _round_div(take * (b["unit_cost"] if b["unit_cost"] is not None else avg), 1000)
+            need -= take
+        if need > 0:   # batches do not cover the level (stock from before batch tracking): average cost for the rest
+            value += _round_div(need * avg, 1000)
+        if qty_milli >= have:
+            # emptying the store takes exactly its carrying value (plus any shortfall at last cost)
+            return lv["value"] + _round_div(item["last_cost"] * (qty_milli - have), 1000)
+        return min(value, lv["value"])
     if qty_milli >= have:
         extra = qty_milli - have
         return lv["value"] + _round_div(lv["value"] * extra, have)
@@ -83,11 +111,11 @@ def apply_movement(c: Connection, hotel_id: int, item: dict, store: dict, moveme
     # batches (FEFO)
     if qty_milli > 0:
         c.insert("stock_batches", {"item_id": item["id"], "store_id": store["id"], "batch_no": batch_no, "expiry_date": expiry_date,
-                                   "quantity_milli": qty_milli, "received_at": now_iso()})
+                                   "quantity_milli": qty_milli, "received_at": now_iso(), "unit_cost": _round_div(value * 1000, qty_milli)})
     else:
         need = -qty_milli
-        for b in c.all("SELECT * FROM stock_batches WHERE item_id = ? AND store_id = ? AND quantity_milli > 0 "
-                       "ORDER BY CASE WHEN expiry_date IS NULL THEN 1 ELSE 0 END, expiry_date, received_at, id", [item["id"], store["id"]]):
+        order = _depletion_order(costing_method(c, hotel_id))
+        for b in c.all(f"SELECT * FROM stock_batches WHERE item_id = ? AND store_id = ? AND quantity_milli > 0 ORDER BY {order}", [item["id"], store["id"]]):
             if need <= 0:
                 break
             take = min(need, b["quantity_milli"])

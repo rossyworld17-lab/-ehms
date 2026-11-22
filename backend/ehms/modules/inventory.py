@@ -541,3 +541,29 @@ def post_count(ctx: Ctx):
         audit(c, ctx, "inventory.count_posted", "stock_count", k["id"], k["number"], new={"gain": gain, "loss": loss, "lines_adjusted": adjusted},
               hotel_id=hid)
     return {"status": "posted", "gain": gain, "loss": loss, "lines_adjusted": adjusted, "journal_entry_id": je}
+
+
+@route("GET", "/api/hotels/{hotel_id:int}/inventory/costing", perm="inventory.view", tag="inventory", summary="Stock costing method (wac or fifo)")
+def get_costing(ctx: Ctx):
+    hid = ctx.check_hotel(ctx.path["hotel_id"])
+    from ..stock import costing_method
+    with get_db().tx() as c:
+        return {"method": costing_method(c, hid)}
+
+
+@route("PUT", "/api/hotels/{hotel_id:int}/inventory/costing", perm="inventory.manage", tag="inventory",
+       summary="Choose weighted-average (wac) or FIFO costing ({method, reason}); applies to issues from now on and needs accounting.view")
+def set_costing(ctx: Ctx):
+    hid = ctx.check_hotel(ctx.path["hotel_id"])
+    ctx.require("accounting.view")
+    method = ctx.field("method", kind=str)
+    if method not in ("wac", "fifo"):
+        raise bad_request("method must be wac or fifo")
+    reason = ctx.field("reason", kind=str)
+    from ..services import set_hotel_setting
+    from ..stock import costing_method
+    with get_db().tx() as c:
+        old = costing_method(c, hid)
+        set_hotel_setting(c, hid, "inventory.costing", method)
+        audit(c, ctx, "inventory.costing_changed", "hotel", hid, None, old={"method": old}, new={"method": method, "reason": reason}, hotel_id=hid)
+    return {"method": method}

@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **351**
+Total endpoints: **383**
 
 ## Accounting
 
@@ -194,6 +194,12 @@ Total endpoints: **351**
 | GET | `/api/hotels/{hotel_id}/accounting/periods` | Accounting periods and their status | `accounting.view` |
 | POST | `/api/hotels/{hotel_id}/accounting/periods/{period}/close` | Close a past accounting period (no further postings dated in it) | `accounting.close_period` |
 | POST | `/api/hotels/{hotel_id}/accounting/periods/{period}/reopen` | Reopen a closed period (reason required; audited) | `accounting.close_period` |
+| GET | `/api/exchange-rates` | Latest exchange rates per currency and recent history | `payments.receive` |
+| POST | `/api/exchange-rates` | Record an exchange rate (currency, rate = base units per 1 foreign unit as a decimal string, rate_date, source) | `finance.exchange_rates` |
+| POST | `/api/folios/{folio_id}/notes` | Raise a credit or debit note on a folio (kind credit/debit, department, description, net_amount, reason) — needs approval | `finance.notes.request` |
+| GET | `/api/hotels/{hotel_id}/notes` | Credit and debit notes (?status) | `folio.view` |
+| POST | `/api/notes/{note_id}/decide` | Approve or reject a credit/debit note ({decision, note}); approval posts it to the folio and the ledger | `finance.notes.approve` |
+| GET | `/api/notes/{note_id}/pdf` | Credit or debit note as PDF | `folio.view` |
 
 ## Folio
 
@@ -203,6 +209,8 @@ Total endpoints: **351**
 | GET | `/api/reservations/{res_id}/folio` | Open (or create) the folio for a reservation | `folio.view` |
 | POST | `/api/folios/{folio_id}/charges` | Post a charge (restaurant, minibar, laundry, transport …) to a folio | `folio.post_charge` |
 | POST | `/api/folios/{folio_id}/adjustments` | Reverse a charge line, or grant an allowance (credit) with a reason | `folio.adjust` |
+| POST | `/api/reservations/{res_id}/folios` | Open an additional folio for a stay (window_name, bill_to: guest/company, corporate_account_id) | `folio.transfer` |
+| POST | `/api/folios/{folio_id}/transfer` | Move charges to another open folio of the same hotel (line_ids, target_folio_id, reason); optional amount to move part of one line | `folio.transfer` |
 
 ## Front desk
 
@@ -213,6 +221,19 @@ Total endpoints: **351**
 | POST | `/api/reservations/{res_id}/check-out` | Check a guest out (posts remaining room nights; balance must be settled) | `frontdesk.checkout` |
 | POST | `/api/reservations/{res_id}/room-move` | Move an in-house guest to another room | `frontdesk.room_move` |
 | POST | `/api/hotels/{hotel_id}/night-audit` | Night audit: post tonight's room charges for in-house guests and roll the business date | `frontdesk.night_audit` |
+
+## Groups
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/groups` | Group blocks with pickup (?status) | `reservations.view` |
+| POST | `/api/hotels/{hotel_id}/groups` | Create a group block (name, arrival, departure, cutoff_date, rooms[{room_type_id, rooms, rate}], corporate_account_id, contact guest, billing) | `reservations.groups` |
+| GET | `/api/groups/{block_id}` | Group block with allotment, pickup, rooming list and master folio | `reservations.view` |
+| PATCH | `/api/groups/{block_id}` | Change status, cut-off date, billing, notes or allotment (rooms[{room_type_id, rooms}] — never below rooms picked up) | `reservations.groups` |
+| POST | `/api/groups/{block_id}/release` | Release rooms not yet picked up back to general sale | `reservations.groups` |
+| POST | `/api/groups/{block_id}/rooming-list` | Create reservations from a rooming list: rows[{first_name, last_name, email, phone, room_type (code) or room_type_id, arrival, departure, adults, children, special_requests}] or csv text | `reservations.groups` |
+| GET | `/api/groups/{block_id}/rooming-list.csv` | Rooming list as CSV | `reservations.view` |
+| POST | `/api/groups/{block_id}/master-folio` | Open the group master folio (room nights are billed to it when billing is master_room or master_all) | `reservations.groups` |
 
 ## Guests
 
@@ -255,6 +276,16 @@ Total endpoints: **351**
 | GET | `/api/me/employee` | My employee profile, leave balances, requests, attendance this month and payslips | signed in |
 | POST | `/api/me/leave` | Request leave for myself | signed in |
 | POST | `/api/me/clock` | Clock in or out (action=in/out); late if more than 15 minutes after the rostered start | signed in |
+| GET | `/api/hotels/{hotel_id}/recruitment` | Job openings with applicant counts per stage | `hr.view` |
+| POST | `/api/hotels/{hotel_id}/recruitment` | Open a position (title, department, employment_type, positions, salary_min, salary_max, description, closing_date) | `hr.recruit` |
+| PATCH | `/api/recruitment/{opening_id}` | Change an opening's status (open, on_hold, filled, closed), positions or closing date | `hr.recruit` |
+| GET | `/api/recruitment/{opening_id}` | Opening with applicants | `hr.view` |
+| POST | `/api/recruitment/{opening_id}/applicants` | Add an applicant (first_name, last_name, email, phone, source, expected_salary, consent_to_retain) | `hr.recruit` |
+| GET | `/api/applicants/{applicant_id}` | Applicant with stage history, interviews and notes | `hr.view` |
+| POST | `/api/applicants/{applicant_id}/stage` | Move to the next stage ({stage, note, offered_salary, start_date}); rejection needs a note | `hr.recruit` |
+| POST | `/api/applicants/{applicant_id}/notes` | Add a note or an interview record ({kind: note/interview, note, interview_at, score 1-5}) | `hr.recruit` |
+| POST | `/api/applicants/{applicant_id}/hire` | Hire an applicant with an accepted offer: creates the employee record (position, hire_date, basic_salary and other HR fields); needs hr.manage | `hr.recruit` |
+| POST | `/api/recruitment/{opening_id}/anonymise` | Anonymise unsuccessful applicants who did not consent to be kept on file (opening must be filled or closed) | `hr.recruit` |
 
 ## Inventory
 
@@ -281,6 +312,8 @@ Total endpoints: **351**
 | GET | `/api/inventory/counts/{count_id}` | Stock count sheet | `inventory.view` |
 | PUT | `/api/inventory/counts/{count_id}/lines` | Record counted quantities: lines[{item_id, counted}] | `inventory.adjust` |
 | POST | `/api/inventory/counts/{count_id}/post` | Post a stock count: adjusts balances to counted quantities and journals the variance | `inventory.adjust` |
+| GET | `/api/hotels/{hotel_id}/inventory/costing` | Stock costing method (wac or fifo) | `inventory.view` |
+| PUT | `/api/hotels/{hotel_id}/inventory/costing` | Choose weighted-average (wac) or FIFO costing ({method, reason}); applies to issues from now on and needs accounting.view | `inventory.manage` |
 
 ## Kitchen
 
@@ -463,6 +496,10 @@ Total endpoints: **351**
 | POST | `/api/reservations/{res_id}/confirm` | Confirm a tentative/waitlisted reservation | `reservations.modify` |
 | POST | `/api/reservations/{res_id}/cancel` | Cancel a reservation with a reason | `reservations.cancel` |
 | POST | `/api/reservations/{res_id}/no-show` | Mark a reservation as no-show | `reservations.cancel` |
+| GET | `/api/hotels/{hotel_id}/cancellation-policies` | Cancellation policies | `reservations.view` |
+| POST | `/api/hotels/{hotel_id}/cancellation-policies` | Create a cancellation policy (name, free_until_hours, fee_type none/first_night/percent/fixed, fee_value, no_show_fee_type, no_show_fee_value, is_default) | `admin.settings.manage` |
+| PATCH | `/api/cancellation-policies/{policy_id}` | Change a cancellation policy (applies to bookings made afterwards) | `admin.settings.manage` |
+| GET | `/api/reservations/{res_id}/cancellation-fee` | Fee that would apply if the booking were cancelled now (?kind=cancel/no_show) | `reservations.view` |
 
 ## Rooms
 
