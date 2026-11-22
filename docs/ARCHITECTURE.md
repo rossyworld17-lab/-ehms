@@ -12,6 +12,7 @@ ASGI app (Starlette + Uvicorn)  ──  /api/*  REST endpoints, OpenAPI at /api/
   │                 accounting · housekeeping · dashboard · reports · booking (public)
   │                 pos (+ kitchen display) · inventory · procurement            (release 0.4)
   │                 online (gateways, promo codes) · finance · messaging          (release 0.5)
+  │                 laundry · hr (+ self-service) · payroll                       (release 0.6)
   ├─ gateways.py    Paystack / Flutterwave adapters, retrying HTTP client, integration log (0.5)
   ├─ worker.py      scheduled jobs + message delivery (in-process loop or separate) (0.5)
   ├─ stock.py       perpetual stock ledger (weighted average cost, FEFO batches)  (release 0.4)
@@ -50,6 +51,8 @@ design system (navy / champagne gold) instead of a utility framework, which keep
 | Online payments | Transaction row first, then the provider call outside any DB transaction. Credit only after the provider's verify API confirms status, amount and currency; idempotency key `gw-<reference>`; webhook signatures checked with constant-time comparison; callers never trust webhook bodies. |
 | Period close | `post_journal` refuses entries dated in a closed month, so every module (night audit, POS, procurement…) respects it automatically. |
 | Messaging | Templates (built-in defaults + per-hotel overrides) rendered with a safe formatter; one queued row per channel; delivery with retries; reminders made idempotent by `job_runs`. |
+| Payroll | Pure function `compute_payslip` (unit-testable) driven by a rules dictionary; each run snapshots its rules. Approval posts one balanced journal (gross + employer cost = net + every liability); payment and each remittance are separate journals guarded against duplicates. |
+| HR privacy | Pay fields hidden without `hr.manage`/`payroll.view`; bank and statutory IDs masked without `hr.manage`/`payroll.pay`; confidential records only with `hr.records`; self-service limited to the user's own linked employee. |
 | Upgrades | Migrations apply on start-up. Permissions introduced by a release are granted once to existing system roles (`rbac.INTRODUCED`, marker in `system_settings`); missing ledger accounts are added. |
 | Sessions | Server-side session rows behind every JWT: logout, password change, suspension and admin revocation take effect immediately; idle timeout is enforced on each request. |
 
@@ -70,6 +73,7 @@ to run manually, `--render postgresql` to print the DDL). Main tables:
 | POS (0.4) | outlets, pos_tables, menu_categories, menu_items, recipe_lines, cashier_shifts, pos_orders, pos_order_items, pos_payments |
 | Payments & finance (0.5) | gateway_transactions, integration_logs, promo_codes, accounting_periods, bank_statement_lines, budget_lines, expense_claims |
 | Messaging (0.5) | notification_templates, job_runs (+ notifications.read_at / attempts) |
+| Laundry, HR & payroll (0.6) | laundry_prices, laundry_orders(+_items), employees, shift_templates, shift_assignments, attendance, leave_types, leave_requests, hr_records, employee_loans, payroll_runs, payslips, payroll_adjustments |
 | Procurement (0.4) | suppliers, purchase_requisitions(+_lines), supplier_quotes(+_lines), purchase_orders(+_lines), goods_receipts(+_lines), supplier_invoices, supplier_payments |
 | Control | audit_logs, schema_migrations |
 

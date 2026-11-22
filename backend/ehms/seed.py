@@ -120,7 +120,9 @@ def seed_demo() -> None:
                  ("chef@demo.ehms", "Funmi Lawal (Chef)", "chef", False),
                  ("stores@demo.ehms", "Musa Garba (Storekeeper)", "storekeeper", False),
                  ("inventory@demo.ehms", "Grace Udo (Inventory Mgr)", "inventory_manager", False),
-                 ("procurement@demo.ehms", "Yemi Alade (Procurement)", "procurement_officer", False)]
+                 ("procurement@demo.ehms", "Yemi Alade (Procurement)", "procurement_officer", False),
+                 ("hrmanager@demo.ehms", "Amaka Eze (HR Mgr)", "hr_manager", False),
+                 ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer", False)]
         users = {}
         for email, name, role, all_h in staff:
             uid = c.insert("users", {"organisation_id": org, "email": email, "full_name": name, "password_hash": security.hash_password(DEMO_PASSWORD),
@@ -218,6 +220,50 @@ def seed_demo() -> None:
         c.update("rooms", rooms["205"]["id"], {"service_status": "maintenance", "service_note": "Air-conditioner compressor replacement (demo)"})
     seed_fnb_and_stores(hid, org, users)
     seed_finance_demo(hid, org, users)
+    seed_hr_demo(hid, org)
+
+
+def seed_hr_demo(hid: int, org: int) -> None:
+    """Release 0.6 demo: laundry price list, shift patterns and an employee record for every demo staff account."""
+    import datetime as _dt
+    from .modules.hr import ensure_leave_types
+    from .services import business_date, next_number
+    prices = [("Shirt", "wash_iron", 150000), ("Trousers", "wash_iron", 200000), ("Dress", "wash_iron", 250000), ("Suit (2-piece)", "dry_clean", 600000),
+              ("Native attire (agbada)", "dry_clean", 800000), ("Underwear", "wash_only", 50000), ("Shirt", "iron_only", 80000), ("Bed sheet", "wash_iron", 0)]
+    pay = {"general_manager": ("admin", "General Manager", 150_000_000), "front_office_manager": ("front_office", "Front Office Manager", 45_000_000),
+           "receptionist": ("front_office", "Receptionist", 18_000_000), "reservations_officer": ("front_office", "Reservations Officer", 18_000_000),
+           "finance_manager": ("finance", "Finance Manager", 60_000_000), "accountant": ("finance", "Accountant", 30_000_000),
+           "housekeeping_manager": ("housekeeping", "Executive Housekeeper", 35_000_000), "housekeeping_staff": ("housekeeping", "Room Attendant", 12_000_000),
+           "restaurant_manager": ("fnb", "Restaurant Manager", 35_000_000), "restaurant_cashier": ("fnb", "Cashier", 14_000_000), "waiter": ("fnb", "Waiter", 11_000_000),
+           "chef": ("kitchen", "Head Chef", 40_000_000), "storekeeper": ("admin", "Storekeeper", 15_000_000), "inventory_manager": ("admin", "Inventory Manager", 30_000_000),
+           "procurement_officer": ("admin", "Procurement Officer", 25_000_000), "hr_manager": ("hr", "HR Manager", 45_000_000), "hr_officer": ("hr", "HR Officer", 20_000_000)}
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM laundry_prices WHERE hotel_id = ?", [hid]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        for item, svc, price in prices:
+            c.insert("laundry_prices", {"hotel_id": hid, "item": item, "service": svc, "price": price, "active": 1})
+        shifts = {name: c.insert("shift_templates", {"hotel_id": hid, "name": name, "start_time": a, "end_time": b})
+                  for name, a, b in (("Morning", "07:00", "15:00"), ("Afternoon", "15:00", "23:00"), ("Night", "23:00", "07:00"))}
+        ensure_leave_types(c, hid)
+        users = c.all("SELECT u.id, u.full_name, u.email, ro.code AS role FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles ro ON ro.id = ur.role_id "
+                      "WHERE u.organisation_id = ? ORDER BY u.id", [org])
+        monday = on - _dt.timedelta(days=on.weekday())
+        for i, u in enumerate(users):
+            if u["role"] not in pay or c.one("SELECT id FROM employees WHERE user_id = ?", [u["id"]]):
+                continue
+            dept, position, gross = pay[u["role"]]
+            name = u["full_name"].split(" (")[0].split(" ")
+            eid = c.insert("employees", {"hotel_id": hid, "employee_no": next_number(c, hid, "employee", "EMP", 4), "user_id": u["id"], "first_name": name[0],
+                                         "last_name": " ".join(name[1:]) or "Staff", "email": u["email"], "department": dept, "position": position,
+                                         "employment_type": "full_time", "hire_date": (on - _dt.timedelta(days=200 + 30 * i)).isoformat(), "status": "active",
+                                         "basic_salary": gross * 50 // 100, "housing_allowance": gross * 25 // 100, "transport_allowance": gross * 15 // 100,
+                                         "other_allowance": gross * 10 // 100, "bank_name": "Demo Bank", "bank_account_number": f"30{u['id']:08d}",
+                                         "tax_id": f"TIN-DEMO-{u['id']:04d}", "pension_pfa": "Demo Pensions Ltd", "pension_pin": f"PEN{u['id']:09d}", "created_at": now_iso()})
+            for d in range(6):
+                c.insert("shift_assignments", {"employee_id": eid, "work_date": (monday + _dt.timedelta(days=d)).isoformat(),
+                                               "shift_id": shifts["Afternoon" if dept in ("fnb", "kitchen") else "Morning"]})
 
 
 def seed_finance_demo(hid: int, org: int, users: dict) -> None:
@@ -245,7 +291,23 @@ NEW_DEMO_STAFF_04 = [("fnbmanager@demo.ehms", "Tolu Bankole (Restaurant Mgr)", "
                      ("cashier@demo.ehms", "Chika Obi (Restaurant Cashier)", "restaurant_cashier"), ("waiter@demo.ehms", "Sani Bello (Waiter)", "waiter"),
                      ("chef@demo.ehms", "Funmi Lawal (Chef)", "chef"), ("stores@demo.ehms", "Musa Garba (Storekeeper)", "storekeeper"),
                      ("inventory@demo.ehms", "Grace Udo (Inventory Mgr)", "inventory_manager"),
-                     ("procurement@demo.ehms", "Yemi Alade (Procurement)", "procurement_officer")]
+                     ("procurement@demo.ehms", "Yemi Alade (Procurement)", "procurement_officer"),
+                     ("hrmanager@demo.ehms", "Amaka Eze (HR Mgr)", "hr_manager"), ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer")]
+
+
+NEW_DEMO_STAFF_06 = [("hrmanager@demo.ehms", "Amaka Eze (HR Mgr)", "hr_manager"), ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer")]
+
+
+def _add_new_staff(org: int, hid: int, staff: list) -> None:
+    with get_db().tx() as c:
+        roles = seed_permissions_and_roles(c, org)
+        for email, name, role in staff:
+            if c.one("SELECT id FROM users WHERE email = ?", [email]):
+                continue
+            uid = c.insert("users", {"organisation_id": org, "email": email, "full_name": name, "password_hash": security.hash_password(DEMO_PASSWORD),
+                                     "all_hotels": 0, "created_at": now_iso(), "password_changed_at": now_iso()})
+            c.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", [uid, roles[role]])
+            c.execute("INSERT INTO user_hotels (user_id, hotel_id) VALUES (?, ?)", [uid, hid])
 
 
 def _upgrade_demo(org: int) -> None:
@@ -265,6 +327,8 @@ def _upgrade_demo(org: int) -> None:
         if needs_05:
             seed_finance_demo(hid, org, users)
             print("Added release 0.5 demo data (promo code, budget, expense claims).")
+        _add_new_staff(org, hid, NEW_DEMO_STAFF_06)
+        seed_hr_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -280,6 +344,7 @@ def _upgrade_demo(org: int) -> None:
             users[role] = uid
     seed_fnb_and_stores(hid, org, users)
     seed_finance_demo(hid, org, users)
+    seed_hr_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

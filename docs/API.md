@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **202**
+Total endpoints: **241**
 
 ## Accounting
 
@@ -143,6 +143,28 @@ Total endpoints: **202**
 | POST | `/api/housekeeping/tasks/{task_id}/complete` | Mark cleaning complete (room awaits inspection); optionally report issues / damaged items | `housekeeping.update` |
 | POST | `/api/housekeeping/tasks/{task_id}/inspect` | Inspect a cleaned room: pass makes it available, fail sends it back | `housekeeping.inspect` |
 
+## Hr
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/employees` | Employees (?status, ?department, ?q) | `hr.view` |
+| POST | `/api/hotels/{hotel_id}/employees` | Register an employee (employee number generated) | `hr.manage` |
+| GET | `/api/employees/{employee_id}` | Employee profile with leave balances, records (if permitted) and payslips | `hr.view` |
+| PATCH | `/api/employees/{employee_id}` | Edit an employee; status changes (resigned, terminated…) record an exit | `hr.manage` |
+| POST | `/api/employees/{employee_id}/records` | Add a training, appraisal, disciplinary, commendation, transfer or promotion record | `hr.records` |
+| GET | `/api/hotels/{hotel_id}/roster` | Weekly roster (?start=YYYY-MM-DD, Monday) and shift templates | `hr.view` |
+| POST | `/api/hotels/{hotel_id}/shift-templates` | Create a shift template (name, start_time, end_time HH:MM) | `hr.attendance` |
+| PUT | `/api/hotels/{hotel_id}/roster` | Save roster cells: assignments[{employee_id, date, shift_id/null}] | `hr.attendance` |
+| GET | `/api/hotels/{hotel_id}/attendance` | Attendance sheet for a date (?date) with rostered shift | `hr.view` |
+| PUT | `/api/hotels/{hotel_id}/attendance` | Record attendance: date, rows[{employee_id, status, clock_in, clock_out, overtime_minutes, note}] | `hr.attendance` |
+| GET | `/api/hotels/{hotel_id}/leave` | Leave requests (?status) and leave types | `hr.view` |
+| POST | `/api/employees/{employee_id}/leave` | Record a leave request on behalf of an employee | `hr.manage` |
+| POST | `/api/leave/{leave_id}/decide` | Approve or reject a leave request (not your own); approval marks attendance as leave | `hr.leave.approve` |
+| POST | `/api/hotels/{hotel_id}/leave-types` | Add or update a leave type (code, name, days_per_year, paid) | `hr.manage` |
+| GET | `/api/me/employee` | My employee profile, leave balances, requests, attendance this month and payslips | signed in |
+| POST | `/api/me/leave` | Request leave for myself | signed in |
+| POST | `/api/me/clock` | Clock in or out (action=in/out); late if more than 15 minutes after the rostered start | signed in |
+
 ## Inventory
 
 | Method | Path | Purpose | Access |
@@ -177,6 +199,20 @@ Total endpoints: **202**
 | POST | `/api/kitchen/items/{item_id}/status` | Move a kitchen item to preparing / ready (kitchen staff) or served (service staff) | `kitchen.view` |
 | GET | `/api/hotels/{hotel_id}/kitchen/performance` | Kitchen performance: items, average and slowest preparation time per station (?from, ?to) | `kitchen.view` |
 
+## Laundry
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/laundry/prices` | Laundry price list and express surcharge | `laundry.view` |
+| POST | `/api/hotels/{hotel_id}/laundry/prices` | Add or update a price (item, service, price) | `laundry.manage` |
+| GET | `/api/hotels/{hotel_id}/laundry/orders` | Laundry orders (?status, ?kind, ?open=1 for everything not yet delivered) | `laundry.view` |
+| POST | `/api/hotels/{hotel_id}/laundry/orders` | Register a laundry order: guest (reservation_id) or internal (department); items[{price_id / description+service, quantity, condition_note}] | `laundry.manage` |
+| GET | `/api/laundry/orders/{order_id}` | Laundry order with items | `laundry.view` |
+| POST | `/api/laundry/items/{item_id}/outcome` | Record an item as ok, damaged or lost (note required); damaged/lost items are not charged | `laundry.manage` |
+| POST | `/api/laundry/orders/{order_id}/status` | Advance an order (washing → drying → ironing → quality_check → ready → delivered) or cancel it; delivery bills guest orders | `laundry.manage` |
+| GET | `/api/hotels/{hotel_id}/laundry/summary` | Laundry summary for a date range: orders, pieces, revenue, lost & damaged, internal linen by department | `laundry.view` |
+| GET | `/api/hotels/{hotel_id}/laundry/in-house` | Checked-in guests for a laundry order (?q room or name) | `laundry.manage` |
+
 ## Messaging
 
 | Method | Path | Purpose | Access |
@@ -202,6 +238,24 @@ Total endpoints: **202**
 | POST | `/api/folios/{folio_id}/payment-link` | Create an online payment link for a folio amount and (optionally) email it to the guest | `payments.receive` |
 | GET | `/api/hotels/{hotel_id}/gateway-transactions` | Online payment transactions and integration log | `accounting.view` |
 | POST | `/api/gateway-transactions/{tx_id}/verify` | Re-check a pending online payment with the provider | `payments.receive` |
+
+## Payroll
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/payroll/rules` | Statutory payroll rules in force (defaults + hotel overrides) | `payroll.view` |
+| PUT | `/api/hotels/{hotel_id}/payroll/rules` | Override statutory payroll rules (audited) | `payroll.approve` |
+| GET | `/api/hotels/{hotel_id}/payroll/runs` | Payroll runs | `payroll.view` |
+| POST | `/api/hotels/{hotel_id}/payroll/runs` | Prepare a payroll run for a month (period YYYY-MM) | `payroll.run` |
+| GET | `/api/payroll/runs/{run_id}` | Payroll run with payslips, adjustments and statutory totals | `payroll.view` |
+| POST | `/api/payroll/runs/{run_id}/adjustments` | Add a bonus or one-off deduction to a draft run (recalculates) | `payroll.run` |
+| POST | `/api/payroll/runs/{run_id}/recalculate` | Recalculate a draft run (after attendance or salary changes) | `payroll.run` |
+| POST | `/api/payroll/runs/{run_id}/approve` | Approve a draft run (not by its preparer): posts the payroll journal and applies loan repayments | `payroll.approve` |
+| POST | `/api/payroll/runs/{run_id}/pay` | Record payment of net salaries from a bank account | `payroll.pay` |
+| POST | `/api/payroll/runs/{run_id}/remit` | Record remittance of PAYE, pension, NHF or other statutory amounts for an approved run | `payroll.pay` |
+| GET | `/api/payroll/runs/{run_id}/bank-schedule.csv` | Bank payment schedule (CSV) for a run | `payroll.pay` |
+| GET | `/api/payslips/{slip_id}` | Payslip PDF (payroll staff, or the employee for their own approved payslip) | signed in |
+| POST | `/api/employees/{employee_id}/loans` | Grant a staff loan or salary advance (paid out now, recovered monthly through payroll) | `payroll.pay` |
 
 ## POS (restaurant, bar, room service)
 

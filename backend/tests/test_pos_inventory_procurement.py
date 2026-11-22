@@ -437,14 +437,14 @@ def test_procurement_standard_po_and_no_po_invoice(client):
 
 def test_permission_upgrade_grants_new_permissions_once(client):
     """Existing organisations receive 0.4 permissions on their system roles exactly once."""
-    from ehms.rbac import apply_permission_upgrades
+    from ehms.rbac import INTRODUCED, apply_permission_upgrades
     with get_db().tx() as c:
         org = c.scalar("SELECT id FROM organisations WHERE code = 'DEMO'")
         role = c.one("SELECT id FROM roles WHERE organisation_id = ? AND code = 'restaurant_cashier'", [org])
         # simulate a pre-0.4 database: drop the marker and the cashier's POS permissions
         c.execute("DELETE FROM system_settings WHERE key LIKE ?", ["rbac.upgrade.%"])
         c.execute("DELETE FROM role_permissions WHERE role_id = ? AND permission_code LIKE ?", [role["id"], "pos.%"])
-        assert apply_permission_upgrades(c, org) == ["0.4", "0.5"]
+        assert apply_permission_upgrades(c, org) == list(INTRODUCED)
         perms = {r["permission_code"] for r in c.all("SELECT permission_code FROM role_permissions WHERE role_id = ?", [role["id"]])}
         assert {"pos.order", "pos.settle", "pos.shift"} <= perms and "pos.manage" not in perms
         # an administrator then removes a permission: the upgrade does not re-add it

@@ -3,7 +3,7 @@
 Maintained per the master prompt: completed modules, partially completed modules, pending integrations,
 outstanding defects and test results. Requirement-level status is in [TRACEABILITY.md](TRACEABILITY.md).
 
-_Last updated: release 0.5._
+_Last updated: release 0.6._
 
 ## Completed modules (implemented, integrated and tested)
 
@@ -26,6 +26,9 @@ _Last updated: release 0.5._
 | Promo codes | **0.5** | booking engine, reservations |
 | Expense claims, bank reconciliation, budgets, cash flow, period close | **0.5** | ledger (period lock on every posting) |
 | Communication centre: templates, email/SMS/WhatsApp, in-app bell, worker reminders | **0.5** | reservations, POS, inventory, procurement |
+| Laundry (guest & internal linen) | **0.6** | folios, housekeeping |
+| HR: employees, rosters, attendance, leave, records, self-service | **0.6** | users, notifications, payroll |
+| Payroll with configurable statutory rules, loans, remittances | **0.6** | HR attendance & leave, ledger |
 
 ## Partially completed
 
@@ -34,7 +37,8 @@ _Last updated: release 0.5._
 | CRM | profiles, history, repeat/VIP, consent | loyalty points, campaigns, surveys, feedback analysis |
 | Finance | AR, AP, cash/bank, approvals, reconciliation, budgets, cash flow, period close | credit/debit note documents, multi-currency |
 | Inventory | WAC valuation, FEFO depletion | optional FIFO costing, supplier returns, barcode scanner input |
-| Housekeeping | tasks, inspection, issue reporting, stock requisitions | lost-and-found register, laundry |
+| Housekeeping | tasks, inspection, issue reporting, stock requisitions, laundry | lost-and-found register (with security, 0.7) |
+| HR | full HR & payroll | recruitment pipeline |
 
 ## Pending integrations (none are simulated)
 
@@ -50,11 +54,11 @@ _Last updated: release 0.5._
 
 None known. Defects found and fixed while building 0.4 are listed in [TEST_REPORT.md](TEST_REPORT.md).
 
-## Test results (release 0.5)
+## Test results (release 0.6)
 
 | Suite | Result |
 |---|---|
-| API / integration (`pytest`), SQLite | 54 passed, 0 failed |
-| API / integration (`pytest`), PostgreSQL 16 | 54 passed, 0 failed |
-| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, mobile layout |
+| API / integration (`pytest`), SQLite | 59 passed, 0 failed |
+| API / integration (`pytest`), PostgreSQL 16 | 59 passed, 0 failed |
+| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, mobile self clock-in |
 | Upgrade from 0.3 and 0.4 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |

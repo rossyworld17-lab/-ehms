@@ -1,10 +1,10 @@
-# Test report — release 0.5
+# Test report — release 0.6
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 54 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 59 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
@@ -23,6 +23,10 @@ a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for b
 | **Finance operations (0.5)** | 3 | expense claim maker-checker and payment journal; bank statement import, auto-match, unmatched bank charge, zero difference; reconciliation restricted; budget vs actual; cash flow closing = cash GL balance; financing classified; current month cannot be closed; posting into a closed month refused; reopen needs a reason |
 | **Messaging & worker (0.5)** | 1 | template override with unknown placeholder renders safely; day-before reminder by email (honestly `not_configured` without SMTP) and SMS (delivered through the fake provider); idempotent reruns; retry refused without a provider; low-stock digest reaches inventory managers in-app; mark read / read all; users cannot touch others' notifications |
 
+| **Laundry (0.6)** | 1 | price list & 50 % express surcharge; damaged item needs a note and is not charged; delivery only after quality check; no going back a stage; cancellation only before processing; delivery posts the laundry charge to the folio; internal linen batch not billed; lost items in the summary; accountant has no access |
+| **HR (0.6)** | 2 | employee number generated; onboarding record; department manager sees no pay, masked bank details and no confidential records; exit needs a reason; self-service leave with working-day count, overlap and balance checks; staff cannot approve; manager approval marks attendance as leave and notifies the employee; self clock-in/out rules; managers cannot approve their own leave |
+| **Payroll (0.6)** | 2 | hand-checked payslip (₦350,000 fixed pay → pension ₦28,000, NHF ₦5,000, PAYE ₦39,560 under the 2026 bands); absence deduction, overtime, bonus, loan recovery; preparer cannot approve; approval posts net, PAYE and other liabilities and reduces loan balances; draft-only adjustments; payment needs a reference and clears salaries payable; PAYE remitted once; bank schedule; employees download only their own approved payslips; rule validation and permission |
+
 Every 0.4 test ends with a ledger integrity check: total debits equal total credits, **and** the stock
 sub-ledger value equals the Inventory GL account balance.
 
@@ -34,8 +38,9 @@ sub-ledger value equals the Inventory GL account balance.
 2. Receptionist walk-in → check-in → folio charge → payment → check-out. Housekeeping inspection. Public booking.
 3. **Cashier opens a shift, sells a takeaway meal and settles it in cash (0.4).**
 4. Finance operations (all tabs), Promotions, Messaging (run reminders), notification bell (0.5).
-5. Booking engine with promo code WELCOME10 shows the discount; the payment return page handles an unknown reference (0.5).
-6. Mobile layout (390 px).
+5. Laundry price list, HR tabs and employee profile; HR manager prepares payroll in the UI and the finance manager approves it (0.6).
+6. Booking engine with promo code WELCOME10 shows the discount; the payment return page handles an unknown reference (0.5).
+7. Mobile layout (390 px) including My HR self clock-in.
 
 Additional scripted browser walkthroughs for 0.4 (run during development): waiter → kitchen → cashier dine-in
 sale with change; room-service order charged to a room; full procurement cycle across five roles
@@ -46,6 +51,10 @@ stock requisition approve/issue; trial balance balanced at the end; no console e
 A database created by release 0.3 (with its demo data) was started with 0.4: migration 0003 applied, new
 ledger accounts added, system roles received the new permissions once, the 0.4 demo outlets/menu/stores/
 suppliers were added once (re-running is a no-op), existing reservations kept, books balanced.
+
+## Defects found and fixed during 0.6 testing
+- Laundry staff could not search in-house guests (the lookup was POS-only) → laundry has its own lookup.
+- Payroll header showed the preparer's user ID → shows names of preparer and approver.
 
 ## Defects found and fixed during 0.5 testing
 - PostgreSQL has no `LIKE` on DATE columns (birthday job) → compare on a text cast.

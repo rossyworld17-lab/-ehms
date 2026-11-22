@@ -52,7 +52,9 @@ def main():
                                 ("/pos", "40_pos", "Point of sale"), ("/kitchen", "41_kitchen", "Kitchen display"), ("/pos-setup", "42_pos_setup", "POS setup"),
                                 ("/inventory", "43_inventory", "Inventory & stores"), ("/procurement", "44_procurement", "Procurement"),
                                 ("/finance", "50_finance", "Finance operations"), ("/promotions", "51_promotions", "WELCOME10"),
-                                ("/admin/messaging", "52_messaging", "Day-before arrival reminder")]:
+                                ("/admin/messaging", "52_messaging", "Day-before arrival reminder"),
+                                ("/laundry", "60_laundry", "Laundry"), ("/hr", "61_hr", "Human resources"), ("/payroll", "62_payroll", "Payroll"),
+                                ("/my-hr", "63_my_hr", "My HR")]:
             visit(page, path, shot, txt)
         # accounting tabs
         page.goto(f"{BASE}/#/accounting")
@@ -191,6 +193,37 @@ def main():
         expect(c.get_by_text("Settled").first).to_be_visible(timeout=8000)
         c.screenshot(path=f"{SHOTS}/45_pos_settled.png")
 
+        # ---------------- HR tabs, laundry price list (0.6)
+        page.goto(f"{BASE}/#/hr")
+        page.wait_for_selector("[role=tab]")
+        page.wait_for_timeout(600)
+        for tab in ("Roster", "Attendance", "Leave", "Employees"):
+            page.get_by_role("tab", name=tab).click()
+            page.wait_for_timeout(400)
+        page.locator("td", has_text="EMP-CGL-").first.click()
+        expect(page.get_by_text("Leave balances (this year)")).to_be_visible(timeout=8000)
+        page.screenshot(path=f"{SHOTS}/64_employee.png")
+        page.goto(f"{BASE}/#/laundry")
+        page.get_by_role("tab", name="Price list").click()
+        expect(page.get_by_text("Native attire (agbada)")).to_be_visible(timeout=8000)
+
+        # ---------------- payroll: HR prepares in the UI, finance approves (0.6)
+        hr = browser.new_context(viewport={"width": 1366, "height": 860}).new_page()
+        hr.on("pageerror", lambda e: errors.append(f"JS error (payroll): {e}"))
+        login(hr, "hrmanager@demo.ehms")
+        hr.goto(f"{BASE}/#/payroll")
+        hr.get_by_role("button", name="Prepare payroll").click()
+        expect(hr.get_by_role("heading", name=re.compile("Payroll 20"))).to_be_visible(timeout=10000)
+        hr.screenshot(path=f"{SHOTS}/65_payroll_run.png")
+        fin = browser.new_context(viewport={"width": 1366, "height": 860}).new_page()
+        fin.on("pageerror", lambda e: errors.append(f"JS error (payroll approve): {e}"))
+        fin.on("dialog", lambda d: d.accept())
+        login(fin, "finance@demo.ehms")
+        fin.goto(f"{BASE}/#/payroll")
+        fin.locator("td", has_text="20").first.click()
+        fin.get_by_role("button", name="Approve").click()
+        expect(fin.get_by_text("Payroll approved")).to_be_visible(timeout=8000)
+
         # ---------------- booking engine promo code (0.5)
         g = browser.new_context(viewport={"width": 1280, "height": 900}).new_page()
         g.on("pageerror", lambda e: errors.append(f"JS error (portal promo): {e}"))
@@ -209,6 +242,10 @@ def main():
         m.goto(f"{BASE}/#/housekeeping")
         m.wait_for_timeout(800)
         m.screenshot(path=f"{SHOTS}/26_mobile_housekeeper.png", full_page=True)
+        m.goto(f"{BASE}/#/my-hr")
+        m.get_by_role("button", name="Clock in").click()
+        expect(m.get_by_text("Clocked in")).to_be_visible(timeout=8000)
+        m.screenshot(path=f"{SHOTS}/66_mobile_my_hr.png", full_page=True)
         browser.close()
 
     if errors:

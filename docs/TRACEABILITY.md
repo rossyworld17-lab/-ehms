@@ -1,10 +1,10 @@
 # Requirements traceability
 
-Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.5.
+Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.6.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md
 
-Summary: **70 implemented**, **16 partial**, **41 planned** (of 127).
+Summary: **80 implemented**, **17 partial**, **30 planned** (of 127).
 
 | ID | Requirement | Status | Notes |
 |---|---|---|---|
@@ -62,8 +62,8 @@ Summary: **70 implemented**, **16 partial**, **41 planned** (of 127).
 | FR-HSK-001 | Display rooms requiring cleaning and allow managers to assign tasks. | Implemented |  |
 | FR-HSK-002 | Allow staff to update cleaning progress and managers to inspect and approve rooms. | Implemented |  |
 | FR-HSK-003 | Update room readiness only after required cleaning and inspection. | Implemented |  |
-| FR-HSK-004 | Record damaged or missing items, lost-and-found items, linen and laundry movements. | Partial | damage/issue reporting; linen & toiletry stock via store requisitions (0.4); lost-and-found & laundry planned |
-| FR-HSK-005 | Support laundry service orders, charges and housekeeping productivity reports. | Planned | laundry module |
+| FR-HSK-004 | Record damaged or missing items, lost-and-found items, linen and laundry movements. | Implemented | damage/issue reporting; linen and laundry movements (internal batches, lost/damaged items) (0.6); lost-and-found register with security release |
+| FR-HSK-005 | Support laundry service orders, charges and housekeeping productivity reports. | Implemented | guest laundry orders with price list and express surcharge, billed to the folio on delivery; laundry summary (0.6) |
 | FR-FIN-001 | Provide a configurable chart of accounts and double-entry accounting. | Implemented |  |
 | FR-FIN-002 | Maintain a general ledger, accounts receivable, accounts payable, cashbook and bank accounts. | Implemented | GL, guest & city ledger, accounts payable via supplier invoices, cash/bank accounts (0.4) |
 | FR-FIN-003 | Record income and expenses by department, property and category. | Implemented | income by department/property; expenses by department via expense claims, stock issues, GRN and supplier invoices (0.5) |
@@ -87,16 +87,16 @@ Summary: **70 implemented**, **16 partial**, **41 planned** (of 127).
 | FR-PRO-002 | Support requisitions, quotations, purchase orders and approval workflows. | Implemented | requisitions, quotations with price comparison, POs with standard/high-value approval and maker-checker (0.4) |
 | FR-PRO-003 | Record goods received and compare orders, receipts and supplier invoices. | Implemented | GRN with rejections, batch & expiry; three-way match of invoice to goods received with tolerance (0.4) |
 | FR-PRO-004 | Record supplier payments and generate procurement reports. | Implemented | supplier payments with withholding tax, idempotency; payables ageing, spend by supplier, payables report (0.4) |
-| FR-HR-001 | Maintain employee records, departments, job positions and employment documents. | Planned |  |
-| FR-HR-002 | Support recruitment, onboarding, separation and employee self-service. | Planned |  |
-| FR-HR-003 | Support attendance, configurable shifts, duty rosters and leave applications and approvals. | Planned |  |
-| FR-HR-004 | Maintain training, performance, disciplinary and incident records with restricted access. | Planned |  |
-| FR-HR-005 | Generate HR reports. | Planned |  |
-| FR-PAYR-001 | Maintain salary structures including basic salary, allowances, bonuses and deductions. | Planned |  |
-| FR-PAYR-002 | Calculate payroll using approved salary and attendance data. | Planned |  |
-| FR-PAYR-003 | Support configurable statutory deductions and employer contributions. | Planned |  |
-| FR-PAYR-004 | Support payroll review, approval, payslips, summaries and bank export where supported. | Planned |  |
-| FR-PAYR-005 | Post approved payroll transactions to accounting and preserve restricted payroll history. | Planned |  |
+| FR-HR-001 | Maintain employee records, departments, job positions and employment documents. | Implemented | employee register: personal, employment, department, position, pay, bank & statutory IDs, qualifications (0.6) |
+| FR-HR-002 | Support recruitment, onboarding, separation and employee self-service. | Partial | onboarding & exit records, linked system logins and self-service (leave, payslips, clock-in) (0.6); recruitment pipeline planned |
+| FR-HR-003 | Support attendance, configurable shifts, duty rosters and leave applications and approvals. | Implemented | shift templates & weekly rosters, attendance with overtime, self clock-in with lateness, leave types, balances and approval (0.6) |
+| FR-HR-004 | Maintain training, performance, disciplinary and incident records with restricted access. | Implemented | training, appraisal, disciplinary, commendation, transfer, promotion records restricted to hr.records (0.6) |
+| FR-HR-005 | Generate HR reports. | Partial | headcount by department, attendance summary, leave balances (0.6); further HR analytics with BI release |
+| FR-PAYR-001 | Maintain salary structures including basic salary, allowances, bonuses and deductions. | Implemented | basic, housing, transport, other allowances, bonuses, deductions, staff loans (0.6) |
+| FR-PAYR-002 | Calculate payroll using approved salary and attendance data. | Implemented | payroll from salary structure plus attendance (absence, overtime), unpaid leave and pro-rating for joiners/leavers (0.6) |
+| FR-PAYR-003 | Support configurable statutory deductions and employer contributions. | Implemented | configurable PAYE bands, rent relief, pension, NHF, NSITF, ITF; rules stored with each run (0.6) |
+| FR-PAYR-004 | Support payroll review, approval, payslips, summaries and bank export where supported. | Implemented | review, maker-checker approval, payslip PDFs, totals, bank schedule CSV, statutory remittances (0.6) |
+| FR-PAYR-005 | Post approved payroll transactions to accounting and preserve restricted payroll history. | Implemented | approved payroll posts salary, employer contributions and statutory liabilities; restricted payroll history (0.6) |
 | FR-MNT-001 | Maintain an asset register with identifiers, location, acquisition details, cost, warranty and status. | Planned |  |
 | FR-MNT-002 | Register maintenance issues, generate work orders and assign technicians. | Planned |  |
 | FR-MNT-003 | Support preventive maintenance schedules, progress tracking and completion verification. | Planned |  |

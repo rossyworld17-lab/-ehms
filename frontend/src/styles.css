@@ -245,3 +245,7 @@ td.best { background: #eaf7f0; font-weight: 600; }
 .notif { display: flex; flex-direction: column; gap: .15rem; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--soft); background: none; padding: .6rem .8rem; cursor: pointer; font: inherit; }
 .notif span { font-size: .82rem; color: var(--text); } .notif small { color: var(--muted); font-size: .72rem; }
 .notif.unread { background: var(--gold-soft); } .notif:hover { background: var(--soft); }
+.steps { display: flex; flex-wrap: wrap; gap: .3rem; margin: .5rem 0 .8rem; }
+.steps span { padding: .2rem .55rem; border-radius: 99px; background: var(--soft); color: var(--muted); font-size: .75rem; }
+.steps span.done { background: var(--navy); color: #fff; }
+.right { text-align: right; }

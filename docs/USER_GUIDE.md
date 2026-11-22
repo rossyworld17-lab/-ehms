@@ -129,6 +129,29 @@ variance; **Kitchen performance** shows preparation times by station.
    net amount to pay is shown.
 The **Overview** tab shows items awaiting approval, open orders, payables ageing and spend by supplier.
 
+## Laundry
+**Guest laundry**: pick the in-house guest, add items from the price list (or describe them), note their
+condition, tick Express if needed. Move the order through each stage; record any damaged or lost item with a
+note (it is not charged). **Deliver & charge room** posts the laundry charge to the guest's folio.
+**Linen batch**: internal laundry for a department (no charge). The daily summary lists revenue, batches and
+any lost or damaged items.
+
+## Human resources
+- **Employees**: register staff, link their system login, record exits. Pay and bank details are visible only
+  to HR and payroll staff; confidential records (appraisals, disciplinary) only to holders of `hr.records`.
+- **Roster**: choose a shift per person per day and save. **Attendance**: record present/late/absent/leave/off,
+  times and overtime ("Mark rostered staff present" fills the day quickly).
+- **Leave**: approve or reject requests (never your own). Approved leave appears in attendance automatically.
+
+## My HR (all staff)
+Clock in and out, request leave (balances shown), download payslips and see your attendance.
+
+## Payroll
+HR prepares the month (**Prepare payroll**), adds bonuses or deductions, and recalculates after attendance
+changes. Finance approves (not the preparer) — this posts the salary journal and recovers loan instalments.
+Accounts records the salary payment, exports the bank schedule and records PAYE, pension, NHF and other
+remittances. **Statutory rules** shows the rates in force; finance can change them.
+
 ## Notifications
 The bell at the top right shows your in-app notifications (for example "order ready" for waiters, low-stock
 digests for inventory managers, supplier invoices due for accountants). Click one to mark it read.

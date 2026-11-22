@@ -86,3 +86,17 @@ requests through the guest profile. Appoint a data protection officer as your ob
 - **Messaging**: templates per event (booking received, day-before reminder, payment link, birthday, staff
   alerts) and channel; turn any off. Delivery log shows every message with its status and provider error.
 - Online payment and messaging provider settings are environment variables — see DEPLOYMENT.md.
+
+## Laundry, HR and payroll (release 0.6)
+- Permissions: `laundry.view/manage`, `hr.view`, `hr.manage`, `hr.records` (confidential), `hr.attendance`,
+  `hr.leave.approve`, `payroll.view`, `payroll.run`, `payroll.approve`, `payroll.pay`. HR prepares payroll,
+  the Finance Manager approves, the Accountant pays and remits; department managers keep rosters and attendance
+  and approve leave for their teams.
+- Link each employee to their user account so they can use **My HR** (self clock-in, leave, payslips).
+- **Payroll rules** (Payroll → Statutory rules, `payroll.approve`): PAYE bands, rent relief, pension, NHF, NSITF,
+  ITF, working days, overtime multiplier and minimum-wage warning. Defaults follow Nigerian rules as commonly
+  applied from 2026 — confirm them with your tax and payroll advisers. Each run stores the rules it used.
+- Leave types and entitlements: HR → Leave → Leave types. Laundry prices and express surcharge: Laundry → Price list.
+- New ledger accounts are added automatically: 1300 Staff Loans & Advances, 2130 Salaries & Wages Payable,
+  2140 PAYE Payable, 2150 Pension Payable, 2160 NHF Payable, 2170 Other Statutory Deductions Payable, 5010
+  Employer Pension & Statutory Contributions.

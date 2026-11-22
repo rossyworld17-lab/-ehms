@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get } from "./api";
@@ -26,6 +26,8 @@ import Inventory, { ItemDetail } from "./pages/Inventory";
 import Procurement from "./pages/Procurement";
 import Finance from "./pages/Finance";
 import Messaging, { NotificationBell, Promotions } from "./pages/Messaging";
+import Laundry from "./pages/Laundry";
+import HR, { EmployeeDetail, MyHR, Payroll } from "./pages/HR";
 import { Spinner } from "./ui";
 
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
@@ -37,6 +39,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/calendar", label: "Availability calendar", icon: <MdCalendarMonth />, perm: "reservations.view" },
     { to: "/guests", label: "Guests", icon: <MdPeople />, perm: "guests.view" },
     { to: "/housekeeping", label: "Housekeeping", icon: <MdCleaningServices />, perm: "housekeeping.view" },
+    { to: "/laundry", label: "Laundry", icon: <MdLocalLaundryService />, perm: "laundry.view" },
   ]},
   { group: "Food & beverage", items: [
     { to: "/pos", label: "Point of sale", icon: <MdPointOfSale />, perm: "pos.view" },
@@ -46,6 +49,11 @@ const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Supply chain", items: [
     { to: "/inventory", label: "Inventory & stores", icon: <MdInventory2 />, perm: "inventory.view" },
     { to: "/procurement", label: "Procurement", icon: <MdShoppingCart />, perm: "procurement.view" },
+  ]},
+  { group: "People", items: [
+    { to: "/hr", label: "Human resources", icon: <MdBadge />, perm: "hr.view" },
+    { to: "/payroll", label: "Payroll", icon: <MdPayments />, perm: "payroll.view" },
+    { to: "/my-hr", label: "My HR", icon: <MdPersonPin /> },
   ]},
   { group: "Finance", items: [
     { to: "/accounting", label: "Accounting", icon: <MdAccountBalance />, perm: "accounting.view" },
@@ -146,7 +154,7 @@ export default function App() {
   let page: React.ReactNode;
   switch (true) {
     case path === "/": page = can("dashboard.view") ? <Dashboard /> : can("housekeeping.view") ? <Housekeeping /> : can("pos.view") ? <Pos />
-      : can("kitchen.view") ? <Kitchen /> : can("inventory.view") ? <Inventory q={q} /> : can("procurement.view") ? <Procurement q={q} /> : <Profile />; break;
+      : can("laundry.view") ? <Laundry /> : can("kitchen.view") ? <Kitchen /> : can("inventory.view") ? <Inventory q={q} /> : can("procurement.view") ? <Procurement q={q} /> : <Profile />; break;
     case path === "/pos": page = guard("pos.view", <Pos />); break;
     case path === "/kitchen": page = guard("kitchen.view", <Kitchen />); break;
     case path === "/pos-setup": page = guard("pos.manage", <PosSetup />); break;
@@ -154,6 +162,11 @@ export default function App() {
     case path === "/inventory": page = guard("inventory.view", <Inventory q={q} />); break;
     case path === "/procurement": page = guard("procurement.view", <Procurement q={q} />); break;
     case path === "/finance": page = ["finance.expenses.request", "accounting.reconcile", "accounting.view"].some(can) ? <Finance q={q} /> : <Forbidden />; break;
+    case path === "/laundry": page = guard("laundry.view", <Laundry />); break;
+    case seg[0] === "hr" && seg[1] === "employees" && !!seg[2]: page = guard("hr.view", <EmployeeDetail id={Number(seg[2])} />); break;
+    case path === "/hr": page = guard("hr.view", <HR q={q} />); break;
+    case path === "/payroll": page = guard("payroll.view", <Payroll />); break;
+    case path === "/my-hr": page = <MyHR />; break;
     case path === "/promotions": page = guard("promotions.manage", <Promotions />); break;
     case path === "/admin/messaging": page = guard("admin.notifications.manage", <Messaging />); break;
     case path === "/rooms": page = guard("rooms.view", <RoomBoard />); break;
