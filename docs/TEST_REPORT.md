@@ -1,10 +1,10 @@
-# Test report — release 0.8
+# Test report — release 0.9
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 69 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 77 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
@@ -32,6 +32,9 @@ a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for b
 | **Events (0.7)** | 1 | enquiries never block; overlapping ballroom hold refused (venue clash); capacity enforced; confirmation opens an event folio; quotation totals with tax and service charge; quotation PDF; deposit on the folio; sales cannot invoice; complete only after invoice; finance invoices once to events and F&B revenue; folio balance = total − deposit; profit = net − direct costs; locked after invoicing; venue calendar and pipeline |
 | **CRM (0.8)** | 3 | enrolment needs the guest's agreement; points earned once on check-out from settled spend with tier bonus; redemption below the minimum or above the balance refused; redemption posts a balanced allowance and reduces the balance; survey link single-use; a low score opens a complaint; sentiment and themes; complaint SLA by severity, receptionist can log but not view all, resolution required, overdue complaints escalated once by the worker; campaigns reach consenting guests only, opt-out honoured, send once |
 | **Sales & revenue (0.8)** | 2 | negotiated account rate applied; inactive account refused; season adjustment; occupancy rule inactive until approved, proposer cannot approve; **quoted rates locked on the booking** (a later rule does not reprice it, room-night posting uses the locked rate); targets achievement; revenue dashboard KPIs and pickup |
+| **Documents (0.9)** | 2 | file-type whitelist, content-signature mismatch, invalid base64 and size limit refused; path in file name stripped; ID scan confidential by default and write-only for reception (hidden in lists, download refused and the refusal logged); GM downloads identical bytes; new version supersedes the old; lowering confidentiality restricted; deletion refused before retention and under legal hold, allowed after with the file erased and the record kept; retention only extendable; tampered file refused (integrity check) and logged; employee files need `hr.records`; employee documents need `hr.view` to list |
+| **BI (0.9)** | 2 | analytics KPIs, weekly series, previous-period and previous-year comparison; financial revenue equals the ledger's revenue accounts exactly and GOP = revenue − expenses; invalid granularity and inaccessible hotels refused; occupancy history and HR analytics; sales manager gets no financials and no HR analytics; waiter refused; scheduled report refused for a recipient without the report permission; generated as xlsx into Documents and notified; a user without the report permission cannot open it; due once per day; schedule suspends itself when its creator is suspended |
+| **AI (0.9)** | 4 | anomaly scan flags a large allowance and a manual cash journal, never twice; flag about yourself cannot be reviewed by you; accountant may view but not decide; note required; closed flags stay closed; forecast ranges consistent and revenue hidden without `reports.financial`; recommendations filtered by permission; proposed rule awaits approval and cannot be approved by its proposer; reorder recommendation creates a submitted requisition; assistant refused without `ai.assistant`, answers occupancy/revenue/forecast/feedback from tools, refuses to act, explains missing permissions, logs every question; Claude engine is offered only permitted tools, a forbidden tool call returns a permission error, and a provider failure falls back to the built-in engine (provider simulated) |
 
 Every 0.4 test ends with a ledger integrity check: total debits equal total credits, **and** the stock
 sub-ledger value equals the Inventory GL account balance.
@@ -49,6 +52,7 @@ sub-ledger value equals the Inventory GL account balance.
 7. Booking engine with promo code WELCOME10 shows the discount; the payment return page handles an unknown reference (0.5).
 8. Mobile layout (390 px) including My HR self clock-in and reporting a fault (0.7).
 9. Guest relations and Sales & revenue (all tabs); a guest completes the post-stay survey on a phone-sized screen (0.8).
+10. Insights (all tabs), Ask EHMS (two questions), Documents (open a document and its access history) (0.9).
 
 Additional scripted browser walkthroughs for 0.4 (run during development): waiter → kitchen → cashier dine-in
 sale with change; room-service order charged to a room; full procurement cycle across five roles
@@ -59,6 +63,16 @@ stock requisition approve/issue; trial balance balanced at the end; no console e
 A database created by release 0.3 (with its demo data) was started with 0.4: migration 0003 applied, new
 ledger accounts added, system roles received the new permissions once, the 0.4 demo outlets/menu/stores/
 suppliers were added once (re-running is a no-op), existing reservations kept, books balanced.
+
+## Upgrade test (0.9) — passed
+A 0.8 demo database upgraded twice with 0.9: migration 0008 applied, BI/AI/document permissions granted to
+system roles, demo documents, schedules and one anomaly flag added once, books balanced.
+
+## Defects found and fixed during 0.9 testing
+- A refused document access was rolled back with the request, so it was missing from the access history → refusals and failed integrity checks are logged in their own transaction.
+- Listing documents for an employee did not require `hr.view` → it does.
+- Two app processes could each generate the same scheduled report → a once-per-day guard in the shared job table.
+- The assistant's speech bubbles inherited the page's two-column layout → class renamed.
 
 ## Upgrade test (0.8) — passed
 A database created by release 0.7 with demo data was upgraded with 0.8 twice: migration 0007 applied, CRM and

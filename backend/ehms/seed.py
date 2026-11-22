@@ -229,6 +229,61 @@ def seed_demo() -> None:
     seed_hr_demo(hid, org)
     seed_operations_demo(hid, org)
     seed_crm_demo(hid, org)
+    seed_bi_demo(hid, org)
+
+
+def _demo_pdf(title: str, lines: list[str]) -> bytes:
+    import io as _io
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    buf = _io.BytesIO()
+    cv = canvas.Canvas(buf, pagesize=A4)
+    cv.setFont("Helvetica-Bold", 16)
+    cv.drawString(60, 780, title)
+    cv.setFont("Helvetica", 11)
+    for i, ln in enumerate(lines):
+        cv.drawString(60, 750 - i * 18, ln)
+    cv.showPage()
+    cv.save()
+    return buf.getvalue()
+
+
+def seed_bi_demo(hid: int, org: int) -> None:
+    """Release 0.9 demo: hotel and supplier documents, two scheduled reports and a first unusual-transaction scan."""
+    import json as _json
+    from .modules.documents import store_document
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM report_schedules WHERE hotel_id = ?", [hid]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        uid = {r["code"]: r["uid"] for r in c.all("SELECT ro.code, MIN(u.id) AS uid FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles ro ON ro.id = ur.role_id "
+                                                   "WHERE u.organisation_id = ? GROUP BY ro.code", [org])}
+        gm = uid["general_manager"]
+        store_document(c, org_id=org, hotel_id=hid, entity_type="hotel", entity_id=hid, category="licence", title="Hotel operating licence 2026 (demo)",
+                       filename="operating-licence-2026.pdf", user_id=gm,
+                       data=_demo_pdf("Operating licence (demo document)", ["Lagos State Tourism — hotel operating licence", "Licence no. DEMO-0001",
+                                                                            "Valid 1 January 2026 – 31 December 2026", "This is sample data for the EHMS demo."]))
+        store_document(c, org_id=org, hotel_id=hid, entity_type="hotel", entity_id=hid, category="policy", title="Guest data protection policy (demo)",
+                       filename="data-protection-policy.pdf", user_id=gm,
+                       data=_demo_pdf("Guest data protection policy (demo)", ["Personal data is processed under the Nigeria Data Protection Act 2023.",
+                                                                              "Identity documents are visible only to authorised staff.", "Sample document."]))
+        sup = c.one("SELECT id FROM suppliers WHERE organisation_id = ? ORDER BY id", [org])
+        if sup:
+            store_document(c, org_id=org, hotel_id=None, entity_type="supplier", entity_id=sup["id"], category="contract", title="Supply agreement (demo)",
+                           filename="supply-agreement.pdf", user_id=uid.get("procurement_officer") or gm,
+                           data=_demo_pdf("Supply agreement (demo)", ["Payment terms 30 days; prices fixed for 6 months.", "Sample document."]))
+        fin = uid.get("finance_manager") or gm
+        c.insert("report_schedules", {"hotel_id": hid, "name": "Weekly occupancy & ADR", "report_code": "occupancy", "params": "{}", "frequency": "weekly",
+                                      "weekday": 0, "format": "pdf", "recipients": _json.dumps([gm] + ([uid["front_office_manager"]] if uid.get("front_office_manager") else [])),
+                                      "active": 1, "created_by": gm, "created_at": now_iso()})
+        c.insert("report_schedules", {"hotel_id": hid, "name": "Daily revenue", "report_code": "daily_revenue", "params": "{}", "frequency": "daily",
+                                      "format": "xlsx", "recipients": _json.dumps([fin, gm]), "active": 1, "created_by": fin, "created_at": now_iso()})
+        # a real manual cash entry, so the unusual-transaction scan has something to show in the demo
+        from .services import account_id, business_date, post_journal
+        post_journal(c, hid, business_date(hotel), "Petty cash top-up for generator diesel (demo)", "manual", "PC-DEMO-01",
+                     [(account_id(c, org, "exp_fuel"), 4_500_000, 0, "maintenance", "Diesel"), (account_id(c, org, "cash"), 0, 4_500_000, None, "Petty cash")], fin)
+        from .modules.insights import scan
+        scan(c, hotel, 30)
 
 
 def seed_crm_demo(hid: int, org: int) -> None:
@@ -495,6 +550,7 @@ def _upgrade_demo(org: int) -> None:
         _add_new_staff(org, hid, NEW_DEMO_STAFF_07)
         seed_operations_demo(hid, org)
         seed_crm_demo(hid, org)
+        seed_bi_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -514,6 +570,7 @@ def _upgrade_demo(org: int) -> None:
     _add_new_staff(org, hid, NEW_DEMO_STAFF_07)
     seed_operations_demo(hid, org)
     seed_crm_demo(hid, org)
+    seed_bi_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

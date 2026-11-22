@@ -3,7 +3,7 @@
 Maintained per the master prompt: completed modules, partially completed modules, pending integrations,
 outstanding defects and test results. Requirement-level status is in [TRACEABILITY.md](TRACEABILITY.md).
 
-_Last updated: release 0.8._
+_Last updated: release 0.9._
 
 ## Completed modules (implemented, integrated and tested)
 
@@ -34,6 +34,10 @@ _Last updated: release 0.8._
 | Events & banqueting | **0.7** | folios, ledger, HR (staff allocation) |
 | CRM: loyalty, complaints & SLA escalation, surveys, feedback analysis, campaigns | **0.8** | front office (check-out earns points, survey link), folios & ledger (redemption), messaging, worker |
 | Sales & revenue: accounts & negotiated rates, targets, seasons, approved pricing rules, competitor rates, revenue dashboard | **0.8** | reservations & booking engine (locked nightly rates), front office (room-night posting), approvals |
+| Business intelligence: filtered multi-property analytics with comparison, occupancy history, HR analytics, scheduled reports | **0.9** | ledger (financials), reservations, folios, HR & payroll, documents (report delivery), messaging, worker |
+| Forecasting, unusual-transaction review, rate & reorder recommendations | **0.9** | reservations, payments, POS, folios, procurement (requisitions), revenue (pricing rules), worker |
+| Management assistant "Ask EHMS" (built-in engine; optional Claude engine) | **0.9** | all modules through permission-checked tools; audit log |
+| Document store with versions, integrity check, retention, legal hold and access history | **0.9** | guests, reservations, employees, suppliers, events and other records; scheduled reports; backups |
 
 ## Partially completed
 
@@ -58,11 +62,11 @@ _Last updated: release 0.8._
 
 None known. Defects found and fixed while building 0.4 are listed in [TEST_REPORT.md](TEST_REPORT.md).
 
-## Test results (release 0.8)
+## Test results (release 0.9)
 
 | Suite | Result |
 |---|---|
-| API / integration (`pytest`), SQLite | 69 passed, 0 failed |
-| API / integration (`pytest`), PostgreSQL 16 | 69 passed, 0 failed |
-| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report, guest relations and revenue tabs, public post-stay survey submitted on a phone-sized screen |
-| Upgrade from 0.3, 0.4 and 0.7 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |
+| API / integration (`pytest`), SQLite | 77 passed, 0 failed |
+| API / integration (`pytest`), PostgreSQL 16 | 77 passed, 0 failed |
+| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report, guest relations and revenue tabs, public post-stay survey submitted on a phone-sized screen, all Insights tabs, two assistant questions answered, a document opened with its access history |
+| Upgrade from 0.3, 0.4, 0.7 and 0.8 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |

@@ -253,12 +253,18 @@ def run_report(ctx: Ctx):
     fname = ctx.path["name"]
     if fmt == "json":
         return {"title": title, "columns": cols, "rows": rows}
+    data, media, ext = render_report(fmt, fname, title, cols, rows, hotel_name)
+    return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{fname}.{ext}"'})
+
+
+def render_report(fmt: str, fname: str, title: str, cols: list, rows: list, hotel_name: str) -> tuple[bytes, str, str]:
+    """Render a tabular report to csv / xlsx / pdf bytes (shared by downloads and scheduled reports)."""
     if fmt == "csv":
         buf = io.StringIO()
         w = csv.writer(buf)
         w.writerow(cols)
         w.writerows(rows)
-        return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{fname}.csv"'})
+        return buf.getvalue().encode("utf-8"), "text/csv", "csv"
     if fmt == "xlsx":
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill
@@ -278,8 +284,7 @@ def run_report(ctx: Ctx):
             ws.column_dimensions[ws.cell(3, i).column_letter].width = max(12, min(40, max([len(str(col))] + [len(str(r[i - 1])) for r in rows]) + 2))
         buf = io.BytesIO()
         wb.save(buf)
-        return Response(buf.getvalue(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        headers={"Content-Disposition": f'attachment; filename="{fname}.xlsx"'})
+        return buf.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"
     if fmt == "pdf":
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4, landscape
@@ -292,5 +297,5 @@ def run_report(ctx: Ctx):
         t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f1f3d")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                                ("FONTSIZE", (0, 0), (-1, -1), 8), ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.HexColor("#dddddd"))]))
         doc.build([Paragraph(f"<b>{hotel_name}</b> — {title}", ss["Title"]), Spacer(1, 8), t])
-        return Response(buf.getvalue(), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{fname}.pdf"'})
+        return buf.getvalue(), "application/pdf", "pdf"
     raise bad_request("format must be json, csv, xlsx or pdf")

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ApiError, addDays, fmtDate, fmtDateTime, fromMinor, get, label, money, patch, post, toMinor } from "../api";
 import { navigate, useAuth } from "../state";
 import { Button, Card, Confirm, Empty, Field, Input, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, errText, useAction, useLoad, useToast } from "../ui";
+import { DocumentsPanel } from "./Documents";
 
 const TABS = [{ id: "arrivals", label: "Arrivals" }, { id: "in_house", label: "In-house" }, { id: "departures", label: "Departures" },
   { id: "upcoming", label: "Upcoming" }, { id: "search", label: "Search" }];
@@ -256,6 +257,7 @@ export function ReservationDetail({ id }: { id: number }) {
             </dl> : <p className="muted">A folio opens at check-in or when a deposit is taken.</p>}</Card>
           </div>
           <div className="grid-2">
+            <DocumentsPanel entityType="reservation" entityId={r.id} />
             <Card title="History"><ul className="timeline">{r.history.map((h: any, i: number) => <li key={i}><b>{label(h.action.split(".")[1])}</b> <span className="muted">by {h.user_name || "system / online"} · {fmtDateTime(h.created_at)}</span></li>)}</ul></Card>
             <Card title="Guest communications">{r.notifications.length ? <Table rows={r.notifications} cols={[
               { h: "Channel", r: n => label(n.channel) }, { h: "Subject", r: n => n.subject }, { h: "Status", r: n => <Pill s={n.status} /> }, { h: "When", r: n => fmtDateTime(n.created_at) }]} />

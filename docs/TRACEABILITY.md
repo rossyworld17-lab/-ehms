@@ -1,10 +1,10 @@
 # Requirements traceability
 
-Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.8.
+Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.9.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md
 
-Summary: **103 implemented**, **15 partial**, **9 planned** (of 127).
+Summary: **119 implemented**, **8 partial**, **0 planned** (of 127).
 
 | ID | Requirement | Status | Notes |
 |---|---|---|---|
@@ -21,7 +21,7 @@ Summary: **103 implemented**, **15 partial**, **9 planned** (of 127).
 | FR-PRP-005 | Support property-specific currencies, taxes, time zones and business rules. | Partial | per-hotel currency/taxes/time zone stored; multi-currency conversion planned |
 | FR-PMS-001 | Create room categories and rooms with unique identifiers, floor, capacity, facilities, description and rate plan. | Implemented |  |
 | FR-PMS-002 | Support Available, Reserved, Occupied, Dirty, Clean, Inspected, Out of Order, Out of Service, Under Maintenance and Blocked statuses. | Implemented | occupancy × housekeeping × service status |
-| FR-PMS-003 | Provide a visual room-status dashboard and occupancy history. | Partial | live board; occupancy history via occupancy report |
+| FR-PMS-003 | Provide a visual room-status dashboard and occupancy history. | Implemented | live board; occupancy history by category (heat map) and by room (0.9) |
 | FR-PMS-004 | Prevent overlapping confirmed room allocations unless an authorised overbooking policy applies. | Implemented | transactional overlap check + authorised overbooking |
 | FR-PMS-005 | Allow authorised room blocks for maintenance and other approved purposes. | Implemented | room blocks with reason |
 | FR-PMS-006 | Support room upgrades, transfers and changes with authorisation and audit records. | Implemented | room move / upgrade with audit |
@@ -91,7 +91,7 @@ Summary: **103 implemented**, **15 partial**, **9 planned** (of 127).
 | FR-HR-002 | Support recruitment, onboarding, separation and employee self-service. | Partial | onboarding & exit records, linked system logins and self-service (leave, payslips, clock-in) (0.6); recruitment pipeline planned |
 | FR-HR-003 | Support attendance, configurable shifts, duty rosters and leave applications and approvals. | Implemented | shift templates & weekly rosters, attendance with overtime, self clock-in with lateness, leave types, balances and approval (0.6) |
 | FR-HR-004 | Maintain training, performance, disciplinary and incident records with restricted access. | Implemented | training, appraisal, disciplinary, commendation, transfer, promotion records restricted to hr.records (0.6) |
-| FR-HR-005 | Generate HR reports. | Partial | headcount by department, attendance summary, leave balances (0.6); further HR analytics with BI release |
+| FR-HR-005 | Generate HR reports. | Implemented | headcount, attendance, leave balances (0.6); HR analytics: turnover, attendance, lateness, overtime, leave, payroll cost (0.9) |
 | FR-PAYR-001 | Maintain salary structures including basic salary, allowances, bonuses and deductions. | Implemented | basic, housing, transport, other allowances, bonuses, deductions, staff loans (0.6) |
 | FR-PAYR-002 | Calculate payroll using approved salary and attendance data. | Implemented | payroll from salary structure plus attendance (absence, overtime), unpaid leave and pro-rating for joiners/leavers (0.6) |
 | FR-PAYR-003 | Support configurable statutory deductions and employer contributions. | Implemented | configurable PAYE bands, rent relief, pension, NHF, NSITF, ITF; rules stored with each run (0.6) |
@@ -116,24 +116,24 @@ Summary: **103 implemented**, **15 partial**, **9 planned** (of 127).
 | FR-CS-001 | Register complaints with category, priority, assigned officer and status. | Implemented | complaints module (0.8) |
 | FR-CS-002 | Support escalation rules and record response and resolution times. | Implemented | SLA by severity, automatic escalation, response/resolution times (0.8) |
 | FR-CS-003 | Collect guest feedback and satisfaction surveys and report service quality. | Implemented | post-stay surveys and feedback reporting (0.8) |
-| FR-BI-001 | Provide role-filtered dashboards for revenue, occupancy, ADR, RevPAR, rooms, reservations, cancellations, balances, expenses and departmenta | Partial | executive dashboard KPIs |
-| FR-BI-002 | Provide daily, weekly, monthly, quarterly and annual reports. | Partial | operational & financial reports with Excel/CSV/PDF export |
-| FR-BI-003 | Support relevant filters by date, department, property and transaction. | Planned |  |
+| FR-BI-001 | Provide role-filtered dashboards for revenue, occupancy, ADR, RevPAR, rooms, reservations, cancellations, balances, expenses and departmenta | Implemented | executive dashboard; role-filtered analytics (financials need reports.financial, HR needs hr.view) (0.9) |
+| FR-BI-002 | Provide daily, weekly, monthly, quarterly and annual reports. | Implemented | reports by day/week/month/quarter/year; scheduled daily/weekly/monthly reports (0.9) |
+| FR-BI-003 | Support relevant filters by date, department, property and transaction. | Implemented | filters by date, property, department; transaction-level reports and exports (0.9) |
 | FR-BI-004 | Export reports to PDF and spreadsheet formats. | Implemented | every report exports to PDF, Excel and CSV |
-| FR-BI-005 | Compare periods and ensure financial reports use approved accounting records. | Planned |  |
+| FR-BI-005 | Compare periods and ensure financial reports use approved accounting records. | Implemented | previous period / previous year comparison; financials from posted journal entries only (0.9) |
 | FR-BI-006 | Audit sensitive report exports. | Implemented | report exports are written to the audit trail (0.4) |
-| FR-AI-001 | Provide an AI-assisted management interface for questions about data the user is authorised to access. | Planned |  |
-| FR-AI-002 | Forecast room demand, revenue and occupancy from relevant historical and booking data. | Planned |  |
-| FR-AI-003 | Identify unusual transaction patterns for human review. | Planned |  |
-| FR-AI-004 | Recommend room-rate and inventory reorder opportunities. | Partial | rate suggestions on revenue dashboard (0.8); reorder suggestions via low-stock digest; ML models in 0.9 |
-| FR-AI-005 | Analyse guest feedback and summarise recurring service issues. | Partial | keyword sentiment and recurring themes (0.8); AI summaries in 0.9 |
-| FR-AI-006 | Explain recommendations and limitations, respect access permissions and tenant boundaries. | Planned |  |
-| FR-AI-007 | Require human approval for sensitive financial, employment, cancellation and administrative decisions. | Planned |  |
+| FR-AI-001 | Provide an AI-assisted management interface for questions about data the user is authorised to access. | Implemented | Ask EHMS: permission-checked tools, built-in engine, optional Claude engine (0.9) |
+| FR-AI-002 | Forecast room demand, revenue and occupancy from relevant historical and booking data. | Implemented | explainable pickup forecast with ranges (0.9) |
+| FR-AI-003 | Identify unusual transaction patterns for human review. | Implemented | nine anomaly rules with human review queue (0.9) |
+| FR-AI-004 | Recommend room-rate and inventory reorder opportunities. | Implemented | rate recommendations to proposed rules; reorder recommendations to requisitions (0.9) |
+| FR-AI-005 | Analyse guest feedback and summarise recurring service issues. | Implemented | keyword sentiment & themes (0.8); assistant feedback summary with recurring issues (0.9) |
+| FR-AI-006 | Explain recommendations and limitations, respect access permissions and tenant boundaries. | Implemented | methods and limitations stated; tools filtered by permission and hotel; refusals explained (0.9) |
+| FR-AI-007 | Require human approval for sensitive financial, employment, cancellation and administrative decisions. | Implemented | assistant read-only; recommendations only create items awaiting approval; reviewers cannot review themselves (0.9) |
 | FR-NOT-001 | Support in-application and email notifications; support SMS and WhatsApp Business where configured and available. | Implemented | in-app notification centre, email (SMTP), SMS (Termii) and WhatsApp Business Cloud API adapters (0.5) |
 | FR-NOT-002 | Configure notifications by event and recipient for bookings, payments, reminders, approvals and tasks. | Implemented | templates per event and channel, on/off per event; reminders, digests and alerts by the scheduled worker (0.5) |
 | FR-NOT-003 | Record delivery status where supported by the provider. | Implemented | delivery log with status, attempts and provider error; automatic retries; manual retry (0.5) |
-| FR-DOC-001 | Securely upload and associate documents with guests, employees, suppliers, purchases, events and transactions. | Partial | invoices/receipts PDF; document storage planned |
-| FR-DOC-002 | Apply access permissions, categorisation, retrieval and retention policies. | Planned |  |
-| FR-DOC-003 | Maintain document access and modification history. | Planned |  |
+| FR-DOC-001 | Securely upload and associate documents with guests, employees, suppliers, purchases, events and transactions. | Implemented | uploads linked to 14 record types; validation and size limits (0.9) |
+| FR-DOC-002 | Apply access permissions, categorisation, retrieval and retention policies. | Implemented | record-based permissions, confidentiality levels, categories, search, retention and legal hold (0.9) |
+| FR-DOC-003 | Maintain document access and modification history. | Implemented | access log incl. refused attempts; versions; integrity check (0.9) |
 
 Non-functional highlights implemented: RBAC & scoping, MFA, lockout, session timeout/revocation, rate limiting, security headers/CSP, input validation, parameterised SQL, append-only audit trail, tamper-proof ledger, transactional integrity, automated backups with verification, OpenAPI documentation, responsive UI, automated API and browser tests.

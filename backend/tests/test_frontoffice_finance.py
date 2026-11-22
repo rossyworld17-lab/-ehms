@@ -202,8 +202,10 @@ def test_manual_journal_must_balance(client):
     bad = client.post(f"/api/hotels/{h['id']}/journal", {"description": "Diesel", "lines": [
         {"account_id": accts["exp_fuel"], "debit": 1000}, {"account_id": accts["cash"], "credit": 900}]})
     assert bad.status_code == 400
+    pl0 = client.get("/api/reports/profit-and-loss", params={"hotel_id": h["id"], "from": "2000-01-01", "to": "2099-12-31"}).json()
+    fuel0 = sum(e["amount"] for e in pl0["expenses"] if e["code"] == "5200")
     ok = client.post(f"/api/hotels/{h['id']}/journal", {"description": "Diesel for generator", "lines": [
         {"account_id": accts["exp_fuel"], "debit": 25000000}, {"account_id": accts["cash"], "credit": 25000000}]})
     assert ok.status_code == 201
     pl = client.get("/api/reports/profit-and-loss", params={"hotel_id": h["id"], "from": "2000-01-01", "to": "2099-12-31"}).json()
-    assert any(e["code"] == "5200" and e["amount"] == 25000000 for e in pl["expenses"])
+    assert sum(e["amount"] for e in pl["expenses"] if e["code"] == "5200") - fuel0 == 25000000

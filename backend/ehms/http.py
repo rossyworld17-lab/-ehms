@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import threading
 import time
 from collections import defaultdict, deque
@@ -174,7 +175,12 @@ def route(method: str, path: str, perm: str | None = None, public: bool = False,
                 body = None
                 raw = b""
                 if method in ("POST", "PUT", "PATCH", "DELETE"):
+                    limit = int(float(os.environ.get("EHMS_MAX_BODY_MB", "16")) * 1024 * 1024)
+                    if int(request.headers.get("content-length") or 0) > limit:
+                        raise ApiError(413, "body_too_large", "The request is too large")
                     raw = await request.body()
+                    if len(raw) > limit:
+                        raise ApiError(413, "body_too_large", "The request is too large")
                     if raw:
                         try:
                             body = json.loads(raw)

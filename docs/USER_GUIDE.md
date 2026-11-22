@@ -194,6 +194,32 @@ changes. Finance approves (not the preparer) — this posts the salary journal a
 Accounts records the salary payment, exports the bank schedule and records PAYE, pension, NHF and other
 remittances. **Statutory rules** shows the rates in force; finance can change them.
 
+## Insights
+- **Analytics**: choose the property (or all), dates, grouping and comparison, then **Apply**. Green/red arrows show
+  the change against the comparison period. Profit figures come from the general ledger and appear only if your
+  role includes financial reports.
+- **Forecast**: rooms already booked plus the pickup this hotel usually receives; each night shows a range. Read
+  "How this forecast works" before relying on it.
+- **Occupancy history**: a heat map by room category and a table per room (nights sold, revenue, out-of-order jobs).
+- **Unusual transactions**: flags are prompts for a check, not accusations. Open one, look at the record, and
+  close it with **Dismiss — explained** or **Confirm issue** and a note. You cannot review a flag about yourself.
+- **Recommendations**: suggested rate changes (turn into a pricing rule that someone else must approve) and items
+  to reorder (tick them and **Raise requisition** — it goes for normal approval).
+- **Scheduled reports**: pick a report, frequency, format and recipients (only people allowed to see that report
+  are listed). Files appear in **Documents** and recipients get a notification.
+
+## Ask EHMS
+Type a question such as "How full are we tonight?", "What was revenue last month?", "What do guests complain
+about?" or "What needs reordering?". Answers use only data your role may see and name their source. The assistant
+cannot approve, refund, cancel or change anything — it tells you where to do that.
+
+## Documents
+Every guest, employee, supplier, reservation and event has a **Documents** section; **Upload** a PDF, image, Word,
+Excel, CSV or text file (up to 10 MB). Identity, medical, HR and employee files are confidential by default — you
+may be able to file them without being able to open them afterwards. Open a document to download it, upload a
+new version, and see who viewed or downloaded it. The **Documents** page searches across the hotel; managers also
+see documents past their retention date and the activity log.
+
 ## Notifications
 The bell at the top right shows your in-app notifications (for example "order ready" for waiters, low-stock
 digests for inventory managers, supplier invoices due for accountants). Click one to mark it read.

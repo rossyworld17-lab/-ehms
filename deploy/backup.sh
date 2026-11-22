@@ -12,4 +12,9 @@ else
   echo "$(date -u) BACKUP VERIFICATION FAILED: $OUT" >&2
   exit 1
 fi
+# documents (uploaded files) are backed up with the database dump of the same run
+if [ -d /documents ]; then
+  tar -czf "/backups/ehms-documents-$STAMP.tar.gz" -C /documents . && echo "$(date -u) documents archived: ehms-documents-$STAMP.tar.gz"
+fi
+find /backups -name 'ehms-documents-*.tar.gz' -mtime +"${BACKUP_RETENTION_DAYS:-14}" -delete
 find /backups -name 'ehms-*.dump' -mtime +"${BACKUP_RETENTION_DAYS:-14}" -delete

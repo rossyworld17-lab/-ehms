@@ -29,6 +29,11 @@ DEFAULT_TEMPLATES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
     "order_ready": ("Kitchen order ready (staff)", {"in_app": ("Order ready", "{item} ready for {where}")}),
     "low_stock_digest": ("Daily low-stock digest (staff)", {"in_app": ("Low stock", "{count} item(s) are at or below their reorder level: {items}")}),
     "campaign": ("Marketing campaign (body set per campaign)", {}),
+    "scheduled_report": ("Scheduled report ready (staff)", {
+        "in_app": ("{report} is ready", "Your scheduled report {report} ({period}) is ready in Documents."),
+        "email": ("{report} — {hotel}", "Your scheduled report {report} ({period}) is ready. Sign in to EHMS and open Documents to download it "
+                  "(reports are not sent as attachments so that access stays permission-checked and logged).\n\n{link}")}),
+    "anomaly_digest": ("Unusual transactions flagged for review (staff)", {"in_app": ("Transactions to review", "{count} new unusual transaction(s) need review: {titles}")}),
     "invoices_due": ("Supplier invoices due soon (staff)", {"in_app": ("Supplier invoices due", "{count} approved supplier invoice(s) are due within 3 days, total {total}.")}),
 }
 

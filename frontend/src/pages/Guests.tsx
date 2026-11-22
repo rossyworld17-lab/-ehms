@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { GuestLoyalty } from "./CRM";
+import { DocumentsPanel } from "./Documents";
 import { ApiError, fmtDate, get, label, money, patch, post } from "../api";
 import { navigate, useAuth } from "../state";
 import { Button, Card, Field, Input, Loadable, Modal, Pill, Table, Textarea, errText, useAction, useLoad, useToast } from "../ui";
@@ -80,6 +81,7 @@ export function GuestDetail({ id }: { id: number }) {
       <GuestLoyalty guestId={g.id} />
       <Card title="Preferences & notes"><p>{g.preferences || <span className="muted">No preferences recorded</span>}</p>{g.notes && <p className="note">{g.notes}</p>}</Card>
     </div>
+    <DocumentsPanel entityType="guest" entityId={g.id} defaultCategory="identity" />
     <Card title="Stay history" pad={false}><Table rows={g.stays} onRow={s => navigate(`/reservations/${s.id}`)} cols={[
       { h: "Reference", r: s => s.reference }, { h: "Hotel", r: s => s.hotel_name }, { h: "Dates", r: s => `${fmtDate(s.arrival)} → ${fmtDate(s.departure)}` },
       { h: "Room", r: s => s.room_number ? `${s.room_number} (${s.room_type_name})` : s.room_type_name }, { h: "Status", r: s => <Pill s={s.status} /> }]} empty="No stays yet" /></Card>

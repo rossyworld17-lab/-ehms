@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **322**
+Total endpoints: **351**
 
 ## Accounting
 
@@ -45,6 +45,21 @@ Total endpoints: **322**
 | GET | `/api/admin/login-attempts` | Login history including failed attempts | `admin.audit.view` |
 | GET | `/api/hotels/{hotel_id}/notifications` | Outgoing notification log with delivery status | `admin.settings.manage` |
 
+## Ai
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/insights/forecast` | Explainable occupancy and room-revenue forecast (?days=30, max 90) | `bi.view` |
+| GET | `/api/hotels/{hotel_id}/insights/anomalies` | Unusual-transaction flags (?status=open/reviewing/confirmed/dismissed) | `ai.anomalies.view` |
+| POST | `/api/hotels/{hotel_id}/insights/anomalies/scan` | Run the unusual-transaction scan now (?days=7, max 90) | `ai.review` |
+| POST | `/api/anomalies/{flag_id}/review` | Record the outcome of a review ({status: reviewing/confirmed/dismissed, note}); you cannot review a flag about yourself | `ai.review` |
+| GET | `/api/hotels/{hotel_id}/insights/recommendations` | Rate recommendations (needs sales.view) and reorder recommendations (needs inventory.view), each with its reasoning | `ai.assistant` |
+| POST | `/api/hotels/{hotel_id}/insights/recommendations/propose-rule` | Turn a suggested rule into a pricing rule awaiting approval ({name, min_occupancy_pct, max_occupancy_pct, adjustment_bp}) | `sales.pricing` |
+| POST | `/api/hotels/{hotel_id}/insights/recommendations/requisition` | Create a draft purchase requisition from reorder recommendations ({item_ids}); it then follows normal approval | `procurement.requisition` |
+| GET | `/api/assistant/status` | Which engine answers and what the user may ask about | `ai.assistant` |
+| POST | `/api/assistant/ask` | Ask a question ({question, hotel_id}); answers use only data you are permitted to see | `ai.assistant` |
+| GET | `/api/hotels/{hotel_id}/assistant/log` | Assistant questions asked (audit) | `admin.audit.view` |
+
 ## Auth
 
 | Method | Path | Purpose | Access |
@@ -60,6 +75,18 @@ Total endpoints: **322**
 | POST | `/api/auth/password-reset/request` | Request a password-reset link by email | public |
 | POST | `/api/auth/password-reset/confirm` | Set a new password using a reset code | public |
 | GET | `/api/auth/sessions` | List my active sessions | signed in |
+
+## Bi
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/bi/analytics` | Analytics (?hotel_ids=1,2&from&to&granularity=day/week/month/quarter/year&compare=previous_period/previous_year/none&department) | `bi.view` |
+| GET | `/api/hotels/{hotel_id}/bi/occupancy-history` | Occupancy history by room category per day and nights/revenue per room (?from&to) | `bi.view` |
+| GET | `/api/hotels/{hotel_id}/bi/hr` | HR analytics: headcount, joiners/leavers, turnover, attendance, lateness, overtime, leave and payroll cost (?from&to) | `bi.view` |
+| GET | `/api/hotels/{hotel_id}/report-schedules` | Scheduled reports and eligible recipients | `bi.schedule` |
+| POST | `/api/hotels/{hotel_id}/report-schedules` | Schedule a report (name, report_code, frequency daily/weekly/monthly, weekday 0-6, month_day 1-31, format, recipients [user ids], params) | `bi.schedule` |
+| PATCH | `/api/report-schedules/{schedule_id}` | Pause or resume a schedule ({active}) | `bi.schedule` |
+| POST | `/api/report-schedules/{schedule_id}/run` | Run a schedule now (does not change its next due date) | `bi.schedule` |
 
 ## Booking engine (public)
 
@@ -104,6 +131,23 @@ Total endpoints: **322**
 | Method | Path | Purpose | Access |
 |---|---|---|---|
 | GET | `/api/hotels/{hotel_id}/dashboard` | Executive dashboard KPIs and trends | `dashboard.view` |
+
+## Documents
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/documents/meta` | Document entity types, categories, default retention and allowed file types | `documents.view` |
+| POST | `/api/documents` | Upload a document (JSON: entity_type, entity_id, category, title, filename, content_base64, confidentiality, notes) | `documents.upload` |
+| GET | `/api/documents` | Documents for a record (?entity_type&entity_id) or search (?hotel_id&q&category); only those you may open are listed | `documents.view` |
+| GET | `/api/documents/{doc_id}` | Document details, version history and access history | `documents.view` |
+| GET | `/api/documents/{doc_id}/download` | Download the file (integrity-checked, logged) | `documents.view` |
+| POST | `/api/documents/{doc_id}/replace` | Upload a new version (filename, content_base64, notes); the old version is kept as superseded | `documents.upload` |
+| PATCH | `/api/documents/{doc_id}` | Change title, category, notes or confidentiality (raising confidentiality is always allowed; lowering needs documents.manage) | `documents.upload` |
+| POST | `/api/documents/{doc_id}/legal-hold` | Place or lift a legal hold ({hold: true/false, reason}); held documents cannot be deleted | `documents.manage` |
+| POST | `/api/documents/{doc_id}/retention` | Extend the retention date ({retention_until, reason}); retention can only be extended | `documents.manage` |
+| DELETE | `/api/documents/{doc_id}` | Delete a document after its retention period ({reason}); the record and access history are kept, the file is erased | `documents.manage` |
+| GET | `/api/hotels/{hotel_id}/documents/retention-due` | Documents past their retention date and not on hold (candidates for disposal) | `documents.manage` |
+| GET | `/api/hotels/{hotel_id}/documents/access-log` | Recent document activity across the hotel (?action) | `documents.manage` |
 
 ## Events
 

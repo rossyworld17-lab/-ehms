@@ -17,6 +17,7 @@ def client(tmp_path):
     from ehms import db as dbmod
     from ehms.http import _rate
     _rate.clear()
+    os.environ["EHMS_DOCUMENT_DIR"] = str(tmp_path / "documents")
     url = os.environ.get("TEST_DATABASE_URL")
     if url and url.startswith("postgres"):
         # PostgreSQL run (CI): rebuild an empty schema for every test

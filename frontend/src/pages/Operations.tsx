@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, fmtDate, fmtDateTime, get, label, money, openFile, patch, post, put, toMinor, fromMinor } from "../api";
 import { useAuth } from "../state";
 import { Button, Card, Empty, Field, Input, Kpi, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad } from "../ui";
+import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
 
 const PRIO_PILL: Record<string, string> = { urgent: "rejected", high: "maintenance", normal: "confirmed", low: "cancelled" };
@@ -417,6 +418,7 @@ function EventModal({ id, onClose }: any) {
     </div>
     <div className="kpis mt"><Kpi title="Quotation total" value={money(e.totals.total, cur)} tone="navy" sub={`net ${money(e.totals.net, cur)}`} /><Kpi title="Deposit required" value={money(e.deposit_required, cur)} />
       <Kpi title="Paid" value={money(e.totals.paid, cur)} /><Kpi title="Profit (net − direct costs)" value={money(e.totals.profit, cur)} sub={!e.totals.costs ? "no direct costs recorded yet" : e.totals.margin_pct != null ? `${e.totals.margin_pct}% margin` : ""} tone="gold" /></div>
+    <div className="mt"><DocumentsPanel entityType="event" entityId={e.id} defaultCategory="contract" title="Contracts & documents" /></div>
     <h4>Venues</h4><Table rows={e.venues} empty="No venue booked" cols={[{ h: "Venue", r: v => v.venue_name }, { h: "From", r: v => fmtDateTime(v.start_at) }, { h: "To", r: v => fmtDateTime(v.end_at) },
       { h: "", r: v => editable && <button className="link small danger" onClick={async () => set(await run(() => api("DELETE", `/api/event-venues/${v.id}`), "Removed"))}>Remove</button> }]} />
     {editable && <div className="form-grid tender"><Field label="Venue"><Select value={slot.venue_id} onChange={x => setSlot({ ...slot, venue_id: x.target.value })}><option value="">Select…</option>{(venues.data?.items || []).map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}</Select></Field>

@@ -8,9 +8,9 @@ RUN npm run build
 
 # ---- runtime
 FROM python:3.12-slim
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 EHMS_FRONTEND_DIST=/app/frontend/dist EHMS_ENV=production
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 EHMS_FRONTEND_DIST=/app/frontend/dist EHMS_ENV=production EHMS_DOCUMENT_DIR=/data/documents
 WORKDIR /app/backend
-RUN useradd --create-home --uid 10001 ehms
+RUN useradd --create-home --uid 10001 ehms && mkdir -p /data/documents && chown ehms /data/documents
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./

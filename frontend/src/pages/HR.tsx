@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { fmtDate, fmtDateTime, get, label, money, openFile, patch, post, put, toMinor, fromMinor, uid } from "../api";
 import { useAuth } from "../state";
 import { Button, Card, Empty, Field, Input, Kpi, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad, useToast } from "../ui";
+import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
 
 // ======================================================================== HR
@@ -101,6 +102,7 @@ export function EmployeeDetail({ id }: { id: number }) {
       <Card title="Leave balances (this year)" pad={false}><Table rows={e.leave_balances} cols={[{ h: "Type", r: b => b.name }, { h: "Entitlement", r: b => b.entitlement, cls: "num" },
         { h: "Used", r: b => b.used, cls: "num" }, { h: "Pending", r: b => b.pending, cls: "num" }, { h: "Remaining", r: b => <b>{b.remaining}</b>, cls: "num" }]} /></Card>
     </div>
+    <DocumentsPanel entityType="employee" entityId={e.id} defaultCategory="contract" />
     {e.records && <Card title="HR records (confidential)" pad={false}><Table rows={e.records} empty="No records" cols={[{ h: "Date", r: r => fmtDate(r.record_date) }, { h: "Kind", r: r => label(r.kind) },
       { h: "Title", r: r => <><b>{r.title}</b>{r.details && <div className="small muted">{r.details}</div>}</> }, { h: "Rating", r: r => r.rating ? "★".repeat(r.rating) : "" }, { h: "By", r: r => r.created_by_name }]} /></Card>}
     {e.payslips && <Card title="Payslips" pad={false}><Table rows={e.payslips} empty="No payslips" cols={[{ h: "Period", r: p => p.period }, { h: "Status", r: p => <Pill s={p.status === "paid" ? "approved" : "pending"} text={label(p.status)} /> },

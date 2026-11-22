@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get } from "./api";
@@ -31,6 +31,9 @@ import HR, { EmployeeDetail, MyHR, Payroll } from "./pages/HR";
 import { Events, Maintenance, Security } from "./pages/Operations";
 import CRM, { Survey } from "./pages/CRM";
 import Revenue from "./pages/Revenue";
+import Insights from "./pages/Insights";
+import Assistant from "./pages/Assistant";
+import Documents from "./pages/Documents";
 import { Spinner } from "./ui";
 
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
@@ -64,6 +67,11 @@ const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Sales & guests", items: [
     { to: "/crm", label: "Guest relations", icon: <MdSentimentSatisfied />, any: ["crm.view", "crm.complaints"] },
     { to: "/revenue", label: "Sales & revenue", icon: <MdTrendingUp />, perm: "sales.view" },
+  ]},
+  { group: "Intelligence", items: [
+    { to: "/insights", label: "Insights", icon: <MdInsights />, any: ["bi.view", "ai.anomalies.view", "ai.assistant", "bi.schedule"] },
+    { to: "/assistant", label: "Ask EHMS", icon: <MdQuestionAnswer />, perm: "ai.assistant" },
+    { to: "/documents", label: "Documents", icon: <MdFolder />, any: ["documents.view", "documents.upload"] },
   ]},
   { group: "Finance", items: [
     { to: "/accounting", label: "Accounting", icon: <MdAccountBalance />, perm: "accounting.view" },
@@ -176,6 +184,9 @@ export default function App() {
     case path === "/maintenance": page = guard("maintenance.report", <Maintenance q={q} />); break;
     case path === "/security": page = ["security.view", "security.report", "lostfound.manage"].some(can) ? <Security q={q} /> : <Forbidden />; break;
     case path === "/events": page = guard("events.view", <Events />); break;
+    case path === "/insights": page = ["bi.view", "ai.anomalies.view", "ai.assistant", "bi.schedule"].some(can) ? <Insights q={q} /> : <Forbidden />; break;
+    case path === "/assistant": page = guard("ai.assistant", <Assistant />); break;
+    case seg[0] === "documents": page = ["documents.view", "documents.upload"].some(can) ? <Documents q={q} openId={seg[1] ? Number(seg[1]) : undefined} /> : <Forbidden />; break;
     case path === "/crm": page = ["crm.view", "crm.complaints"].some(can) ? <CRM q={q} /> : <Forbidden />; break;
     case path === "/revenue": page = guard("sales.view", <Revenue />); break;
     case path === "/laundry": page = guard("laundry.view", <Laundry />); break;

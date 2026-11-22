@@ -78,6 +78,15 @@ archiving for point-in-time recovery if required).
 ## Upgrades
 `git pull && docker compose up -d --build`. New migrations apply automatically; take a backup first.
 
+## Documents and the assistant (release 0.9)
+- Uploaded documents and scheduled-report files are stored in the `documents` volume (`EHMS_DOCUMENT_DIR`,
+  `/data/documents` in the container). The `backup` service archives it next to each database dump
+  (`ehms-documents-<stamp>.tar.gz`); restore both together (`restore.sh <dump> <documents archive>`).
+- `EHMS_MAX_UPLOAD_MB` (default 10) limits uploads; `EHMS_MAX_BODY_MB` (default 16) limits any request body.
+  If a reverse proxy sits in front, allow bodies of at least that size (e.g. Nginx `client_max_body_size 16m`).
+- Optional Claude engine for Ask EHMS: `pip install anthropic`, then `EHMS_AI_PROVIDER=anthropic`,
+  `ANTHROPIC_API_KEY=…` (and optionally `EHMS_AI_MODEL`). Leave unset to keep all data on your server.
+
 ## Monitoring
 `GET /api/health` (used by the container health check) returns database connectivity. Ship container logs to
 your log platform; failed logins and lockouts are in the `login_attempts` table and audit trail.

@@ -47,6 +47,7 @@ export async function api<T = any>(method: string, path: string, body?: any, opt
 export const get = <T = any>(p: string, q?: Record<string, any>) => api<T>("GET", q ? `${p}?${qs(q)}` : p);
 export const post = <T = any>(p: string, b: any = {}) => api<T>("POST", p, b);
 export const patch = <T = any>(p: string, b: any = {}) => api<T>("PATCH", p, b);
+export const del = <T = any>(p: string, b?: any) => api<T>("DELETE", p, b);
 export const put = <T = any>(p: string, b: any = {}) => api<T>("PUT", p, b);
 
 export function qs(q: Record<string, any>) {

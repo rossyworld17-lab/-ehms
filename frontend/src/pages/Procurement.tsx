@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { fmtDate, fmtDateTime, get, label, money, patch, post, toMinor, fromMinor, uid } from "../api";
 import { useAuth } from "../state";
 import { BarList, Button, Card, Field, Input, Kpi, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad, useToast } from "../ui";
+import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
 
 export default function Procurement({ q }: { q: URLSearchParams }) {
@@ -416,5 +417,6 @@ function SupplierModal({ s, onClose, onDone }: any) {
       <Field label="Payment terms (days)"><Input type="number" value={f.payment_terms_days} onChange={e => setF({ ...f, payment_terms_days: e.target.value })} /></Field>
       <Field label="Withholding tax %" hint="Deducted from payments; confirm the applicable rate"><Input inputMode="decimal" value={f.wht_pct} onChange={e => setF({ ...f, wht_pct: e.target.value })} /></Field>
       {s.id && <label className="check"><input type="checkbox" checked={!!f.active} onChange={e => setF({ ...f, active: e.target.checked ? 1 : 0 })} /> Active</label>}
-    </div></Modal>;
+    </div>
+    {s.id && <div className="mt"><DocumentsPanel entityType="supplier" entityId={s.id} defaultCategory="contract" title="Contracts & documents" /></div>}</Modal>;
 }

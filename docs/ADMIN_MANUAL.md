@@ -127,3 +127,24 @@ requests through the guest profile. Appoint a data protection officer as your ob
   recorded. Set the public URL (`EHMS_PUBLIC_URL`) so survey links in emails point to your server.
 - Rates applied to a booking: negotiated account rate → weekend rate → season adjustment → approved occupancy
   rule. The result is stored per night on the reservation; changing prices later does not reprice it.
+
+## Insights, assistant and documents (release 0.9)
+- Permissions: `bi.view` (analytics, forecast, occupancy history; HR analytics also needs `hr.view`, profit figures
+  `reports.financial`), `bi.schedule`; `ai.assistant`, `ai.anomalies.view` (auditors, accountants), `ai.review`
+  (finance manager, GM); `documents.view`, `documents.upload`, `documents.manage` (retention, legal hold, deletion),
+  `documents.confidential`. Employee documents marked confidential also need `hr.records`; documents on restricted
+  security incidents need `security.sensitive`; report outputs need the report's own permission.
+- Scheduled reports run as the person who created them: if that person is suspended or loses the permission, the
+  schedule pauses itself. Recipients who lose access are skipped (shown in "last run").
+- The anomaly scan runs once a day in the worker and notifies holders of `ai.review`. Thresholds are deliberately
+  conservative; tell staff that a flag is a question, not a finding.
+- Document retention defaults (years): identity 7, financial (invoice, receipt, statement, quotation) 7, contracts,
+  licences, policies, certificates, HR and medical records 10, correspondence and other 6, photos 3, generated
+  reports 2. Override per hotel with the setting `documents.retention.<category>`. Retention can only be extended;
+  deletion erases the file but keeps the record and its access history. Back up the documents volume together with
+  the database (the `backup` service does both).
+- Ask EHMS uses the built-in engine unless you set `EHMS_AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` and install
+  the `anthropic` package. With it enabled, aggregated figures the asking user may see (no guest names, contacts or
+  identity data) are sent to Anthropic to phrase the answer — record this in your data-protection register before
+  enabling it. Questions are logged (`/api/hotels/{id}/assistant/log`, needs `admin.audit.view`).
+- Inventory lead time for reorder suggestions: hotel setting `inventory.lead_time_days` (default 7).

@@ -26,6 +26,8 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://ehms:${POSTGRES_PASSWORD}@db:5432/ehms
+    volumes:
+      - documents:/data/documents   # uploaded documents and scheduled-report files
     ports:
       - "8000:8000"   # put a TLS-terminating reverse proxy (Caddy / Nginx) in front in production
 
@@ -39,8 +41,10 @@ services:
     volumes:
       - ./deploy/backup.sh:/backup.sh:ro
       - backups:/backups
+      - documents:/documents:ro
     entrypoint: ["/bin/sh", "-c", "while true; do /bin/sh /backup.sh; sleep 86400; done"]
 
 volumes:
   pgdata:
   backups:
+  documents:

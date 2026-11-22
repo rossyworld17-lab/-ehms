@@ -253,3 +253,19 @@ td.best { background: #eaf7f0; font-weight: 600; }
 .stars { display: flex; gap: .15rem; } .stars button { border: 0; background: none; font-size: 1.5rem; line-height: 1; color: var(--line); cursor: pointer; padding: .1rem; } .stars button.on { color: var(--gold); }
 .nps { display: flex; flex-wrap: wrap; gap: .3rem; } .nps button { min-width: 2.2rem; height: 2.2rem; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font: inherit; cursor: pointer; } .nps button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
 .meter { width: 90px; height: 8px; background: var(--soft); border-radius: 99px; overflow: hidden; } .meter span { display: block; height: 100%; background: var(--gold); }
+/* 0.9 insights, documents, assistant */
+.filters { display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end; } .filters .field { min-width: 150px; }
+.pad { padding: .6rem .9rem; }
+.card-row { padding: .5rem 0; border-top: 1px solid var(--line); gap: 1rem; }
+.checklist { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .3rem .8rem; max-height: 220px; overflow: auto; }
+.table.heat td, .table.heat th { padding: .35rem .3rem; text-align: center; font-size: .75rem; min-width: 26px; } .table.heat td:first-child, .table.heat th:first-child { text-align: left; white-space: nowrap; }
+.assistant-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1rem; align-items: start; }
+.chat .chat-log { min-height: 340px; max-height: 60vh; overflow: auto; display: flex; flex-direction: column; gap: .6rem; padding-bottom: .5rem; }
+.bubble { max-width: 85%; padding: .6rem .85rem; border-radius: 12px; background: var(--soft); line-height: 1.45; } .bubble p { margin: 0 0 .45rem; } .bubble p:last-of-type { margin-bottom: 0; }
+.bubble.user { align-self: flex-end; background: var(--navy); color: #fff; } .bubble.assistant { align-self: flex-start; }
+.bubble-meta { font-size: .72rem; color: var(--muted); margin-top: .4rem; }
+.chat-input { display: flex; gap: .6rem; align-items: flex-end; border-top: 1px solid var(--line); padding-top: .7rem; } .chat-input textarea { flex: 1; }
+.chat-empty { color: var(--muted); } .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chips .chip { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: .35rem .8rem; cursor: pointer; font: inherit; font-size: .85rem; }
+.chips .chip:hover { border-color: var(--navy-2); }
+@media (max-width: 900px) { .assistant-layout { grid-template-columns: 1fr; } }
