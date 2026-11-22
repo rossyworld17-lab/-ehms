@@ -55,7 +55,8 @@ def main():
                                 ("/admin/messaging", "52_messaging", "Day-before arrival reminder"),
                                 ("/laundry", "60_laundry", "Laundry"), ("/hr", "61_hr", "Human resources"), ("/payroll", "62_payroll", "Payroll"),
                                 ("/my-hr", "63_my_hr", "My HR"), ("/maintenance", "70_maintenance", "Air-conditioner compressor"),
-                                ("/security", "71_security", "Report an incident"), ("/events", "72_events", "Okafor")]:
+                                ("/security", "71_security", "Report an incident"), ("/events", "72_events", "Okafor"),
+                                ("/crm", "80_crm", "Complaints"), ("/revenue", "81_revenue", "Revenue dashboard")]:
             visit(page, path, shot, txt)
         # accounting tabs
         page.goto(f"{BASE}/#/accounting")
@@ -100,6 +101,7 @@ def main():
         page.get_by_role("dialog").get_by_role("button", name="Post charge").click()
         expect(page.get_by_text("Dinner — table 4")).to_be_visible()
         page.get_by_role("button", name="Take payment").click()
+        expect(page.get_by_label("Amount (₦)")).not_to_have_value("", timeout=8000)
         page.get_by_label("Method").select_option(label="Card (POS Terminal)")
         page.get_by_label(re.compile("Reference")).fill("APPR-445566")
         page.wait_for_timeout(400)
@@ -217,6 +219,29 @@ def main():
             for tab in tabs:
                 page.get_by_role("tab", name=tab).click()
                 page.wait_for_timeout(350)
+        # ---------------- guest relations, sales & revenue tabs (0.8)
+        for path, tabs in (("/crm", ("Feedback", "Insights", "Loyalty", "Campaigns", "Complaints")), ("/revenue", ("Pricing", "Accounts", "Targets", "Revenue dashboard"))):
+            page.goto(f"{BASE}/#{path}")
+            page.wait_for_selector("[role=tab]")
+            page.wait_for_timeout(500)
+            for tab in tabs:
+                page.get_by_role("tab", name=tab).click()
+                page.wait_for_timeout(400)
+                page.screenshot(path=f"{SHOTS}/8x_{path.strip('/')}_{tab.split()[0].lower()}.png")
+        if os.environ.get("DEMO_DB"):
+            import sqlite3
+            tok = sqlite3.connect(os.environ["DEMO_DB"]).execute("SELECT token FROM feedback WHERE submitted_at IS NULL LIMIT 1").fetchone()
+            if tok:
+                sp = browser.new_context(viewport={"width": 420, "height": 860}).new_page()
+                sp.goto(f"{BASE}/#/survey/{tok[0]}")
+                expect(sp.get_by_text("Tell us about your stay")).to_be_visible(timeout=8000)
+                sp.locator(".stars").first.locator("button").nth(4).click()
+                sp.locator(".nps button").nth(9).click()
+                sp.get_by_role("textbox").fill("Lovely staff and a clean room.")
+                sp.screenshot(path=f"{SHOTS}/82_survey.png")
+                sp.get_by_role("button", name="Submit").click()
+                expect(sp.get_by_text("Thank you!")).to_be_visible(timeout=8000)
+                sp.close()
         page.goto(f"{BASE}/#/events")
         page.locator("td", has_text="Okafor").first.click()
         expect(page.get_by_text("Quotation total")).to_be_visible(timeout=8000)

@@ -156,6 +156,28 @@ capacity are checked; confirmation opens an event folio). Send the **Quotation P
 folio, record direct costs and allocate staff. Finance **Invoices** the event (all lines post to the folio
 with taxes and service charge); then mark it completed. Revenue & profit shows the pipeline and margins.
 
+## Guest relations
+- **Complaints**: **New complaint** (guest, category, severity, description). The deadline follows the severity
+  (urgent 2 h, high 8 h, normal 24 h, low 72 h). Assign it, add updates, and resolve it with what was done and
+  whether the guest was satisfied. Overdue complaints are escalated to the guest-service manager automatically.
+- **Feedback**: survey answers arrive by themselves (the check-out thank-you message carries a survey link);
+  record reviews from booking sites or comment cards with **Add feedback**. A rating of 2 or less opens a
+  complaint automatically.
+- **Insights**: average rating, NPS, recurring themes, repeat-guest rate and complaint response times.
+- **Loyalty**: enrol a guest (with their agreement) from their guest profile. Points are earned when the stay
+  is settled at check-out; **Redeem points** on the folio turns them into a credit.
+- **Campaigns**: choose a segment (only guests who agreed to marketing are counted), preview, then send.
+
+## Sales & revenue
+- **Accounts**: corporate, travel-agent and government accounts with credit limits and negotiated rates per
+  room category. When you make a corporate, travel-agent or group booking, pick the account and its rate is
+  applied. Open an account to see its bookings and statement.
+- **Pricing**: seasons (e.g. festive +20 %), occupancy-based rules (proposed by sales, effective only once
+  finance or the GM approves) and competitor rates. The price quoted when a booking is made is locked for
+  that booking.
+- **Targets** show achievement against room-night and revenue targets; the **Revenue dashboard** shows the next
+  30 days on the books with pickup, ADR, competitor averages and suggestions.
+
 ## Human resources
 - **Employees**: register staff, link their system login, record exits. Pay and bank details are visible only
   to HR and payroll staff; confidential records (appraisals, disciplinary) only to holders of `hr.records`.

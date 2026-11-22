@@ -204,8 +204,8 @@ export function LineChart({ data, series, height = 200, fmt = (v: number) => Str
     <div className="chart">
       <svg viewBox={`0 0 ${w} ${height}`} role="img" aria-label={series.map(s => s.label).join(", ")} onMouseLeave={() => setHover(null)}>
         {ticks.map((t, i) => <g key={i}><line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} className="grid" /><text x={pad.l - 6} y={y(t) + 4} textAnchor="end" className="axis">{fmt(t)}</text></g>)}
-        {data.map((d, i) => (i % Math.ceil(data.length / 8) === 0 || i === data.length - 1) &&
-          <text key={i} x={x(i)} y={height - 6} textAnchor="middle" className="axis">{String(d.label).slice(5)}</text>)}
+        {data.map((d, i) => { const st = Math.ceil(data.length / 8); const last = i === data.length - 1 && (data.length - 1) % st >= st / 2;
+          return (i % st === 0 || last) && <text key={i} x={x(i)} y={height - 6} textAnchor="middle" className="axis">{String(d.label).slice(5)}</text>; })}
         {series.map(s => <polyline key={s.key} fill="none" stroke={s.color} strokeWidth={2.2} points={data.map((d, i) => `${x(i)},${y(d[s.key] || 0)}`).join(" ")} />)}
         {data.map((_, i) => <rect key={i} x={x(i) - (w / data.length) / 2} y={0} width={w / data.length} height={height} fill="transparent" onMouseEnter={() => setHover(i)} />)}
         {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={height - pad.b} className="hoverline" />}

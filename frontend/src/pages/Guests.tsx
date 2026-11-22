@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { GuestLoyalty } from "./CRM";
 import { ApiError, fmtDate, get, label, money, patch, post } from "../api";
 import { navigate, useAuth } from "../state";
 import { Button, Card, Field, Input, Loadable, Modal, Pill, Table, Textarea, errText, useAction, useLoad, useToast } from "../ui";
@@ -76,6 +77,7 @@ export function GuestDetail({ id }: { id: number }) {
         <dt>Company</dt><dd>{g.company || "—"}</dd><dt>Address</dt><dd>{g.address || "—"}</dd><dt>ID</dt><dd>{g.id_type ? `${g.id_type} ${g.id_number || ""}` : "—"}</dd>
         <dt>Marketing</dt><dd>{g.marketing_consent ? "Consented" : "No consent"}</dd><dt>Since</dt><dd>{fmtDate(g.created_at)}</dd>
       </dl></Card>
+      <GuestLoyalty guestId={g.id} />
       <Card title="Preferences & notes"><p>{g.preferences || <span className="muted">No preferences recorded</span>}</p>{g.notes && <p className="note">{g.notes}</p>}</Card>
     </div>
     <Card title="Stay history" pad={false}><Table rows={g.stays} onRow={s => navigate(`/reservations/${s.id}`)} cols={[

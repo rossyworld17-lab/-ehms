@@ -19,7 +19,8 @@ DEFAULT_TEMPLATES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
         "sms": ("", "{hotel}: we look forward to welcoming you tomorrow. Check-in from {checkin_time}. Ref {reference}."),
         "whatsapp": ("", "Hello {guest}, {hotel} looks forward to welcoming you tomorrow ({arrival}). Check-in is from {checkin_time}. Ref {reference}.")}),
     "checkout_thanks": ("Post check-out thank-you", {
-        "email": ("Thank you for staying at {hotel}", "Dear {guest},\n\nThank you for staying with us. We hope to welcome you again soon.\n\n{hotel}")}),
+        "email": ("Thank you for staying at {hotel}", "Dear {guest},\n\nThank you for staying with us. We would value two minutes of your time to tell us "
+                  "how we did: {survey_link}\n\nWe hope to welcome you again soon.\n\n{hotel}")}),
     "payment_link": ("Online payment link", {
         "email": ("Payment request from {hotel}", "Please use the secure link below to pay {amount} for {folio}:\n{link}\n\n{hotel}"),
         "sms": ("", "{hotel}: pay {amount} securely here: {link}")}),
@@ -27,6 +28,7 @@ DEFAULT_TEMPLATES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
         "email": ("Happy birthday from {hotel}", "Dear {guest},\n\nEveryone at {hotel} wishes you a very happy birthday!\n\n{hotel}")}),
     "order_ready": ("Kitchen order ready (staff)", {"in_app": ("Order ready", "{item} ready for {where}")}),
     "low_stock_digest": ("Daily low-stock digest (staff)", {"in_app": ("Low stock", "{count} item(s) are at or below their reorder level: {items}")}),
+    "campaign": ("Marketing campaign (body set per campaign)", {}),
     "invoices_due": ("Supplier invoices due soon (staff)", {"in_app": ("Supplier invoices due", "{count} approved supplier invoice(s) are due within 3 days, total {total}.")}),
 }
 

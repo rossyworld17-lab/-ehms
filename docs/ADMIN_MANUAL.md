@@ -113,3 +113,17 @@ requests through the guest profile. Appoint a data protection officer as your ob
   `/api/integrations/access-events` with header `X-EHMS-Integration-Token` (body: `hotel_code`, `source`,
   `events[{door, event, credential, person, occurred_at}]`).
 - New ledger accounts: 1500 Property, Plant & Equipment, 1510 Accumulated Depreciation, 5410 Depreciation.
+
+## Guest relations, sales and revenue (release 0.8)
+- Permissions: `crm.view`, `crm.complaints` (front office and guest service can log and update complaints),
+  `crm.manage` (loyalty rules and point adjustments), `crm.campaigns`; `sales.view`, `sales.manage` (accounts,
+  targets, competitor rates), `sales.pricing` (propose seasons and rules), `sales.pricing_approve` (finance
+  manager / GM — a person cannot approve a rule they proposed).
+- Loyalty defaults (change with `PUT /api/hotels/{id}/loyalty/rules`): 1 point per ₦1,000 settled, a point is
+  worth ₦10, minimum redemption 500 points, tiers bronze/silver (2,000)/gold (10,000)/platinum (30,000) with
+  10/25/50 % bonus points. Redemptions post Dr Allowances, Cr Guest Ledger.
+- Complaint SLA: urgent 2 h, high 8 h, normal 24 h, low 72 h. The worker escalates overdue complaints.
+- Campaigns go only to guests with marketing consent; every message includes opt-out wording and opt-outs are
+  recorded. Set the public URL (`EHMS_PUBLIC_URL`) so survey links in emails point to your server.
+- Rates applied to a booking: negotiated account rate → weekend rate → season adjustment → approved occupancy
+  rule. The result is stored per night on the reservation; changing prices later does not reprice it.

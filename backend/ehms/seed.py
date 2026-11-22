@@ -126,7 +126,9 @@ def seed_demo() -> None:
                  ("maintenance@demo.ehms", "Segun Adeyemi (Maintenance Mgr)", "maintenance_manager", False),
                  ("technician@demo.ehms", "Ifeanyi Okeke (Technician)", "maintenance_technician", False),
                  ("security@demo.ehms", "Bala Usman (Security)", "security_officer", False),
-                 ("sales@demo.ehms", "Zainab Lawal (Sales Mgr)", "sales_manager", False)]
+                 ("sales@demo.ehms", "Zainab Lawal (Sales Mgr)", "sales_manager", False),
+                 ("marketing@demo.ehms", "Ngozi Okon (Marketing Mgr)", "marketing_manager", False),
+                 ("guestservice@demo.ehms", "Femi Ade (Guest Service)", "customer_service_officer", False)]
         users = {}
         for email, name, role, all_h in staff:
             uid = c.insert("users", {"organisation_id": org, "email": email, "full_name": name, "password_hash": security.hash_password(DEMO_PASSWORD),
@@ -226,6 +228,86 @@ def seed_demo() -> None:
     seed_finance_demo(hid, org, users)
     seed_hr_demo(hid, org)
     seed_operations_demo(hid, org)
+    seed_crm_demo(hid, org)
+
+
+def seed_crm_demo(hid: int, org: int) -> None:
+    """Release 0.8 demo: corporate & agent accounts with negotiated rates, loyalty members, complaints, feedback,
+    a festive season, a dynamic pricing rule awaiting approval, competitor rates, sales targets and a draft campaign."""
+    import datetime as _dt
+    import json as _json
+    import secrets as _secrets
+    from .services import business_date, next_number
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM corporate_accounts WHERE organisation_id = ?", [org]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        uid = {r["code"]: r["uid"] for r in c.all("SELECT ro.code, MIN(u.id) AS uid FROM users u JOIN user_roles ur ON ur.user_id = u.id JOIN roles ro ON ro.id = ur.role_id "
+                                                   "WHERE u.organisation_id = ? GROUP BY ro.code", [org])}
+        sales = uid.get("sales_manager") or uid["general_manager"]
+        types = {t["code"]: t for t in c.all("SELECT * FROM room_types WHERE hotel_id = ?", [hid])}
+        delta = c.insert("corporate_accounts", {"organisation_id": org, "code": "DELTA", "kind": "corporate", "name": "Delta Energy Services Ltd (demo)", "contact_name": "Kunle Adeyemi",
+                                                "email": "travel@delta.demo", "phone": "+234 800 000 2222", "credit_limit": 500_000_000, "payment_terms_days": 30, "status": "active",
+                                                "account_manager": sales, "created_at": now_iso()})
+        c.insert("corporate_accounts", {"organisation_id": org, "code": "SKYTRV", "kind": "travel_agent", "name": "Skyline Travels (demo)", "contact_name": "Ada Obi",
+                                        "email": "bookings@skyline.demo", "commission_bp": 1000, "status": "active", "account_manager": sales, "created_at": now_iso()})
+        c.insert("corporate_accounts", {"organisation_id": org, "code": "NNPCL", "kind": "corporate", "name": "Northern Gas Ltd (demo prospect)", "status": "prospect",
+                                        "account_manager": sales, "created_at": now_iso()})
+        for code, rate in (("STD", 3_800_000), ("DLX", 5_200_000), ("EXE", 7_500_000)):
+            if code in types:
+                c.insert("corporate_rates", {"account_id": delta, "hotel_id": hid, "room_type_id": types[code]["id"], "rate": rate, "valid_from": on.replace(month=1, day=1).isoformat(),
+                                             "valid_to": on.replace(month=12, day=31).isoformat()})
+        guests = c.all("SELECT * FROM guests WHERE organisation_id = ? ORDER BY id", [org])
+        for i, g in enumerate(guests[:6]):
+            lifetime = [12_500, 3_200, 800, 31_000, 1_500, 0][i]
+            tier = "platinum" if lifetime >= 30000 else "gold" if lifetime >= 10000 else "silver" if lifetime >= 2000 else "bronze"
+            aid = c.insert("loyalty_accounts", {"guest_id": g["id"], "member_no": f"LYL{10000001 + i}", "points_balance": lifetime // 2, "lifetime_points": lifetime, "tier": tier,
+                                                "active": 1, "enrolled_at": now_iso()})
+            if lifetime:
+                c.insert("loyalty_transactions", {"account_id": aid, "hotel_id": hid, "kind": "earn", "points": lifetime // 2, "balance_after": lifetime // 2, "reference": "HISTORY",
+                                                  "description": "Points from previous stays (demo)", "created_at": now_iso()})
+        rooms = {r["number"]: r["id"] for r in c.all("SELECT id, number FROM rooms WHERE hotel_id = ?", [hid])}
+        for cat, prio, desc, status, hours_ago, res in (("noise", "high", "Loud music from the bar until 2am (demo)", "open", 3, None),
+                                                         ("billing", "normal", "Minibar charged twice (demo)", "resolved", 30, "Duplicate charge reversed; apology given"),
+                                                         ("cleanliness", "normal", "Bathroom not cleaned on day 2 (demo)", "in_progress", 10, None)):
+            created = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=hours_ago)).replace(microsecond=0)
+            c.insert("complaints", {"hotel_id": hid, "number": next_number(c, hid, "complaint", "CMP"), "guest_id": guests[1]["id"] if guests else None, "room_id": rooms.get("106"),
+                                    "channel": "in_person", "category": cat, "department": {"noise": "front_office", "billing": "finance", "cleanliness": "housekeeping"}[cat],
+                                    "priority": prio, "description": desc, "status": status,
+                                    "due_at": (created + _dt.timedelta(hours=8 if prio == "high" else 24)).isoformat().replace("+00:00", "Z"),
+                                    "first_response_at": (created + _dt.timedelta(minutes=40)).isoformat().replace("+00:00", "Z") if status != "open" else None,
+                                    "resolved_at": (created + _dt.timedelta(hours=5)).isoformat().replace("+00:00", "Z") if status == "resolved" else None,
+                                    "resolution": res, "guest_satisfied": 1 if status == "resolved" else None,
+                                    "reported_by": uid.get("receptionist") or uid["general_manager"], "created_at": created.isoformat().replace("+00:00", "Z")})
+        from .modules.crm import analyse
+        for i, (ov, cl, sv, fd, nps, txt) in enumerate(((5, 5, 5, 4, 10, "Excellent stay, very friendly staff and a spotless room. Will recommend!"),
+                                                        (4, 4, 5, 3, 8, "Great service at reception, breakfast was a bit cold."),
+                                                        (2, 2, 3, 3, 3, "Room was dirty on arrival and the AC was noisy. Disappointing."),
+                                                        (5, 4, 5, 5, 9, "Delicious food in the restaurant and comfortable bed."),
+                                                        (3, 3, 2, 4, 6, "Check-in queue was slow, waited 30 minutes. Wifi poor."))):
+            sentiment, themes = analyse(txt)
+            c.insert("feedback", {"hotel_id": hid, "guest_id": guests[i]["id"] if i < len(guests) else None, "token": _secrets.token_urlsafe(16), "source": "survey",
+                                  "overall": ov, "cleanliness": cl, "service": sv, "food": fd, "nps": nps, "comments": txt, "sentiment": sentiment, "themes": themes,
+                                  "sent_at": now_iso(), "submitted_at": now_iso(), "created_at": now_iso()})
+        # one survey invitation still awaiting the guest's answer
+        c.insert("feedback", {"hotel_id": hid, "guest_id": guests[0]["id"] if guests else None, "token": _secrets.token_urlsafe(16), "source": "survey",
+                              "sent_at": now_iso(), "created_at": now_iso()})
+        c.insert("rate_seasons", {"hotel_id": hid, "name": "Festive season", "start_date": f"{on.year}-12-20", "end_date": f"{on.year + 1}-01-03", "adjustment_bp": 2000,
+                                  "active": 1, "created_by": sales})
+        c.insert("rate_rules", {"hotel_id": hid, "name": "High-demand uplift", "min_occupancy_pct": 80, "max_occupancy_pct": 100, "adjustment_bp": 1500, "status": "pending_approval",
+                                "created_by": sales, "created_at": now_iso()})
+        for d in range(0, 14, 2):
+            day = (on + _dt.timedelta(days=d)).isoformat()
+            for comp, rate in (("Lagoon View Hotel (demo)", 4_200_000 + d * 20_000), ("Island Suites (demo)", 5_000_000)):
+                c.insert("competitor_rates", {"hotel_id": hid, "competitor": comp, "stay_date": day, "room_category": "Standard double", "rate": rate, "source": "OTA check",
+                                              "recorded_by": sales, "recorded_at": now_iso()})
+        period = on.strftime("%Y-%m")
+        for metric, target in (("room_revenue", 3_500_000_000), ("rooms_sold", 450), ("fnb_revenue", 900_000_000), ("event_revenue", 1_000_000_000)):
+            c.insert("sales_targets", {"hotel_id": hid, "period": period, "metric": metric, "target": target, "owner_id": sales})
+        c.insert("campaigns", {"hotel_id": hid, "name": "Festive getaway offer (demo)", "channel": "email", "segment": _json.dumps({"min_stays": 1}),
+                               "subject": "{guest}, celebrate the festive season at {hotel}", "body": "Dear {guest},\n\nEnjoy 10% off direct bookings with code {promo_code}.",
+                               "promo_code": "WELCOME10", "status": "draft", "created_by": uid.get("marketing_manager") or sales, "created_at": now_iso()})
 
 
 def seed_operations_demo(hid: int, org: int) -> None:
@@ -374,7 +456,8 @@ NEW_DEMO_STAFF_04 = [("fnbmanager@demo.ehms", "Tolu Bankole (Restaurant Mgr)", "
 
 NEW_DEMO_STAFF_07 = [("maintenance@demo.ehms", "Segun Adeyemi (Maintenance Mgr)", "maintenance_manager"),
                      ("technician@demo.ehms", "Ifeanyi Okeke (Technician)", "maintenance_technician"),
-                     ("security@demo.ehms", "Bala Usman (Security)", "security_officer"), ("sales@demo.ehms", "Zainab Lawal (Sales Mgr)", "sales_manager")]
+                     ("security@demo.ehms", "Bala Usman (Security)", "security_officer"), ("sales@demo.ehms", "Zainab Lawal (Sales Mgr)", "sales_manager"),
+                     ("marketing@demo.ehms", "Ngozi Okon (Marketing Mgr)", "marketing_manager"), ("guestservice@demo.ehms", "Femi Ade (Guest Service)", "customer_service_officer")]
 NEW_DEMO_STAFF_06 = [("hrmanager@demo.ehms", "Amaka Eze (HR Mgr)", "hr_manager"), ("hrofficer@demo.ehms", "Tunde Ola (HR Officer)", "hr_officer")]
 
 
@@ -411,6 +494,7 @@ def _upgrade_demo(org: int) -> None:
         seed_hr_demo(hid, org)
         _add_new_staff(org, hid, NEW_DEMO_STAFF_07)
         seed_operations_demo(hid, org)
+        seed_crm_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -429,6 +513,7 @@ def _upgrade_demo(org: int) -> None:
     seed_hr_demo(hid, org)
     _add_new_staff(org, hid, NEW_DEMO_STAFF_07)
     seed_operations_demo(hid, org)
+    seed_crm_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

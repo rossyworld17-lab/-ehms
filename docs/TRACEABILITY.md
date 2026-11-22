@@ -1,10 +1,10 @@
 # Requirements traceability
 
-Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.7.
+Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.8.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md
 
-Summary: **92 implemented**, **17 partial**, **18 planned** (of 127).
+Summary: **103 implemented**, **15 partial**, **9 planned** (of 127).
 
 | ID | Requirement | Status | Notes |
 |---|---|---|---|
@@ -46,10 +46,10 @@ Summary: **92 implemented**, **17 partial**, **18 planned** (of 127).
 | FR-FO-006 | Calculate outstanding balances, support check-out and issue invoices and receipts. | Implemented |  |
 | FR-FO-007 | Update room status after check-out and maintain guest stay history. | Implemented |  |
 | FR-CRM-001 | Maintain central guest profiles with contact details, preferences, booking history and communication preferences. | Implemented |  |
-| FR-CRM-002 | Identify repeat guests and support loyalty categories, points and configurable rewards. | Partial | repeat/VIP flags; loyalty points planned |
-| FR-CRM-003 | Record feedback, complaints and service preferences for authorised staff. | Partial | preferences & notes; feedback module planned |
-| FR-CRM-004 | Support targeted campaigns subject to consent and applicable privacy rules. | Partial | consent captured; campaigns planned |
-| FR-CRM-005 | Provide guest satisfaction and retention reporting. | Planned |  |
+| FR-CRM-002 | Identify repeat guests and support loyalty categories, points and configurable rewards. | Implemented | repeat/VIP flags; loyalty points, tiers with bonuses, redemption as folio credit (0.8) |
+| FR-CRM-003 | Record feedback, complaints and service preferences for authorised staff. | Implemented | complaints, feedback and surveys (0.8) |
+| FR-CRM-004 | Support targeted campaigns subject to consent and applicable privacy rules. | Implemented | consent-only segments, preview, send, opt-out (0.8) |
+| FR-CRM-005 | Provide guest satisfaction and retention reporting. | Implemented | CRM insights: rating, NPS, repeat rate, complaint times (0.8) |
 | FR-POS-001 | Support multiple outlets, menu categories and items with prices, tax, availability and optional images. | Implemented | outlets, menu categories & items, price, station, availability/sold-out, optional image URL; tax via hotel rules (0.4) |
 | FR-POS-002 | Support dine-in, takeaway, room service, table management, split bills and merged bills. | Implemented | dine-in tables, takeaway, room service; split bill by items, merge orders, move table (0.4) |
 | FR-POS-003 | Create sales transactions and support multiple payment methods. | Implemented | settlement with split tenders: cash (with change), POS card, transfer, room charge (0.4) |
@@ -106,16 +106,16 @@ Summary: **92 implemented**, **17 partial**, **18 planned** (of 127).
 | FR-EVT-003 | Record catering, equipment and service requirements. | Implemented | catering, beverage, equipment, decoration, accommodation and service lines; staff allocation; direct costs (0.7) |
 | FR-EVT-004 | Prevent conflicting confirmed bookings for the same venue and time. | Implemented | tentative/confirmed holds cannot overlap on a venue; capacity checked (0.7) |
 | FR-EVT-005 | Generate event invoices, final bills and revenue reports. | Implemented | quotation/invoice PDF, invoicing to the event folio through the ledger, revenue & profitability summary (0.7) |
-| FR-SAL-001 | Maintain corporate customer accounts and negotiated rates. | Planned |  |
-| FR-SAL-002 | Support promotional campaigns, discount codes, sales targets and booking-source tracking. | Partial | promo/discount codes and booking-source tracking (0.5); campaigns and sales targets with CRM release |
-| FR-SAL-003 | Calculate ADR, RevPAR and occupancy percentage. | Planned |  |
-| FR-SAL-004 | Support historical performance comparisons and configurable rate plans. | Planned |  |
+| FR-SAL-001 | Maintain corporate customer accounts and negotiated rates. | Implemented | accounts, negotiated rates, statements (0.8) |
+| FR-SAL-002 | Support promotional campaigns, discount codes, sales targets and booking-source tracking. | Implemented | promo codes, source tracking (0.5); campaigns and sales targets (0.8) |
+| FR-SAL-003 | Calculate ADR, RevPAR and occupancy percentage. | Implemented | revenue dashboard and reports (0.8) |
+| FR-SAL-004 | Support historical performance comparisons and configurable rate plans. | Implemented | year-on-year comparison; seasons and approved occupancy rules (0.8) |
 | FR-SEC-001 | Record incidents with date, time, location, category, description, persons involved and actions taken. | Implemented | incident register: time, location, category, severity, description, people, actions, police reference (0.7) |
 | FR-SEC-002 | Restrict access to sensitive records and support investigation and resolution notes. | Implemented | restricted incidents (assault, harassment, flagged cases) only for security.sensitive; investigation notes and resolution (0.7) |
 | FR-SEC-003 | Maintain lost-property records, emergency contacts and relevant access logs. | Implemented | lost-property register, emergency contacts, visitor/contractor log, access-control event intake and log (0.7) |
-| FR-CS-001 | Register complaints with category, priority, assigned officer and status. | Planned |  |
-| FR-CS-002 | Support escalation rules and record response and resolution times. | Planned |  |
-| FR-CS-003 | Collect guest feedback and satisfaction surveys and report service quality. | Planned |  |
+| FR-CS-001 | Register complaints with category, priority, assigned officer and status. | Implemented | complaints module (0.8) |
+| FR-CS-002 | Support escalation rules and record response and resolution times. | Implemented | SLA by severity, automatic escalation, response/resolution times (0.8) |
+| FR-CS-003 | Collect guest feedback and satisfaction surveys and report service quality. | Implemented | post-stay surveys and feedback reporting (0.8) |
 | FR-BI-001 | Provide role-filtered dashboards for revenue, occupancy, ADR, RevPAR, rooms, reservations, cancellations, balances, expenses and departmenta | Partial | executive dashboard KPIs |
 | FR-BI-002 | Provide daily, weekly, monthly, quarterly and annual reports. | Partial | operational & financial reports with Excel/CSV/PDF export |
 | FR-BI-003 | Support relevant filters by date, department, property and transaction. | Planned |  |
@@ -125,8 +125,8 @@ Summary: **92 implemented**, **17 partial**, **18 planned** (of 127).
 | FR-AI-001 | Provide an AI-assisted management interface for questions about data the user is authorised to access. | Planned |  |
 | FR-AI-002 | Forecast room demand, revenue and occupancy from relevant historical and booking data. | Planned |  |
 | FR-AI-003 | Identify unusual transaction patterns for human review. | Planned |  |
-| FR-AI-004 | Recommend room-rate and inventory reorder opportunities. | Planned |  |
-| FR-AI-005 | Analyse guest feedback and summarise recurring service issues. | Planned |  |
+| FR-AI-004 | Recommend room-rate and inventory reorder opportunities. | Partial | rate suggestions on revenue dashboard (0.8); reorder suggestions via low-stock digest; ML models in 0.9 |
+| FR-AI-005 | Analyse guest feedback and summarise recurring service issues. | Partial | keyword sentiment and recurring themes (0.8); AI summaries in 0.9 |
 | FR-AI-006 | Explain recommendations and limitations, respect access permissions and tenant boundaries. | Planned |  |
 | FR-AI-007 | Require human approval for sensitive financial, employment, cancellation and administrative decisions. | Planned |  |
 | FR-NOT-001 | Support in-application and email notifications; support SMS and WhatsApp Business where configured and available. | Implemented | in-app notification centre, email (SMTP), SMS (Termii) and WhatsApp Business Cloud API adapters (0.5) |

@@ -65,7 +65,8 @@ def post_room_night(c, ctx: Ctx | None, hotel: dict, r: dict, folio: dict, night
         return None
     rt = c.one("SELECT * FROM room_types WHERE id = ?", [r["room_type_id"]])
     room = c.one("SELECT number FROM rooms WHERE id = ?", [r["room_id"]]) if r["room_id"] else None
-    rate = night_rate(rt, r["booking_type"], night, r["nightly_rate"] if r["rate_overridden"] else None)
+    from ..pricing import stay_night_rate
+    rate = stay_night_rate(c, r, rt, night)
     rate += max(0, r["adults"] - 2) * (rt.get("extra_person_charge") or 0)
     planned = max(1, (dt.date.fromisoformat(r["departure"]) - dt.date.fromisoformat(r["arrival"])).days)
     disc = 0
@@ -160,7 +161,8 @@ def checkout_preview(ctx: Ctx):
         rt = c.one("SELECT * FROM room_types WHERE id = ?", [r["room_type_id"]])
         for n in nights_between(dt.date.fromisoformat(r["arrival"]), end):
             if not c.one("SELECT id FROM folio_lines WHERE folio_id = ? AND reference = ?", [folio["id"], f"ROOM:{r['id']}:{n.isoformat()}"]):
-                rate = night_rate(rt, r["booking_type"], n, r["nightly_rate"] if r["rate_overridden"] else None)
+                from ..pricing import stay_night_rate
+                rate = stay_night_rate(c, r, rt, n) + max(0, r["adults"] - 2) * (rt.get("extra_person_charge") or 0)
                 bd = price_breakdown(c, hotel, "room", rate, n)
                 pending.append({"date": n.isoformat(), "total": bd["total"]})
         bal = folio_balance(c, folio["id"])
@@ -198,13 +200,17 @@ def check_out(ctx: Ctx):
                                            "departure": min(r["departure"], end.isoformat()) if end.isoformat() < r["departure"] else r["departure"]})
         audit(c, ctx, "frontdesk.check_out", "reservation", r["id"], r["reference"], old={"status": "checked_in"},
               new={"status": "checked_out", "room": room["number"], "folio": folio["number"], "total_charges": bal["charges"]}, hotel_id=r["hotel_id"])
+        from .crm import earn_for_stay, invite_after_checkout
+        earned = earn_for_stay(c, ctx, hotel, r, folio["id"])
+        if body.get("send_survey", True):
+            invite_after_checkout(c, hotel, r)
         g = c.one("SELECT first_name, email FROM guests WHERE id = ?", [r["guest_id"]])
         if body.get("send_invoice", True):
             queue_notification(c, hotel["id"], "email", g["email"], f"Thank you for staying at {hotel['name']} — invoice {folio['number']}",
                                f"Dear {g['first_name']},\n\nThank you for staying with us. Your final invoice {folio['number']} totals "
                                f"{hotel['currency']} {bal['charges'] / 100:,.2f}. We hope to welcome you again soon.\n\n{hotel['name']}",
                                "reservation", r["id"])
-        return reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]]))
+        return {**reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]])), "loyalty_points_earned": earned}
 
 
 @route("POST", "/api/reservations/{res_id:int}/room-move", perm="frontdesk.room_move", tag="frontdesk", summary="Move an in-house guest to another room")

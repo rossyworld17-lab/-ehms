@@ -5,10 +5,12 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
-> **Release 0.7 — adds maintenance & assets, security & lost property, and events & banqueting** to the
-> front office, restaurant POS, inventory, procurement, finance, payments, messaging, laundry, HR and payroll
-> modules of earlier releases. Traceability: 92 of 127 SRS requirements implemented, 17 partial. CRM loyalty
-> and feedback, sales & revenue management, AI and channel managers follow in [docs/ROADMAP.md](docs/ROADMAP.md);
+> **Release 0.8 — adds guest relations (loyalty, complaints with SLA, post-stay surveys and feedback analysis,
+> consent-based campaigns) and sales & revenue management (corporate accounts with negotiated rates, seasons,
+> approved occupancy-based pricing, competitor rates, targets, revenue dashboard)** to the front office, POS,
+> inventory, procurement, finance, payments, messaging, laundry, HR, payroll, maintenance, security and events
+> modules of earlier releases. Traceability: see [docs/TRACEABILITY.md](docs/TRACEABILITY.md). BI, the AI
+> assistant, documents and channel managers follow in [docs/ROADMAP.md](docs/ROADMAP.md);
 > the [progress register](docs/PROGRESS.md) tracks status. Nothing in the interface is a placeholder: screens and
 > menu items appear only when the module behind them works and the user has permission.
 
@@ -33,6 +35,8 @@ and policy is configurable for other countries.
 | Maintenance *(0.7)* | Asset register with capitalisation and monthly straight-line depreciation; preventive schedules that raise work orders automatically; fault reporting by any staff (also from housekeeping checklists) with notifications; assignment, progress notes, spare parts from stores, vendor costs, room blocking until verified; independent verification; downtime and cost reports |
 | Security *(0.7)* | Incident register with severity alerts, investigation notes and restricted sensitive cases; visitor/contractor log with masked IDs; lost-and-found with ID-checked returns and holding periods; emergency contacts; key-card / access-control event intake API and log |
 | Events & banqueting *(0.7)* | Venues and capacities; enquiry → tentative → confirmed with venue-clash and capacity checks; quotation lines (venue, catering, beverage, equipment, décor…), quotation/invoice PDF; event folio for deposits and invoicing through the ledger; direct costs, staff allocation, profitability; venue calendar |
+| Guest relations *(0.8)* | Loyalty programme (points on settled stays, tiers with bonuses, redemption as a folio credit through the ledger, manual adjustments with reasons); complaints with category, severity, SLA deadlines, assignment, response/resolution times and automatic escalation; post-stay survey link in the thank-you message (low scores open a complaint automatically); feedback entry from review sites; transparent keyword sentiment/theme analysis; NPS and insights; email/SMS campaigns to consenting guests only, with opt-out |
+| Sales & revenue *(0.8)* | Corporate, travel-agent and government accounts with credit terms and negotiated rates per room category; bookings against an account; account statements; sales targets with achievement; seasonal rate adjustments; occupancy-based pricing rules effective only after a second person approves; competitor rate records; revenue dashboard (on-the-books forecast, pickup, ADR, RevPAR, ALOS, booking window, cancellations) with suggestions. **Quoted nightly rates are locked on the booking**, so later price changes never alter a confirmed guest's price |
 | Laundry *(0.6)* | Guest laundry with price list, express surcharge, stage tracking (washing → drying → ironing → quality check → ready → delivered), lost/damaged items excluded from the bill, automatic folio charge on delivery; internal linen batches by department; daily summary |
 | HR *(0.6)* | Employee register with masked bank/statutory IDs, weekly duty rosters, attendance with overtime, staff self clock-in with lateness, leave types/balances with approval, confidential HR records, exits; **My HR** self-service (leave, payslips, attendance) |
 | Payroll *(0.6)* | Runs computed from salary structure, attendance, unpaid leave, bonuses, deductions and staff loans; configurable PAYE bands with rent relief, pension, NHF, NSITF, ITF (Nigerian defaults); maker-checker approval posting the payroll journal; salary payment, statutory remittances, bank schedule CSV, payslip PDFs |
@@ -68,6 +72,7 @@ Open <http://localhost:8000> and sign in with a demo account (password `Demo@123
 | fnbmanager@demo.ehms / cashier@demo.ehms / waiter@demo.ehms / chef@demo.ehms | Restaurant manager, cashier, waiter, chef *(0.4)* |
 | inventory@demo.ehms / stores@demo.ehms / procurement@demo.ehms | Inventory manager, storekeeper, procurement officer *(0.4)* |
 | maintenance@demo.ehms / technician@demo.ehms / security@demo.ehms / sales@demo.ehms | Maintenance manager, technician, security officer, sales manager *(0.7)* |
+| marketing@demo.ehms / guestservice@demo.ehms | Marketing manager, customer service officer *(0.8)* |
 | hrmanager@demo.ehms / hrofficer@demo.ehms | HR manager, HR officer *(0.6)* — every demo staff account also has an employee record for **My HR** |
 | auditor@demo.ehms | Auditor (read-only) |
 

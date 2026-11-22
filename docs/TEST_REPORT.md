@@ -1,10 +1,10 @@
-# Test report — release 0.7
+# Test report — release 0.8
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 64 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 69 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
@@ -30,6 +30,8 @@ a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for b
 | **Maintenance (0.7)** | 2 | housekeeping issue raises a work order; receptionist's urgent fault blocks the room; technician cannot assign; assignment notifies; start before complete; spare part reduces stock and posts repairs expense; resolution required; technician cannot verify own work; verification returns the room to service as dirty with a cleaning task; preventive orders raised once per schedule and the schedule rolls forward on verification; opening-balance capitalisation, monthly depreciation once per month, capitalised cost locked |
 | **Security (0.7)** | 2 | high-severity alert to security staff; receptionist can report but not browse; resolution required; notes and police reference; harassment auto-restricted and hidden from non-sensitive users; visitor ID masked for non-managers; sign-out once; valuable lost item stored in the safe, released only with ID check, not disposable before the holding period; emergency contacts for all staff; access-event intake rejects missing/wrong tokens and records events |
 | **Events (0.7)** | 1 | enquiries never block; overlapping ballroom hold refused (venue clash); capacity enforced; confirmation opens an event folio; quotation totals with tax and service charge; quotation PDF; deposit on the folio; sales cannot invoice; complete only after invoice; finance invoices once to events and F&B revenue; folio balance = total − deposit; profit = net − direct costs; locked after invoicing; venue calendar and pipeline |
+| **CRM (0.8)** | 3 | enrolment needs the guest's agreement; points earned once on check-out from settled spend with tier bonus; redemption below the minimum or above the balance refused; redemption posts a balanced allowance and reduces the balance; survey link single-use; a low score opens a complaint; sentiment and themes; complaint SLA by severity, receptionist can log but not view all, resolution required, overdue complaints escalated once by the worker; campaigns reach consenting guests only, opt-out honoured, send once |
+| **Sales & revenue (0.8)** | 2 | negotiated account rate applied; inactive account refused; season adjustment; occupancy rule inactive until approved, proposer cannot approve; **quoted rates locked on the booking** (a later rule does not reprice it, room-night posting uses the locked rate); targets achievement; revenue dashboard KPIs and pickup |
 
 Every 0.4 test ends with a ledger integrity check: total debits equal total credits, **and** the stock
 sub-ledger value equals the Inventory GL account balance.
@@ -46,6 +48,7 @@ sub-ledger value equals the Inventory GL account balance.
 6. Maintenance, security and events tabs; event detail; sales manager confirms an event in the UI (0.7).
 7. Booking engine with promo code WELCOME10 shows the discount; the payment return page handles an unknown reference (0.5).
 8. Mobile layout (390 px) including My HR self clock-in and reporting a fault (0.7).
+9. Guest relations and Sales & revenue (all tabs); a guest completes the post-stay survey on a phone-sized screen (0.8).
 
 Additional scripted browser walkthroughs for 0.4 (run during development): waiter → kitchen → cashier dine-in
 sale with change; room-service order charged to a room; full procurement cycle across five roles
@@ -56,6 +59,16 @@ stock requisition approve/issue; trial balance balanced at the end; no console e
 A database created by release 0.3 (with its demo data) was started with 0.4: migration 0003 applied, new
 ledger accounts added, system roles received the new permissions once, the 0.4 demo outlets/menu/stores/
 suppliers were added once (re-running is a no-op), existing reservations kept, books balanced.
+
+## Upgrade test (0.8) — passed
+A database created by release 0.7 with demo data was upgraded with 0.8 twice: migration 0007 applied, CRM and
+sales permissions granted, 0.8 demo data added once, books balanced.
+
+## Defects found and fixed during 0.8 testing
+- PostgreSQL treated `%` inside SQL text as a parameter marker in the revenue queries → patterns passed as parameters.
+- A failed survey submission replaced the whole form with "Survey not found" → submission errors now show inline.
+- The last chart axis label could overlap the one before it → skipped when too close.
+- Browser test could click "Record payment" before the amount due had loaded → waits for the amount.
 
 ## Defects found and fixed during 0.7 testing
 - Staff who can report faults could not list or open their own reports → reporters see their own work orders.

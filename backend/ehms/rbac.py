@@ -111,6 +111,15 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "events.view": ("events", "View venues, events and quotations"),
     "events.manage": ("events", "Create and manage events, venues, quotations and costs"),
     "events.invoice": ("events", "Invoice events to the event folio"),
+    # --- release 0.8: CRM, sales & revenue management
+    "crm.view": ("crm", "View loyalty, complaints, feedback, campaigns and guest insights"),
+    "crm.complaints": ("crm", "Register and respond to complaints; record feedback"),
+    "crm.manage": ("crm", "Manage loyalty rules and adjustments; receive complaint escalations"),
+    "crm.campaigns": ("crm", "Create and send consent-based marketing campaigns"),
+    "sales.view": ("sales", "View accounts, targets, pricing and the revenue dashboard"),
+    "sales.manage": ("sales", "Manage corporate / agent accounts, negotiated rates and targets"),
+    "sales.pricing": ("sales", "Maintain seasons, competitor rates and propose dynamic pricing rules"),
+    "sales.pricing_approve": ("sales", "Approve or deactivate dynamic pricing rules"),
 }
 
 ALL = list(PERMISSIONS)
@@ -132,10 +141,11 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "hotel_manager": ("Hotel Manager", "Property operations", [p for p in ALL if not p.startswith("admin.roles") and p != "property.manage"]),
     "front_office_manager": ("Front Office Manager", "Front office supervision",
                              _FRONT + ["laundry.view", "laundry.manage", "hr.view", "hr.attendance", "hr.leave.approve", "maintenance.view", "maintenance.report",
-                                       "lostfound.manage", "security.report", "security.view", "events.view", "reservations.override_rate", "reservations.overbook", "folio.adjust", "payments.refund_approve", "frontdesk.night_audit",
+                                       "lostfound.manage", "security.report", "security.view", "events.view", "crm.view", "crm.complaints", "crm.manage", "sales.view",
+                                       "reservations.override_rate", "reservations.overbook", "folio.adjust", "payments.refund_approve", "frontdesk.night_audit",
                                        "guests.identity.view", "rooms.block", "rooms.status.update", "approvals.view"]),
     "receptionist": ("Receptionist", "Reception, check-in and check-out", _FRONT + ["guests.identity.view", "laundry.view", "laundry.manage",
-                                                                                 "maintenance.report", "lostfound.manage", "security.report"]),
+                                                                                 "maintenance.report", "lostfound.manage", "security.report", "crm.complaints"]),
     "reservations_officer": ("Reservations Officer", "Booking administration",
                              ["dashboard.view", "rooms.view", "guests.view", "guests.manage", "reservations.view", "reservations.create",
                               "reservations.modify", "reservations.cancel", "folio.view", "payments.receive", "reports.view"]),
@@ -145,6 +155,7 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
                                                                          "folio.adjust", "admin.settings.manage", "admin.audit.view",
                                                                          "procurement.view", "procurement.approve", "procurement.approve_high",
                                                                          "procurement.invoice_approve", "inventory.view", "pos.view", "payroll.view", "payroll.approve", "events.view", "events.invoice",
+                                                                         "sales.view", "sales.pricing_approve",
                                                                          "finance.expenses.request", "finance.expenses.approve", "accounting.reconcile",
                                                                          "accounting.budgets", "accounting.close_period", "promotions.manage"]),
     "auditor": ("Auditor", "Read-only audit access", _VIEW_ALL + ["admin.audit.view"]),
@@ -179,10 +190,12 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "maintenance_technician": ("Maintenance Technician", "Repairs", ["rooms.view", "maintenance.view", "maintenance.report", "maintenance.work", "inventory.view"]),
     "security_officer": ("Security Officer", "Security and incidents", ["dashboard.view", "rooms.view", "security.view", "security.report", "security.manage",
                                                                   "security.sensitive", "lostfound.manage", "maintenance.view", "maintenance.report"]),
-    "marketing_manager": ("Marketing Manager", "Marketing", ["dashboard.view", "guests.view", "reports.view", "promotions.manage", "finance.expenses.request"]),
+    "marketing_manager": ("Marketing Manager", "Marketing", ["dashboard.view", "guests.view", "reports.view", "promotions.manage", "finance.expenses.request",
+                                                          "crm.view", "crm.campaigns", "crm.manage", "sales.view"]),
     "sales_manager": ("Sales Manager", "Sales and corporate accounts", ["dashboard.view", "guests.view", "reservations.view", "reservations.create", "reports.view",
-                                                                        "promotions.manage", "events.view", "events.manage"]),
-    "customer_service_officer": ("Customer Service Officer", "Guest service", ["dashboard.view", "guests.view", "reservations.view", "lostfound.manage", "security.report"]),
+                                                                        "promotions.manage", "events.view", "events.manage", "sales.view", "sales.manage", "sales.pricing", "crm.view"]),
+    "customer_service_officer": ("Customer Service Officer", "Guest service", ["dashboard.view", "guests.view", "reservations.view", "lostfound.manage", "security.report",
+                                                                            "crm.view", "crm.complaints"]),
     "it_admin": ("IT Administrator", "Technical administration", ["dashboard.view", "admin.users.view", "admin.users.manage",
                                                                    "admin.sessions.manage", "admin.audit.view", "admin.settings.manage",
                                                                    "admin.notifications.manage"]),
@@ -217,6 +230,7 @@ INTRODUCED: dict[str, list[str]] = {
             "accounting.close_period", "promotions.manage", "admin.notifications.manage"],
     "0.6": [p for p in PERMISSIONS if p.split(".")[0] in ("laundry", "hr", "payroll")],
     "0.7": [p for p in PERMISSIONS if p.split(".")[0] in ("maintenance", "security", "lostfound", "events")],
+    "0.8": [p for p in PERMISSIONS if p.split(".")[0] in ("crm", "sales")],
 }
 
 

@@ -31,7 +31,7 @@ def _users_with(c, hotel_id: int, perm: str) -> list[int]:
 
 def run_jobs() -> dict:
     from .modules.messaging import notify_template
-    done = {"checkin_reminders": 0, "birthdays": 0, "low_stock_digests": 0, "invoice_alerts": 0, "preventive_work_orders": 0}
+    done = {"checkin_reminders": 0, "birthdays": 0, "low_stock_digests": 0, "invoice_alerts": 0, "preventive_work_orders": 0, "complaints_escalated": 0}
     db = get_db()
     with db.tx() as c:
         hotels = c.all("SELECT * FROM hotels WHERE active = 1")
@@ -61,6 +61,8 @@ def run_jobs() -> dict:
                 done["low_stock_digests"] += 1
             from .modules.maintenance import raise_due_preventive
             done["preventive_work_orders"] += raise_due_preventive(c, h)
+            from .modules.crm import escalate_overdue
+            done["complaints_escalated"] += escalate_overdue(c, h)
             due = c.one("SELECT COUNT(*) AS n, COALESCE(SUM(amount - amount_paid),0) AS total FROM supplier_invoices WHERE hotel_id = ? "
                         "AND status IN ('approved','part_paid') AND due_date <= ?", [h["id"], (today + dt.timedelta(days=3)).isoformat()])
             if due["n"] and _once(c, "invoices_due", f"{h['id']}:{today}"):

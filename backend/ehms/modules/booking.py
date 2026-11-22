@@ -124,7 +124,7 @@ def public_book(ctx: Ctx):
         rid = c.insert("reservations", {"hotel_id": h["id"], "reference": ref, "guest_id": gid, "status": "tentative", "booking_type": "individual",
                                         "source": "booking_engine", "arrival": a.isoformat(), "departure": d.isoformat(), "adults": adults,
                                         "children": children, "room_type_id": t["id"], "nightly_rate": t["base_rate"], "rate_overridden": 0,
-                                        "discount_amount": q["discount"], "promo_code": promo["code"] if promo else None, "deposit_required": 0,
+                                        "discount_amount": q["discount"], "promo_code": promo["code"] if promo else None, "deposit_required": 0, "locked_rates": q["locked_rates"],
                                         "special_requests": (b.get("special_requests") or "")[:1000],
                                         "notes": "Online booking — awaiting online payment" if pay_online else "Online booking — pay at hotel", "created_at": now_iso(), "updated_at": now_iso()})
         audit(c, None, "booking_engine.booking", "reservation", rid, ref, new={"total": q["total"], "ip": ctx.ip}, hotel_id=h["id"])

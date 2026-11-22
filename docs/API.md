@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **287**
+Total endpoints: **322**
 
 ## Accounting
 
@@ -73,6 +73,31 @@ Total endpoints: **287**
 | GET | `/api/public/payments/{reference}` | Return page: verify an online payment with the provider and show its outcome | public |
 | POST | `/api/public/webhooks/paystack` | Paystack webhook (HMAC-SHA512 signed) | public |
 | POST | `/api/public/webhooks/flutterwave` | Flutterwave webhook (verif-hash header) | public |
+| GET | `/api/public/feedback/{token}` | Guest survey form details | public |
+| POST | `/api/public/feedback/{token}` | Submit the post-stay survey (ratings 1–5, NPS 0–10, comments) | public |
+
+## Crm
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/hotels/{hotel_id}/loyalty` | Loyalty members (?q, ?tier) and programme rules | `crm.view` |
+| PUT | `/api/hotels/{hotel_id}/loyalty/rules` | Configure earning rate, point value, minimum redemption, tiers and tier bonuses | `crm.manage` |
+| POST | `/api/guests/{guest_id}/loyalty/enrol` | Enrol a guest in the loyalty programme (with their agreement) | `guests.manage` |
+| GET | `/api/guests/{guest_id}/loyalty` | A guest's loyalty account and statement | `guests.view` |
+| POST | `/api/folios/{folio_id}/loyalty-redeem` | Redeem a member's points as a credit on their open folio (posted as an allowance) | `payments.receive` |
+| POST | `/api/guests/{guest_id}/loyalty/adjust` | Manual points adjustment with a reason (audited) | `crm.manage` |
+| GET | `/api/hotels/{hotel_id}/complaints` | Complaints (?status, ?category, ?open=1) with SLA flags | `crm.view` |
+| POST | `/api/hotels/{hotel_id}/complaints` | Register a complaint (category, priority, description, guest/reservation/room); SLA due time set by priority | `crm.complaints` |
+| GET | `/api/complaints/{complaint_id}` | Complaint with its update trail | `crm.view` |
+| POST | `/api/complaints/{complaint_id}/update` | Respond: note, assign, status in_progress/resolved (resolution required)/closed, compensation, guest satisfied | `crm.complaints` |
+| POST | `/api/hotels/{hotel_id}/feedback` | Record feedback received another way (comment card, online review: platform, ratings, comments) | `crm.complaints` |
+| GET | `/api/hotels/{hotel_id}/feedback` | Feedback received (?from, ?to, ?sentiment) | `crm.view` |
+| GET | `/api/hotels/{hotel_id}/crm/insights` | Satisfaction, NPS, recurring themes, complaints by category and department, response times, repeat-guest and retention figures (?from, ?to) | `crm.view` |
+| GET | `/api/hotels/{hotel_id}/campaigns` | Marketing campaigns | `crm.view` |
+| POST | `/api/hotels/{hotel_id}/campaigns/preview` | Count consenting guests matching a segment | `crm.campaigns` |
+| POST | `/api/hotels/{hotel_id}/campaigns` | Create a draft campaign (name, channel, segment, subject, body, promo_code) | `crm.campaigns` |
+| POST | `/api/campaigns/{campaign_id}/send` | Send a draft campaign to consenting guests in its segment (queues one message each; includes an opt-out line) | `crm.campaigns` |
+| POST | `/api/guests/{guest_id}/unsubscribe` | Record a guest's marketing opt-out | `guests.manage` |
 
 ## Dashboard
 
@@ -415,6 +440,21 @@ Total endpoints: **287**
 | GET | `/api/hotels/{hotel_id}/promo-codes` | Promotional codes | `promotions.manage` |
 | POST | `/api/hotels/{hotel_id}/promo-codes` | Create a promotional code | `promotions.manage` |
 | PATCH | `/api/promo-codes/{promo_id}` | Edit or deactivate a promotional code | `promotions.manage` |
+| GET | `/api/hotels/{hotel_id}/accounts/corporate` | Corporate, travel-agent and government accounts with production | `sales.view` |
+| GET | `/api/hotels/{hotel_id}/accounts/active` | Active accounts for booking (id, name, kind) | `reservations.create` |
+| POST | `/api/hotels/{hotel_id}/accounts/corporate` | Create an account (lead, prospect or active) | `sales.manage` |
+| PATCH | `/api/accounts/corporate/{account_id}` | Edit an account | `sales.manage` |
+| GET | `/api/accounts/corporate/{account_id}` | Account with negotiated rates, recent bookings and city-ledger balance | `sales.view` |
+| POST | `/api/accounts/corporate/{account_id}/rates` | Add a negotiated rate (hotel_id, room_type_id, rate, valid_from, valid_to) | `sales.manage` |
+| GET | `/api/hotels/{hotel_id}/sales/targets` | Sales targets and achievement for a year (?year) | `sales.view` |
+| PUT | `/api/hotels/{hotel_id}/sales/targets` | Set a target (period YYYY-MM, metric, target, owner_id) | `sales.manage` |
+| GET | `/api/hotels/{hotel_id}/revenue/pricing` | Seasons, dynamic pricing rules and competitor rates | `sales.view` |
+| POST | `/api/hotels/{hotel_id}/revenue/seasons` | Add a seasonal adjustment (name, start_date, end_date, adjustment_bp e.g. 2000 = +20 %, optional room_type_id) | `sales.pricing` |
+| POST | `/api/revenue/seasons/{season_id}/toggle` | Activate or deactivate a season | `sales.pricing` |
+| POST | `/api/hotels/{hotel_id}/revenue/rules` | Propose an occupancy-based rule (name, min/max_occupancy_pct, adjustment_bp, room_type_id); a second person must approve it | `sales.pricing` |
+| POST | `/api/revenue/rules/{rule_id}/decide` | Approve (activate), reject, or deactivate a dynamic pricing rule — never your own proposal | `sales.pricing_approve` |
+| POST | `/api/hotels/{hotel_id}/revenue/competitor-rates` | Record competitor rates: rows[{competitor, stay_date, room_category, rate, source}] | `sales.pricing` |
+| GET | `/api/hotels/{hotel_id}/revenue/dashboard` | Forward 30 days on the books with pickup and recommendations; KPIs for the period and year-on-year by month | `sales.view` |
 
 ## Security
 

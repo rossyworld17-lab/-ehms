@@ -14,6 +14,8 @@ ASGI app (Starlette + Uvicorn)  ──  /api/*  REST endpoints, OpenAPI at /api/
   │                 online (gateways, promo codes) · finance · messaging          (release 0.5)
   │                 laundry · hr (+ self-service) · payroll                       (release 0.6)
   │                 maintenance (assets) · security · events                      (release 0.7)
+  │                 crm (loyalty, complaints, feedback, campaigns) · sales (accounts,
+  │                 rates, targets, pricing rules, revenue) · pricing engine        (release 0.8)
   ├─ gateways.py    Paystack / Flutterwave adapters, retrying HTTP client, integration log (0.5)
   ├─ worker.py      scheduled jobs + message delivery (in-process loop or separate) (0.5)
   ├─ stock.py       perpetual stock ledger (weighted average cost, FEFO batches)  (release 0.4)
@@ -76,6 +78,7 @@ to run manually, `--render postgresql` to print the DDL). Main tables:
 | POS (0.4) | outlets, pos_tables, menu_categories, menu_items, recipe_lines, cashier_shifts, pos_orders, pos_order_items, pos_payments |
 | Payments & finance (0.5) | gateway_transactions, integration_logs, promo_codes, accounting_periods, bank_statement_lines, budget_lines, expense_claims |
 | Messaging (0.5) | notification_templates, job_runs (+ notifications.read_at / attempts) |
+| CRM, sales & revenue (0.8) | corporate_accounts, corporate_rates, sales_targets, rate_seasons, rate_rules, competitor_rates, loyalty_accounts, loyalty_transactions, complaints, complaint_updates, feedback, campaigns, campaign_recipients; reservations.corporate_account_id and locked_rates |
 | Maintenance, security & events (0.7) | assets, asset_depreciation, maintenance_schedules, work_orders(+_parts, _notes), security_incidents, incident_notes, visitors, lost_found, emergency_contacts, access_events, venues, events, event_venues, event_items, event_costs, event_staff |
 | Laundry, HR & payroll (0.6) | laundry_prices, laundry_orders(+_items), employees, shift_templates, shift_assignments, attendance, leave_types, leave_requests, hr_records, employee_loans, payroll_runs, payslips, payroll_adjustments |
 | Procurement (0.4) | suppliers, purchase_requisitions(+_lines), supplier_quotes(+_lines), purchase_orders(+_lines), goods_receipts(+_lines), supplier_invoices, supplier_payments |

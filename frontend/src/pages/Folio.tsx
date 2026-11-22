@@ -30,6 +30,7 @@ export default function Folio({ id }: { id: number }) {
               {open && can("payments.receive") && <Button onClick={() => setModal("pay")}>Take payment</Button>}
               {open && can("payments.receive") && (gw.data?.providers || []).length > 0 && <Button kind="secondary" onClick={() => setModal("link")}>Payment link</Button>}
               {open && can("folio.adjust") && <Button kind="secondary" onClick={() => setModal("allowance")}>Allowance</Button>}
+              {open && can("payments.receive") && <Button kind="secondary" onClick={() => setModal("loyalty")}>Redeem points</Button>}
               {can("payments.refund_request") && (due ? due.balance_due < 0 : f.totals.balance < 0) && <Button kind="secondary" onClick={() => setModal("refund")}>Request refund</Button>}
               <Button kind="secondary" onClick={() => openFile(`/api/folios/${id}/invoice.pdf`, `${f.number}.pdf`, true).catch(e => toast("error", errText(e)))}>Invoice PDF</Button>
             </div></div>
@@ -60,6 +61,7 @@ export default function Folio({ id }: { id: number }) {
           {modal === "charge" && <ChargeModal folio={f} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {modal === "pay" && <PayModal folio={f} methods={methods.data?.items || []} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {modal === "link" && <PaymentLinkModal folio={f} due={due ? due.balance_due : f.totals.balance} onClose={() => setModal(null)} />}
+          {modal === "loyalty" && <LoyaltyModal folio={f} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {modal === "allowance" && <AllowanceModal folio={f} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {modal === "refund" && <RefundModal folio={f} methods={methods.data?.items || []} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
           {reverse && <ReverseModal folio={f} line={reverse} onClose={() => setReverse(null)} onDone={() => { setReverse(null); st.reload(); }} />}
@@ -131,6 +133,19 @@ function AllowanceModal({ folio, onClose, onDone }: any) {
     <Button busy={busy} disabled={!(toMinor(amount) > 0) || !reason.trim()} onClick={async () => { if (await run(() => post(`/api/folios/${folio.id}/adjustments`, { amount: toMinor(amount), reason }), "Allowance posted")) onDone(); }}>Post allowance</Button></>}>
     <div className="form-grid"><Field label="Amount (₦)"><Input value={amount} onChange={e => setAmount(e.target.value)} /></Field>
       <Field label="Reason" wide><Textarea value={reason} onChange={e => setReason(e.target.value)} /></Field></div></Modal>;
+}
+
+function LoyaltyModal({ folio, onClose, onDone }: any) {
+  const gid = folio.guest_id ?? folio.guest?.id;
+  const st = useLoad(() => get(`/api/guests/${gid}/loyalty`), [gid]);
+  const [points, setPoints] = useState("");
+  const { busy, run } = useAction();
+  return <Modal title="Redeem loyalty points" onClose={onClose} footer={<><Button kind="secondary" onClick={onClose}>Close</Button>
+    {st.data?.member && <Button busy={busy} disabled={!(Number(points) > 0)} onClick={async () => { if (await run(() => post(`/api/folios/${folio.id}/loyalty-redeem`, { points: Number(points) }), "Points redeemed")) onDone(); }}>Redeem</Button>}</>}>
+    <Loadable state={st}>{d => !d.member ? <p className="muted">This guest is not a loyalty member. Enrol them from the guest profile.</p> : <>
+      <p>Member <b>{d.member_no}</b> ({d.tier}) has <b>{d.points_balance.toLocaleString()}</b> points available.</p>
+      <div className="form-grid"><Field label="Points to redeem"><Input type="number" value={points} onChange={e => setPoints(e.target.value)} /></Field></div>
+      <p className="muted small">The value is posted to the folio as a credit (allowance) and recorded in the ledger.</p></>}</Loadable></Modal>;
 }
 
 function ReverseModal({ folio, line, onClose, onDone }: any) {

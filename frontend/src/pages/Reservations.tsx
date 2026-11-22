@@ -58,7 +58,8 @@ export function NewReservation({ q }: { q: URLSearchParams }) {
   const toast = useToast();
   const [bd, setBd] = useState("");
   const [f, setF] = useState<any>({ arrival: "", departure: "", adults: 1, children: 0, booking_type: q.get("type") || "individual", source: "front_desk",
-    room_type_id: "", room_id: "", status: "confirmed", special_requests: "", company_name: "", nightly_rate: "", discount: "", deposit: "", overbook_reason: "" });
+    room_type_id: "", room_id: "", status: "confirmed", special_requests: "", company_name: "", nightly_rate: "", discount: "", deposit: "", overbook_reason: "", corporate_account_id: "" });
+  const accounts = useLoad(() => get(`/api/hotels/${hotel!.id}/accounts/active`).catch(() => ({ items: [] })), [hotel?.id]);
   const [avail, setAvail] = useState<any>(null);
   const [quote, setQuote] = useState<any>(null);
   const [guestMode, setGuestMode] = useState<"search" | "new">("search");
@@ -82,8 +83,9 @@ export function NewReservation({ q }: { q: URLSearchParams }) {
     const body: any = { arrival: f.arrival, departure: f.departure, room_type_id: Number(f.room_type_id), adults: f.adults, children: f.children, booking_type: f.booking_type };
     if (f.nightly_rate) body.nightly_rate = toMinor(f.nightly_rate);
     if (f.discount) body.discount_amount = toMinor(f.discount);
+    if (f.corporate_account_id) body.corporate_account_id = Number(f.corporate_account_id);
     post(`/api/hotels/${hotel!.id}/quote`, body).then(setQuote).catch(e => setQuote({ error: errText(e) }));
-  }, [f.room_type_id, f.adults, f.children, f.nightly_rate, f.discount, f.booking_type, avail]);
+  }, [f.room_type_id, f.adults, f.children, f.nightly_rate, f.discount, f.booking_type, f.corporate_account_id, avail]);
   useEffect(() => {
     if (guestMode !== "search" || gq.trim().length < 2) { setGres([]); return; }
     const t = setTimeout(() => get("/api/guests", { search: gq }).then(r => setGres(r.items.slice(0, 8))).catch(() => setGres([])), 250);
@@ -98,6 +100,7 @@ export function NewReservation({ q }: { q: URLSearchParams }) {
     const body: any = { arrival: f.arrival, departure: f.departure, adults: Number(f.adults), children: Number(f.children), booking_type: f.booking_type,
       source: f.source, room_type_id: Number(f.room_type_id), status: f.status, special_requests: f.special_requests || undefined, company_name: f.company_name || undefined };
     if (f.room_id) body.room_id = Number(f.room_id);
+    if (f.corporate_account_id) body.corporate_account_id = Number(f.corporate_account_id);
     if (f.nightly_rate) body.nightly_rate = toMinor(f.nightly_rate);
     if (f.discount) body.discount_amount = toMinor(f.discount);
     if (f.deposit) body.deposit_required = toMinor(f.deposit);
@@ -133,6 +136,9 @@ export function NewReservation({ q }: { q: URLSearchParams }) {
           {["front_desk", "walk_in", "phone", "email", "website", "travel_agent", "corporate", "ota", "other"].map(s => <option key={s} value={s}>{label(s)}</option>)}</Select></Field>
         <Field label="Status"><Select value={f.status} onChange={e => set("status", e.target.value)}>
           {["confirmed", "tentative", "waitlisted", "enquiry"].map(s => <option key={s} value={s}>{label(s)}</option>)}</Select></Field>
+        {["corporate", "travel_agent", "group"].includes(f.booking_type) && (accounts.data?.items || []).length > 0 && <Field label="Account (negotiated rates)">
+          <Select value={f.corporate_account_id} onChange={e => set("corporate_account_id", e.target.value)}><option value="">None</option>
+            {(accounts.data?.items || []).filter((a: any) => f.booking_type !== "travel_agent" || a.kind === "travel_agent").map((a: any) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>}
         {(f.booking_type === "corporate" || f.booking_type === "group") && <Field label="Company / group name"><Input value={f.company_name} onChange={e => set("company_name", e.target.value)} /></Field>}
       </div></Card>
 

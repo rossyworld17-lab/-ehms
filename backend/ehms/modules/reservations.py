@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 
 from ..db import get_db, now_iso
 from ..http import Ctx, audit, bad_request, conflict, forbidden, not_found, route
@@ -26,19 +27,21 @@ def night_rate(rt: dict, booking_type: str, night: dt.date, override: int | None
 
 
 def quote(c, hotel: dict, rt: dict, arrival: dt.date, departure: dt.date, adults: int, children: int,
-          booking_type: str, override: int | None, discount: int) -> dict:
+          booking_type: str, override: int | None, discount: int, account_id: int | None = None) -> dict:
+    from ..pricing import quote_night
     extra = max(0, adults - 2)
     nights = []
     for n in nights_between(arrival, departure):
-        rate = night_rate(rt, booking_type, n, override) + extra * (rt.get("extra_person_charge") or 0)
-        nights.append({"date": n.isoformat(), "rate": rate})
+        base, why = quote_night(c, hotel["id"], rt, booking_type, n, override, account_id)
+        nights.append({"date": n.isoformat(), "rate": base + extra * (rt.get("extra_person_charge") or 0), "room_rate": base, "applied": why})
     room_total = sum(n["rate"] for n in nights)
     if discount > room_total:
         raise bad_request("Discount cannot exceed the room total")
     taxable = room_total - discount
     bd = price_breakdown(c, hotel, "room", taxable, arrival)
     return {"nights": nights, "room_total": room_total, "discount": discount, "net": bd["net"], "service_charge": bd["service_charge"],
-            "tax": bd["tax"], "total": bd["total"], "taxes": bd["taxes"], "currency": hotel["currency"]}
+            "tax": bd["tax"], "total": bd["total"], "taxes": bd["taxes"], "currency": hotel["currency"],
+            "locked_rates": json.dumps({n["date"]: n["room_rate"] for n in nights})}
 
 
 def _load(c, ctx: Ctx, res_id) -> dict:
@@ -129,8 +132,11 @@ def quote_endpoint(ctx: Ctx):
         hotel = get_hotel(c, hid)
         rt, a, d = _validate_common(c, ctx, hotel, ctx.body or {}, exclude_id=-1)
         override = to_minor(ctx.body["nightly_rate"], "nightly_rate") if (ctx.body or {}).get("nightly_rate") not in (None, "") else None
+        acct = (ctx.body or {}).get("corporate_account_id")
+        if acct and not c.one("SELECT id FROM corporate_accounts WHERE id = ? AND organisation_id = ? AND status = 'active'", [int(acct), ctx.org_id]):
+            raise bad_request("Corporate / agent account not found or not active")
         return quote(c, hotel, rt, a, d, int(ctx.body.get("adults") or 1), int(ctx.body.get("children") or 0),
-                     ctx.body.get("booking_type") or "individual", override, to_minor(ctx.body.get("discount_amount") or 0, "discount_amount"))
+                     ctx.body.get("booking_type") or "individual", override, to_minor(ctx.body.get("discount_amount") or 0, "discount_amount"), int(acct) if acct else None)
 
 
 @route("GET", "/api/hotels/{hotel_id:int}/reservations", perm="reservations.view", tag="reservations",
@@ -212,7 +218,13 @@ def create_reservation(ctx: Ctx):
             raise bad_request("Provide guest_id or guest details", {"field": "guest"})
         room_id = int(body["room_id"]) if body.get("room_id") else None
         warnings = _check_inventory(c, ctx, hid, rt, arrival, departure, status, room_id, None, body.get("overbook_reason"))
-        q = quote(c, hotel, rt, arrival, departure, int(body.get("adults") or 1), int(body.get("children") or 0), booking_type, override, discount)
+        account = None
+        if body.get("corporate_account_id"):
+            account = c.one("SELECT * FROM corporate_accounts WHERE id = ? AND organisation_id = ? AND status = 'active'", [int(body["corporate_account_id"]), ctx.org_id])
+            if not account:
+                raise bad_request("Corporate / agent account not found or not active", {"field": "corporate_account_id"})
+        q = quote(c, hotel, rt, arrival, departure, int(body.get("adults") or 1), int(body.get("children") or 0), booking_type, override, discount,
+                  account["id"] if account else None)
         ref = next_number(c, hid, "reservation", "RES")
         rid = c.insert("reservations", {
             "hotel_id": hid, "reference": ref, "guest_id": guest_id, "status": status, "booking_type": booking_type, "source": source,
@@ -220,7 +232,8 @@ def create_reservation(ctx: Ctx):
             "children": int(body.get("children") or 0), "room_type_id": rt["id"], "room_id": room_id,
             "nightly_rate": override if override is not None else rt["base_rate"], "rate_overridden": 1 if override is not None else 0,
             "discount_amount": discount, "deposit_required": to_minor(body.get("deposit_required") or 0, "deposit_required"),
-            "company_name": body.get("company_name"), "group_name": body.get("group_name"), "special_requests": body.get("special_requests"),
+            "company_name": body.get("company_name") or (account["name"] if account else None), "group_name": body.get("group_name"),
+            "special_requests": body.get("special_requests"), "corporate_account_id": account["id"] if account else None, "locked_rates": q["locked_rates"],
             "notes": body.get("notes"), "created_by": ctx.user_id, "created_at": now_iso(), "updated_at": now_iso()})
         audit(c, ctx, "reservation.created", "reservation", rid, ref, new={"status": status, "arrival": arrival.isoformat(),
               "departure": departure.isoformat(), "room_type": rt["code"], "room_id": room_id, "total": q["total"],
@@ -296,11 +309,16 @@ def modify_reservation(ctx: Ctx):
                 changes[f] = body[f]
         if "deposit_required" in body:
             changes["deposit_required"] = to_minor(body["deposit_required"] or 0, "deposit_required")
-        old = {k: r[k] for k in changes if k != "updated_at" and r.get(k) != changes[k]}
+        q = quote(c, hotel, rt, arrival, departure, changes["adults"], changes["children"], r["booking_type"], override, discount, r.get("corporate_account_id"))
+        fresh = json.loads(q["locked_rates"])
+        if rt["id"] == r["room_type_id"] and override is None and r.get("locked_rates"):
+            prior = json.loads(r["locked_rates"])      # keep the rates the guest was quoted for nights already booked
+            fresh = {d: prior.get(d, v) for d, v in fresh.items()}
+        changes["locked_rates"] = json.dumps(fresh)
+        old = {k: r[k] for k in changes if k not in ("updated_at", "locked_rates") and r.get(k) != changes[k]}
         c.update("reservations", r["id"], changes)
         audit(c, ctx, "reservation.modified", "reservation", r["id"], r["reference"], old=old,
               new={k: changes[k] for k in old} | {"warnings": warnings}, hotel_id=r["hotel_id"])
-        q = quote(c, hotel, rt, arrival, departure, changes["adults"], changes["children"], r["booking_type"], override, discount)
         out = reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]]))
     out.update({"quote": q, "warnings": warnings})
     return out

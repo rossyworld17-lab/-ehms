@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get } from "./api";
@@ -29,6 +29,8 @@ import Messaging, { NotificationBell, Promotions } from "./pages/Messaging";
 import Laundry from "./pages/Laundry";
 import HR, { EmployeeDetail, MyHR, Payroll } from "./pages/HR";
 import { Events, Maintenance, Security } from "./pages/Operations";
+import CRM, { Survey } from "./pages/CRM";
+import Revenue from "./pages/Revenue";
 import { Spinner } from "./ui";
 
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
@@ -58,6 +60,10 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/hr", label: "Human resources", icon: <MdBadge />, perm: "hr.view" },
     { to: "/payroll", label: "Payroll", icon: <MdPayments />, perm: "payroll.view" },
     { to: "/my-hr", label: "My HR", icon: <MdPersonPin /> },
+  ]},
+  { group: "Sales & guests", items: [
+    { to: "/crm", label: "Guest relations", icon: <MdSentimentSatisfied />, any: ["crm.view", "crm.complaints"] },
+    { to: "/revenue", label: "Sales & revenue", icon: <MdTrendingUp />, perm: "sales.view" },
   ]},
   { group: "Finance", items: [
     { to: "/accounting", label: "Accounting", icon: <MdAccountBalance />, perm: "accounting.view" },
@@ -148,6 +154,7 @@ export default function App() {
 
   if (window.location.pathname === "/payment-return") return <PaymentReturn />;
   if (path.startsWith("/book/")) return <BookingPortal code={path.split("/")[2] || ""} />;
+  if (path.startsWith("/survey/")) return <Survey token={path.split("/")[2] || ""} />;
   if (!ready) return <Spinner text="Starting EHMS…" />;
   if (path === "/forgot") return <ForgotPassword />;
   if (!user) return <Login />;
@@ -169,6 +176,8 @@ export default function App() {
     case path === "/maintenance": page = guard("maintenance.report", <Maintenance q={q} />); break;
     case path === "/security": page = ["security.view", "security.report", "lostfound.manage"].some(can) ? <Security q={q} /> : <Forbidden />; break;
     case path === "/events": page = guard("events.view", <Events />); break;
+    case path === "/crm": page = ["crm.view", "crm.complaints"].some(can) ? <CRM q={q} /> : <Forbidden />; break;
+    case path === "/revenue": page = guard("sales.view", <Revenue />); break;
     case path === "/laundry": page = guard("laundry.view", <Laundry />); break;
     case seg[0] === "hr" && seg[1] === "employees" && !!seg[2]: page = guard("hr.view", <EmployeeDetail id={Number(seg[2])} />); break;
     case path === "/hr": page = guard("hr.view", <HR q={q} />); break;
