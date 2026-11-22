@@ -29,7 +29,7 @@ def gateway_configured() -> bool:
     return bool(configured_providers())
 
 
-@route("GET", "/api/public/hotels/{code}", public=True, tag="booking-engine", summary="Public hotel profile and room categories")
+@route("GET", "/api/public/hotels/{code}", public=True, rate_limit=60, tag="booking-engine", summary="Public hotel profile and room categories")
 def public_hotel(ctx: Ctx):
     with get_db().tx() as c:
         h = _hotel_by_code(c, ctx.path["code"])

@@ -11,10 +11,22 @@ export function NotificationBell() {
   const load = () => get("/api/notifications/mine").then(setData).catch(() => {});
   useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
   const read = async (n: any) => { if (!n.read_at) { await post(`/api/notifications/${n.id}/read`).catch(() => {}); load(); } };
-  return <div className="usermenu">
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    // close on a click outside, Escape or navigation (mouse-leave alone does not work on touch screens or keyboards)
+    const outside = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const nav = () => setOpen(false);
+    document.addEventListener("mousedown", outside);
+    document.addEventListener("keydown", esc);
+    window.addEventListener("hashchange", nav);
+    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", esc); window.removeEventListener("hashchange", nav); };
+  }, [open]);
+  return <div className="usermenu" ref={box}>
     <button className="icon-btn bell" aria-label={`Notifications (${data.unread} unread)`} onClick={() => { setOpen(o => !o); if (!open) load(); }}>
       <MdNotifications />{data.unread > 0 && <b className="badge">{data.unread}</b>}</button>
-    {open && <div className="menu notif-menu" role="menu" onMouseLeave={() => setOpen(false)}>
+    {open && <div className="menu notif-menu" role="menu">
       <div className="row between pad"><b>Notifications</b>{data.unread > 0 && <button className="link small" onClick={async () => { await post("/api/notifications/read-all"); load(); }}>Mark all read</button>}</div>
       {data.items.length ? data.items.slice(0, 15).map((n: any) => <button key={n.id} className={`notif ${n.read_at ? "" : "unread"}`} onClick={() => read(n)}>
         <b>{n.subject}</b><span>{n.body}</span><small>{fmtDateTime(n.created_at)}</small></button>) : <p className="muted small pad">You're all caught up.</p>}

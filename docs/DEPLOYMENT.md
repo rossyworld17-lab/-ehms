@@ -87,6 +87,17 @@ archiving for point-in-time recovery if required).
 - Optional Claude engine for Ask EHMS: `pip install anthropic`, then `EHMS_AI_PROVIDER=anthropic`,
   `ANTHROPIC_API_KEY=…` (and optionally `EHMS_AI_MODEL`). Leave unset to keep all data on your server.
 
+## Production settings checklist (release 1.0)
+- `EHMS_ENV=production` makes start-up refuse a missing/short/placeholder `EHMS_SECRET_KEY` and `EHMS_SEED_DEMO=1`.
+- `FORWARDED_ALLOW_IPS` = the reverse proxy's address (the container trusts forwarded client addresses only from it);
+  `WEB_CONCURRENCY` = number of app processes (≈ vCPUs); `EHMS_DB_POOL_SIZE` (default 10) per process — keep
+  processes × pool below PostgreSQL `max_connections`.
+- Add a login rate limit at the proxy as well (the built-in limiter is per process), e.g. Nginx
+  `limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;` on `/api/auth/`.
+- For more than one server, run the worker once separately (`EHMS_WORKER=0` on web processes).
+- Performance and security reviews: [PERFORMANCE.md](PERFORMANCE.md), [SECURITY.md](SECURITY.md); go-live checklist:
+  [ACCEPTANCE.md](ACCEPTANCE.md).
+
 ## Monitoring
 `GET /api/health` (used by the container health check) returns database connectivity. Ship container logs to
 your log platform; failed logins and lockouts are in the `login_attempts` table and audit trail.

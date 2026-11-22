@@ -78,14 +78,18 @@ class SecurityHeaders:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
+        # the interactive API page uses a small inline script; the application itself runs no inline scripts
+        script = b"script-src 'self' 'unsafe-inline'" if scope.get("path") == "/api/docs" else b"script-src 'self'"
+
         async def send_wrapper(message):
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers", []))
                 headers += [(b"x-content-type-options", b"nosniff"), (b"x-frame-options", b"DENY"),
                             (b"referrer-policy", b"strict-origin-when-cross-origin"),
                             (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
-                            (b"content-security-policy", b"default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; "
-                                                         b"script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'")]
+                            (b"content-security-policy", b"default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; "
+                                                         + script + b"; connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; "
+                                                         b"form-action 'self'; frame-ancestors 'none'")]
                 if settings.environment == "production":
                     headers.append((b"strict-transport-security", b"max-age=31536000; includeSubDomains"))
                 message["headers"] = headers
@@ -93,7 +97,20 @@ class SecurityHeaders:
         await self.app(scope, receive, send_wrapper)
 
 
+def check_production_settings() -> None:
+    """Refuse to start a production server with unsafe settings."""
+    if settings.environment != "production":
+        return
+    key = os.environ.get("EHMS_SECRET_KEY", "")
+    if len(key) < 32 or "CHANGE-ME" in key:
+        raise RuntimeError("EHMS_SECRET_KEY must be set to a random value of at least 32 characters in production "
+                           "(every app process must share it, or sign-ins fail at random)")
+    if settings.seed_demo and os.environ.get("EHMS_ALLOW_DEMO_IN_PRODUCTION") != "1":
+        raise RuntimeError("EHMS_SEED_DEMO=1 would load fictional demo data into a production database; unset it")
+
+
 def create_app() -> Starlette:
+    check_production_settings()
     middleware = [Middleware(SecurityHeaders)]
     if settings.cors_origins:
         middleware.append(Middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"],

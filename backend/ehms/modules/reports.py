@@ -127,17 +127,13 @@ def _report_rows(c, ctx: Ctx, hid: int, name: str) -> tuple[str, list[str], list
             out.append([f"{'Refund' if p['kind'] == 'refund' else 'Payment'} — {p['name']}", "", "", "", "", money(p["amount"] * (-1 if p["kind"] == "refund" else 1), cur)])
         return f"Daily revenue — {d}", ["Department", "Lines", "Net", "Service charge", "Tax", "Total"], out
     if name == "occupancy":
-        from .dashboard import kpis_for
+        from .dashboard import kpis_range
         d_from = parse_date(ctx.q("from", (bdate - dt.timedelta(days=30)).isoformat()), "from")
         d_to = parse_date(ctx.q("to", bdate.isoformat()), "to")
         if (d_to - d_from).days > 366:
             raise bad_request("Maximum range is one year")
-        out = []
-        day = d_from
-        while day <= d_to:
-            k = kpis_for(c, hid, day)
-            out.append([k["date"], k["sellable_rooms"], k["rooms_sold"], f"{k['occupancy_pct']}%", money(k["room_revenue"], cur), money(k["adr"], cur), money(k["revpar"], cur)])
-            day += dt.timedelta(days=1)
+        out = [[k["date"], k["sellable_rooms"], k["rooms_sold"], f"{k['occupancy_pct']}%", money(k["room_revenue"], cur), money(k["adr"], cur), money(k["revpar"], cur)]
+               for k in kpis_range(c, hid, d_from, d_to)]
         return f"Occupancy {d_from} to {d_to}", ["Date", "Sellable", "Sold", "Occupancy", "Room revenue", "ADR", "RevPAR"], out
     if name == "outstanding_balances":
         if not ctx.can("reports.financial"):

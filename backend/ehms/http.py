@@ -210,7 +210,7 @@ def route(method: str, path: str, perm: str | None = None, public: bool = False,
                 return JSONResponse({"error": {"code": "server_error", "message": "An unexpected error occurred"}}, status_code=500)
 
         ROUTES.append({"method": method, "path": path, "endpoint": endpoint, "perm": perm, "public": public,
-                       "summary": summary or (fn.__doc__ or "").strip().split("\n")[0], "tag": tag, "name": fn.__name__})
+                       "summary": summary or (fn.__doc__ or "").strip().split("\n")[0], "tag": tag, "name": fn.__name__, "fn": fn})
         return fn
     return deco
 

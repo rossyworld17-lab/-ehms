@@ -37,6 +37,9 @@ def _norm(v: Any) -> Any:
     return v
 
 
+_IDENT = re.compile(r"[a-z_][a-z0-9_]{0,62}")
+
+
 class Connection:
     """Wraps a DB-API connection with dict rows and a common API."""
 
@@ -80,18 +83,29 @@ class Connection:
         row = cur.fetchone()
         return _norm(row[0]) if row else None
 
+    @staticmethod
+    def _ident(name: str) -> str:
+        """Table and column names are interpolated into SQL: allow plain identifiers only (defence in depth —
+        callers already build these dictionaries from fixed key lists)."""
+        if not _IDENT.fullmatch(name):
+            raise ValueError(f"invalid SQL identifier: {name!r}")
+        return name
+
     def insert(self, table: str, data: dict) -> int:
-        cols = list(data.keys())
+        cols = [self._ident(k) for k in data.keys()]
+        self._ident(table)
         sql = f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join('?' for _ in cols)}) RETURNING id"
         return int(self.scalar(sql, [data[c] for c in cols]))
 
     def update(self, table: str, row_id: int, data: dict) -> None:
         if not data:
             return
-        sets = ", ".join(f"{c} = ?" for c in data)
+        sets = ", ".join(f"{self._ident(c)} = ?" for c in data)
+        self._ident(table)
         self.execute(f"UPDATE {table} SET {sets} WHERE id = ?", [*data.values(), row_id])
 
     def lock(self, table: str, row_id: int) -> dict | None:
+        self._ident(table)
         """Lock a row for the rest of the transaction (PostgreSQL); SQLite transactions
         are already serialised by BEGIN IMMEDIATE."""
         if self.dialect == "postgresql":
@@ -118,6 +132,11 @@ class Database:
                 import psycopg  # noqa: F401
             except ImportError as e:  # pragma: no cover
                 raise DBError("PostgreSQL requires the 'psycopg' package (pip install psycopg[binary])") from e
+            # small connection pool: opening a PostgreSQL connection costs several milliseconds per transaction
+            import os
+            import queue
+            self._pool: "queue.LifoQueue" = queue.LifoQueue()
+            self._pool_max = int(os.environ.get("EHMS_DB_POOL_SIZE", "10"))
         else:
             raise DBError(f"Unsupported DATABASE_URL: {url}")
 
@@ -138,6 +157,37 @@ class Database:
             return c
         import psycopg
         return psycopg.connect(self.url, autocommit=False)
+
+    def _pg_get(self):
+        import queue
+        from psycopg.pq import TransactionStatus
+        while True:
+            try:
+                c = self._pool.get_nowait()
+            except queue.Empty:
+                return self._raw()
+            if c.closed or c.info.transaction_status != TransactionStatus.IDLE:
+                try:
+                    c.close()
+                except Exception:  # pragma: no cover
+                    pass
+                continue
+            return c
+
+    def _pg_put(self, c, healthy: bool) -> None:
+        if healthy and not c.closed and self._pool.qsize() < self._pool_max:
+            self._pool.put(c)
+        else:
+            try:
+                c.close()
+            except Exception:  # pragma: no cover
+                pass
+
+    def close(self) -> None:
+        """Close pooled connections (PostgreSQL)."""
+        if self.dialect == "postgresql":
+            while not self._pool.empty():
+                self._pg_put(self._pool.get_nowait(), False)
 
     @contextmanager
     def tx(self) -> Iterator[Connection]:
@@ -160,16 +210,20 @@ class Database:
                 if lock:
                     lock.release()
         else:
-            raw = self._raw()
+            raw = self._pg_get()
             conn = Connection(raw, "postgresql")
+            healthy = True
             try:
                 yield conn
                 raw.commit()
             except BaseException:
-                raw.rollback()
+                try:
+                    raw.rollback()
+                except Exception:
+                    healthy = False
                 raise
             finally:
-                raw.close()
+                self._pg_put(raw, healthy)
 
     def executescript(self, script: str) -> None:
         if self.dialect == "sqlite":
@@ -200,8 +254,10 @@ def get_db() -> Database:
     return _db
 
 
-def set_db(db: Database) -> None:
+def set_db(db: Database | None) -> None:
     global _db
+    if _db is not None and _db is not db:
+        _db.close()
     _db = db
 
 

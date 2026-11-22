@@ -150,12 +150,12 @@ def _webhook(ctx: Ctx, provider: str):
     return {"ok": True, **{k: v for k, v in apply_verification(ref, f"{provider} webhook").items() if k in ("status", "reference")}}
 
 
-@route("POST", "/api/public/webhooks/paystack", public=True, tag="booking-engine", summary="Paystack webhook (HMAC-SHA512 signed)")
+@route("POST", "/api/public/webhooks/paystack", public=True, rate_limit=120, tag="booking-engine", summary="Paystack webhook (HMAC-SHA512 signed)")
 def paystack_webhook(ctx: Ctx):
     return _webhook(ctx, "paystack")
 
 
-@route("POST", "/api/public/webhooks/flutterwave", public=True, tag="booking-engine", summary="Flutterwave webhook (verif-hash header)")
+@route("POST", "/api/public/webhooks/flutterwave", public=True, rate_limit=120, tag="booking-engine", summary="Flutterwave webhook (verif-hash header)")
 def flutterwave_webhook(ctx: Ctx):
     return _webhook(ctx, "flutterwave")
 

@@ -3,7 +3,7 @@
 Maintained per the master prompt: completed modules, partially completed modules, pending integrations,
 outstanding defects and test results. Requirement-level status is in [TRACEABILITY.md](TRACEABILITY.md).
 
-_Last updated: release 0.95._
+_Last updated: release 1.0._
 
 ## Completed modules (implemented, integrated and tested)
 
@@ -60,15 +60,21 @@ _Last updated: release 0.95._
 | CCTV | not connected (incident records can hold references) |
 | E-invoicing | not connected |
 
+## Before go-live (hotel actions)
+
+Independent penetration test; UAT execution and sign-off ([ACCEPTANCE.md](ACCEPTANCE.md)); live provider accounts (payments, SMS, WhatsApp); data migration and opening balances.
+
 ## Outstanding defects
 
 None known. Defects found and fixed while building 0.4 are listed in [TEST_REPORT.md](TEST_REPORT.md).
 
-## Test results (release 0.95)
+## Test results (release 1.0)
 
 | Suite | Result |
 |---|---|
-| API / integration (`pytest`), SQLite | 85 passed, 0 failed |
-| API / integration (`pytest`), PostgreSQL 16 | 85 passed, 0 failed |
+| API / integration (`pytest`), SQLite | 90 passed, 0 failed |
+| API / integration (`pytest`), PostgreSQL 16 | 90 passed, 0 failed |
+| Load test (PostgreSQL, 1 year of history, 50 virtual users) | 291 requests/s, p95 170 ms, 0 errors — see PERFORMANCE.md |
+| Security review | 6 findings fixed, residual risks listed — see SECURITY.md |
 | Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report, guest relations and revenue tabs, public post-stay survey submitted on a phone-sized screen, all Insights tabs, two assistant questions answered, a document opened with its access history, group block detail, credit-note queue, exchange rates, cancellation policies, stock costing, applicant record |
-| Upgrade from 0.3, 0.4, 0.7, 0.8 and 0.9 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |
+| Upgrade from 0.3, 0.4, 0.7, 0.8, 0.9 and 0.95 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |

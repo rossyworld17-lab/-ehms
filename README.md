@@ -5,15 +5,10 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
-> **Release 0.95 — completes the functional scope: cancellation policies with automatic fees, group blocks and
-> rooming lists with master billing, split folios and charge transfers, approved credit/debit notes, exchange rates
-> and foreign-currency payments, optional FIFO stock costing and a recruitment pipeline.** Release 0.9 added business intelligence (multi-property analytics with filters and period comparison,
-> occupancy history, HR analytics, scheduled reports), explainable forecasting, unusual-transaction flags for
-> human review, rate and reorder recommendations, a permission-aware management assistant ("Ask EHMS") and a
-> secure document store with retention and access history** to the modules of earlier releases (front office,
-> POS, inventory, procurement, finance, payments, messaging, laundry, HR, payroll, maintenance, security, events,
-> CRM, sales & revenue). Traceability: [docs/TRACEABILITY.md](docs/TRACEABILITY.md). Remaining items are in
-> [docs/ROADMAP.md](docs/ROADMAP.md);
+> **Release 1.0 — production ready.** All 127 SRS requirements are implemented and traced; the release adds a
+> security review with hardening, a performance review with optimisations and load-test tooling, and the acceptance
+> pack (UAT scenarios, go-live checklist, training plan, sign-off). See [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
+> for what each release added and [docs/ROADMAP.md](docs/ROADMAP.md) for integrations planned after 1.0;
 > the [progress register](docs/PROGRESS.md) tracks status. Nothing in the interface is a placeholder: screens and
 > menu items appear only when the module behind them works and the user has permission.
 
@@ -107,7 +102,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for TLS, email, payment gateways, b
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q                       # 64 API/integration tests (SQLite)
+cd backend && python -m pytest -q                       # 90 API/integration tests (SQLite)
 TEST_DATABASE_URL=postgresql://... python -m pytest -q  # same suite on PostgreSQL
 python ../frontend/e2e/smoke.py                         # browser end-to-end (app running with demo data)
 ```
@@ -119,6 +114,7 @@ python ../frontend/e2e/smoke.py                         # browser end-to-end (ap
 - [User guide](docs/USER_GUIDE.md) · [Administrator manual](docs/ADMIN_MANUAL.md)
 - [Deployment, backup & recovery](docs/DEPLOYMENT.md)
 - [Test report](docs/TEST_REPORT.md) · [Requirements traceability](docs/TRACEABILITY.md) · [Progress register](docs/PROGRESS.md) · [Roadmap](docs/ROADMAP.md)
+- [Security review](docs/SECURITY.md) · [Performance review](docs/PERFORMANCE.md) · [Acceptance, go-live & sign-off](docs/ACCEPTANCE.md) · [Release notes](docs/RELEASE_NOTES.md)
 
 ## Screenshots
 

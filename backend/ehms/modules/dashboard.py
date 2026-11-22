@@ -22,6 +22,34 @@ def kpis_for(c, hid: int, day: dt.date) -> dict:
             "adr": room_rev // occupied if occupied else 0, "revpar": room_rev // available if available else 0}
 
 
+def kpis_range(c, hid: int, d_from: dt.date, d_to: dt.date) -> list[dict]:
+    """kpis_for() for every day in a range using three queries instead of four per day."""
+    total = c.scalar("SELECT COUNT(*) FROM rooms WHERE hotel_id = ? AND active = 1", [hid]) or 0
+    ooo = c.scalar("SELECT COUNT(*) FROM rooms WHERE hotel_id = ? AND active = 1 AND service_status NOT IN ('in_service','vip_hold')", [hid]) or 0
+    f, t = d_from.isoformat(), d_to.isoformat()
+    occ: dict[str, int] = {}
+    for r in c.all("SELECT arrival, departure FROM reservations WHERE hotel_id = ? AND status IN ('checked_in','checked_out') AND arrival <= ? AND departure > ?",
+                   [hid, t, f]):
+        a = max(dt.date.fromisoformat(r["arrival"]), d_from)
+        b = min(dt.date.fromisoformat(r["departure"]) - dt.timedelta(days=1), d_to)
+        while a <= b:
+            occ[a.isoformat()] = occ.get(a.isoformat(), 0) + 1
+            a += dt.timedelta(days=1)
+    rev = {r["business_date"]: r["v"] for r in c.all(
+        "SELECT fl.business_date, COALESCE(SUM(fl.net_amount),0) AS v FROM folio_lines fl JOIN folios f ON f.id = fl.folio_id WHERE f.hotel_id = ? "
+        "AND fl.department = 'room' AND fl.kind IN ('charge','adjustment') AND fl.business_date >= ? AND fl.business_date <= ? GROUP BY fl.business_date", [hid, f, t])}
+    available = max(total - ooo, 0)
+    out, day = [], d_from
+    while day <= d_to:
+        d = day.isoformat()
+        sold, room_rev = occ.get(d, 0), rev.get(d, 0)
+        out.append({"date": d, "total_rooms": total, "out_of_service": ooo, "sellable_rooms": available, "rooms_sold": sold,
+                    "occupancy_pct": round(sold * 100 / available, 1) if available else 0.0, "room_revenue": room_rev,
+                    "adr": room_rev // sold if sold else 0, "revpar": room_rev // available if available else 0})
+        day += dt.timedelta(days=1)
+    return out
+
+
 @route("GET", "/api/hotels/{hotel_id:int}/dashboard", perm="dashboard.view", tag="dashboard", summary="Executive dashboard KPIs and trends")
 def dashboard(ctx: Ctx):
     hid = ctx.check_hotel(ctx.path["hotel_id"])
@@ -66,12 +94,14 @@ def dashboard(ctx: Ctx):
         inv_pending = c.scalar("SELECT COUNT(*) FROM supplier_invoices WHERE hotel_id = ? AND status = 'pending_approval'", [hid])
         req_pending = c.scalar("SELECT COUNT(*) FROM stock_requisitions WHERE hotel_id = ? AND status IN ('pending','approved')", [hid])
         today = kpis_for(c, hid, bdate)
-        trend = [kpis_for(c, hid, bdate - dt.timedelta(days=i)) for i in range(29, -1, -1)]
+        trend = kpis_range(c, hid, bdate - dt.timedelta(days=29), bdate)
+        horizon = bdate + dt.timedelta(days=13)
+        books = c.all("SELECT arrival, departure FROM reservations WHERE hotel_id = ? AND status IN ('confirmed','tentative','checked_in') "
+                      "AND arrival <= ? AND departure > ?", [hid, horizon.isoformat(), bdate.isoformat()])
         forecast = []
         for i in range(0, 14):
             day = (bdate + dt.timedelta(days=i)).isoformat()
-            on_books = c.scalar("SELECT COUNT(*) FROM reservations WHERE hotel_id = ? AND status IN ('confirmed','tentative','checked_in') "
-                                "AND arrival <= ? AND departure > ?", [hid, day, day])
+            on_books = sum(1 for r in books if r["arrival"] <= day < r["departure"])
             forecast.append({"date": day, "rooms_on_books": on_books,
                              "occupancy_pct": round(on_books * 100 / today["sellable_rooms"], 1) if today["sellable_rooms"] else 0})
         month_start = bdate.replace(day=1).isoformat()
