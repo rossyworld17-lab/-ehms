@@ -16,6 +16,9 @@ SELF_SERVICE = {
     "/api/hotels/{hotel_id:int}/payment-methods", "/api/payments/gateway-status", "/api/notifications/mine",
     "/api/notifications/{notification_id:int}/read", "/api/notifications/read-all", "/api/me/employee", "/api/me/leave", "/api/me/clock",
     "/api/payslips/{slip_id:int}.pdf", "/api/hotels/{hotel_id:int}/emergency-contacts",
+    # release 1.1 self-service: each is limited to the signed-in employee's own record (or HR for letters)
+    "/api/me/hr", "/api/me/requests", "/api/me/requests/{request_id:int}/cancel", "/api/me/leave/{leave_id:int}/cancel",
+    "/api/me/appraisals/{appraisal_id:int}/acknowledge", "/api/hr/requests/{request_id:int}/letter.pdf",
 }
 SCOPE = re.compile(r"check_hotel|org_id|ctx\.user_id|organisation_id = \?|recipient = \?")
 

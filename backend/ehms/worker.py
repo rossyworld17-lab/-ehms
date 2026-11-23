@@ -63,6 +63,8 @@ def run_jobs() -> dict:
             done["preventive_work_orders"] += raise_due_preventive(c, h)
             from .modules.crm import escalate_overdue
             done["complaints_escalated"] += escalate_overdue(c, h)
+            from .modules.hrsuite import hr_alerts
+            done["hr_alerts"] = done.get("hr_alerts", 0) + hr_alerts(c, h)
             from .modules.groups import release_after_cutoff
             done["group_blocks_released"] = done.get("group_blocks_released", 0) + release_after_cutoff(c, h)
             from .modules.bi import run_due_schedules

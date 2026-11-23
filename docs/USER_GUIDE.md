@@ -179,14 +179,29 @@ with taxes and service charge); then mark it completed. Revenue & profit shows t
   30 days on the books with pickup, ADR, competitor averages and suggestions.
 
 ## Human resources
-- **Employees**: register staff, link their system login, record exits. Pay and bank details are visible only
-  to HR and payroll staff; confidential records (appraisals, disciplinary) only to holders of `hr.records`.
-- **Roster**: choose a shift per person per day and save. **Attendance**: record present/late/absent/leave/off,
-  times and overtime ("Mark rostered staff present" fills the day quickly).
-- **Leave**: approve or reject requests (never your own). Approved leave appears in attendance automatically.
+The HR manager runs all staff activity from **Human resources**:
+- **Dashboard**: active staff, who is on leave today, leave and staff requests waiting, appraisals not yet
+  acknowledged, and alerts (probation ending in 30 days, contracts ending in 60 days, certificates expiring,
+  logins without an employee record), birthdays, anniversaries and coming public holidays.
+- **Employees**: add staff (with line manager, probation and contract end dates), view the full record and edit it.
+  On a profile: **Promote / transfer / pay change** (kept as job history and applied to the record), **Add training**,
+  **New appraisal**, **Adjust leave**, **Give system access** (creates the login with a non-admin role and a
+  temporary password), confidential records and **Record exit** (suspends the login at once). Pay and bank details
+  are visible only to HR and payroll staff; confidential records only to holders of `hr.records`.
+- **Leave**: Requests (approve, reject with a reason, cancel or end early — never your own), Calendar, Balances and
+  Public holidays (not counted as leave days). Approved leave appears in attendance automatically.
+- **Requests**: staff requests. Approving a change of details updates the record, a shift swap swaps the shifts, a
+  letter is issued as a PDF, an advance or loan goes to payroll to pay. Grievances are seen only by HR managers.
+- **Performance**: appraisals (rate 1–5 per criterion, strengths, improvements, goals) saved as draft, then shared.
+- **Training**: everyone's training and certificates; filter those expiring in 60 days.
+- **Roster** and **Attendance**: choose a shift per person per day; record present/late/absent/leave/off, times and
+  overtime ("Mark rostered staff present" fills the day quickly).
 
 ## My HR (all staff)
-Clock in and out, request leave (balances shown), download payslips and see your attendance.
+Every employee: clock in and out; **Apply for leave** (balances shown, holidays excluded) and cancel pending or
+future leave; **New request** (letter, change of details, salary advance, loan, shift swap, grievance) and withdraw
+it until decided; view your profile and job history; read and **Acknowledge** appraisals; see your training,
+download payslips and approved letters, and see your attendance.
 
 ## Payroll
 HR prepares the month (**Prepare payroll**), adds bonuses or deductions, and recalculates after attendance

@@ -5,6 +5,9 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
+> **Release 1.1 — full HR suite.** HR dashboard, staff requests, appraisals, training, leave calendar and public holidays,
+> line managers, probation/contract tracking and staff logins issued by HR (see the release notes).
+>
 > **Release 1.0 — production ready.** All 127 SRS requirements are implemented and traced; the release adds a
 > security review with hardening, a performance review with optimisations and load-test tooling, and the acceptance
 > pack (UAT scenarios, go-live checklist, training plan, sign-off). See [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md)
@@ -16,7 +19,7 @@ and policy is configurable for other countries.
 
 | Area | Highlights |
 |---|---|
-| Security & access | scrypt password hashing, JWT sessions with idle timeout and revocation, account lockout, TOTP multi-factor authentication, password reset, 41 permissions, 29 role templates + custom roles, per-hotel scoping, privilege-escalation guard, login history |
+| Security & access | scrypt password hashing, JWT sessions with idle timeout and revocation, account lockout, TOTP multi-factor authentication, password reset, 125 permissions, 29 role templates + custom roles, per-hotel scoping, privilege-escalation guard, login history |
 | Properties | Multiple hotels/branches per organisation, profile & policies, departments, configurable taxes (inclusive/exclusive, effective dates), service charge, payment methods mapped to ledger accounts |
 | Rooms | Categories with standard / weekend / corporate / extra-person rates, room inventory, colour-coded live room board, out-of-order / maintenance / VIP blocks |
 | Reservations | Individual, walk-in, corporate, group, travel-agent, VIP; enquiry → tentative → confirmed → checked-in → checked-out / cancelled / no-show / waitlist; per-night pricing with tax preview; transaction-safe double-booking prevention; authorised overbooking & rate overrides; duplicate-guest detection; room-by-day calendar |
@@ -42,7 +45,7 @@ and policy is configurable for other countries.
 | Guest relations *(0.8)* | Loyalty programme (points on settled stays, tiers with bonuses, redemption as a folio credit through the ledger, manual adjustments with reasons); complaints with category, severity, SLA deadlines, assignment, response/resolution times and automatic escalation; post-stay survey link in the thank-you message (low scores open a complaint automatically); feedback entry from review sites; transparent keyword sentiment/theme analysis; NPS and insights; email/SMS campaigns to consenting guests only, with opt-out |
 | Sales & revenue *(0.8)* | Corporate, travel-agent and government accounts with credit terms and negotiated rates per room category; bookings against an account; account statements; sales targets with achievement; seasonal rate adjustments; occupancy-based pricing rules effective only after a second person approves; competitor rate records; revenue dashboard (on-the-books forecast, pickup, ADR, RevPAR, ALOS, booking window, cancellations) with suggestions. **Quoted nightly rates are locked on the booking**, so later price changes never alter a confirmed guest's price |
 | Laundry *(0.6)* | Guest laundry with price list, express surcharge, stage tracking (washing → drying → ironing → quality check → ready → delivered), lost/damaged items excluded from the bill, automatic folio charge on delivery; internal linen batches by department; daily summary |
-| HR *(0.6)* | Employee register with masked bank/statutory IDs, weekly duty rosters, attendance with overtime, staff self clock-in with lateness, leave types/balances with approval, confidential HR records, exits; **My HR** self-service (leave, payslips, attendance) |
+| HR *(0.6, full suite 1.1)* | Employee register with masked bank/statutory IDs, line managers, probation and contract-end tracking, job history (promotions, transfers, pay changes, confirmations), training and certificate register with expiry alerts, performance appraisals shared with and acknowledged by staff, HR dashboard with alerts; leave with approval, cancellation and early return, leave calendar, balances with adjustments, public holidays excluded from leave days; staff requests (salary advance, loan, employment letter PDF, change of details, shift swap, confidential grievance) approved by the HR manager; HR issues logins; exits suspend the login; rosters, attendance, self clock-in; **My HR** self-service for every employee |
 | Payroll *(0.6)* | Runs computed from salary structure, attendance, unpaid leave, bonuses, deductions and staff loans; configurable PAYE bands with rent relief, pension, NHF, NSITF, ITF (Nigerian defaults); maker-checker approval posting the payroll journal; salary payment, statutory remittances, bank schedule CSV, payslip PDFs |
 | Online payments *(0.5)* | Paystack and Flutterwave hosted checkout: payment links from any folio (emailed to the guest), "pay now" on the booking engine (booking confirmed automatically), HMAC-signed webhooks, provider verification of amount and currency before anything is posted, idempotent per reference, retries and an integration log |
 | Finance operations *(0.5)* | Expense claims with maker-checker and payment, bank reconciliation (CSV import, auto-match, manual match), monthly budgets and budget vs actual, direct-method cash-flow statement, accounting period close/reopen enforced on every posting |
@@ -111,7 +114,7 @@ python ../frontend/e2e/smoke.py                         # browser end-to-end (ap
 
 - [Architecture & database](docs/ARCHITECTURE.md)
 - [REST API reference](docs/API.md)
-- **[EHMS v1.0.0 User Guide (Word)](docs/EHMS_v1.0.0_User_Guide.docx)** — complete guide for staff, managers and administrators
+- **[EHMS v1.1.0 User Guide (Word)](docs/EHMS_v1.1.0_User_Guide.docx)** — complete guide for staff, managers and administrators
 - [User guide](docs/USER_GUIDE.md) · [Administrator manual](docs/ADMIN_MANUAL.md)
 - [Deployment, backup & recovery](docs/DEPLOYMENT.md)
 - [Test report](docs/TEST_REPORT.md) · [Requirements traceability](docs/TRACEABILITY.md) · [Progress register](docs/PROGRESS.md) · [Roadmap](docs/ROADMAP.md)

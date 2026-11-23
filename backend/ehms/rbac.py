@@ -136,6 +136,9 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "finance.notes.approve": ("finance", "Approve or reject credit and debit notes"),
     "finance.exchange_rates": ("finance", "Maintain exchange rates for foreign-currency payments"),
     "hr.recruit": ("hr", "Manage job openings and applicants; hire applicants"),
+    "hr.requests.approve": ("hr", "Decide staff requests: salary advances, loans, letters, detail changes, shift swaps, grievances"),
+    "hr.performance": ("hr", "Write appraisals and share them with employees"),
+    "hr.accounts": ("hr", "Give employees a system login (administrator roles excluded)"),
 }
 
 ALL = list(PERMISSIONS)
@@ -177,7 +180,7 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "auditor": ("Auditor", "Read-only audit access", _VIEW_ALL + ["admin.audit.view"]),
     "hr_manager": ("Human Resources Manager", "Employee administration", ["dashboard.view", "admin.users.view", "hr.view", "hr.manage", "hr.records",
                                                                     "hr.attendance", "hr.leave.approve", "payroll.view", "payroll.run", "reports.view",
-                                                                    "finance.expenses.request", "bi.view", "ai.assistant", "documents.confidential", "documents.view", "documents.upload", "hr.recruit"]),
+                                                                    "finance.expenses.request", "bi.view", "ai.assistant", "documents.confidential", "documents.view", "documents.upload", "hr.recruit", "hr.requests.approve", "hr.performance", "hr.accounts"]),
     "hr_officer": ("HR Officer", "HR administration", ["dashboard.view", "hr.view", "hr.manage", "hr.attendance", "documents.view", "documents.upload", "hr.recruit"]),
     "housekeeping_manager": ("Housekeeping Manager", "Cleaning and room readiness",
                              ["dashboard.view", "rooms.view", "rooms.status.update", "housekeeping.view", "housekeeping.assign",
@@ -250,6 +253,7 @@ INTRODUCED: dict[str, list[str]] = {
     "0.9": [p for p in PERMISSIONS if p.split(".")[0] in ("bi", "ai", "documents")],
     "0.95": ["reservations.groups", "reservations.waive_fee", "folio.transfer", "finance.notes.request", "finance.notes.approve",
              "finance.exchange_rates", "hr.recruit"],
+    "1.1": ["hr.requests.approve", "hr.performance", "hr.accounts"],
 }
 
 

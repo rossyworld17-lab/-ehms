@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.1 — full HR suite
+- HR dashboard with alerts (probation, contract end, expiring certificates, unlinked logins), birthdays and anniversaries.
+- Employee records gain line manager, probation and contract end dates, job history (promotions, transfers, pay
+  changes, confirmations), training and certification register, leave adjustments.
+- Performance appraisals: draft, share, employee acknowledgement with comment.
+- Staff requests with HR approval: salary advance, loan, employment letter (PDF), change of details (applied on
+  approval), shift swap (roster updated), confidential grievance, other.
+- Leave: cancellation by staff, cancellation or early return by HR, leave calendar, balances for all staff, public
+  holidays excluded from day counts.
+- HR can give an employee a system login (non-admin roles, temporary password); recording an exit suspends the login.
+- My HR rebuilt with tabs: overview, leave, requests, profile, appraisals and training, payslips and attendance.
+- Three new permissions (`hr.requests.approve`, `hr.performance`, `hr.accounts`) for the HR manager.
+- Fix: a cancellation policy with 0 free hours no longer allows a free cancellation.
+
 ## 1.0 — production readiness
 - Security review ([SECURITY.md](SECURITY.md)): production start-up guards (strong shared secret key, no demo data),
   restricted trust of forwarded client addresses, stricter Content-Security-Policy, rate limits on every public

@@ -56,7 +56,8 @@ def fee_for(c, hotel: dict, r: dict, kind: str, now: dt.datetime | None = None) 
     deadline = arrive_at - dt.timedelta(hours=pol["free_until_hours"])
     now = now or _hotel_now(hotel)
     view = {"policy": {"id": pol["id"], "name": pol["name"], "free_until_hours": pol["free_until_hours"]}, "free_until": deadline.isoformat(timespec="minutes")}
-    if kind == "cancel" and now <= deadline:
+    # free_until_hours = 0 means there is no free cancellation at all (e.g. non-refundable rates)
+    if kind == "cancel" and pol["free_until_hours"] > 0 and now <= deadline:
         return {**view, "fee": 0, "explanation": f"Free cancellation until {deadline:%d %b %Y %H:%M} (hotel time)."}
     rt = c.one("SELECT * FROM room_types WHERE id = ?", [r["room_type_id"]])
     nights = [arrival + dt.timedelta(days=i) for i in range((dt.date.fromisoformat(r["departure"]) - arrival).days)]

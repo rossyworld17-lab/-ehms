@@ -55,7 +55,7 @@ def test_cancellation_and_no_show_fees(client):
     # the booking engine allows online cancellation only inside the free window
     with get_db().tx() as c:
         email = c.scalar("SELECT g.email FROM reservations r JOIN guests g ON g.id = r.guest_id WHERE r.id = ?", [early["id"]])
-    tomorrow = book(client, h, 1, nights=1)
+    tomorrow = book(client, h, 1, nights=1, cancellation_policy_id=nr)       # non-refundable: never free, whatever the time of day
     with get_db().tx() as c:
         email2 = c.scalar("SELECT g.email FROM reservations r JOIN guests g ON g.id = r.guest_id WHERE r.id = ?", [tomorrow["id"]])
     r = client.post(f"/api/public/bookings/{tomorrow['reference']}/cancel", {"email": email2}, token=None)

@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **383**
+Total endpoints: **410**
 
 ## Accounting
 
@@ -286,6 +286,33 @@ Total endpoints: **383**
 | POST | `/api/applicants/{applicant_id}/notes` | Add a note or an interview record ({kind: note/interview, note, interview_at, score 1-5}) | `hr.recruit` |
 | POST | `/api/applicants/{applicant_id}/hire` | Hire an applicant with an accepted offer: creates the employee record (position, hire_date, basic_salary and other HR fields); needs hr.manage | `hr.recruit` |
 | POST | `/api/recruitment/{opening_id}/anonymise` | Anonymise unsuccessful applicants who did not consent to be kept on file (opening must be filled or closed) | `hr.recruit` |
+| GET | `/api/hotels/{hotel_id}/hr/dashboard` | HR dashboard: headcount, who is on leave, pending approvals, probation/contract/certification alerts, birthdays, staff without logins | `hr.view` |
+| POST | `/api/employees/{employee_id}/history` | Record a promotion, transfer, pay change, title change, demotion or confirmation (kind, effective_date, position, department, basic_salary, line_manager_id, note); the change is applied to the record | `hr.manage` |
+| POST | `/api/employees/{employee_id}/trainings` | Record training, a certification or licence (kind, title, provider, completed_on, expires_on, notes) | `hr.manage` |
+| GET | `/api/hotels/{hotel_id}/hr/trainings` | Training and certification register (?expiring=days) | `hr.view` |
+| POST | `/api/employees/{employee_id}/appraisals` | Start an appraisal (period, criteria[{name, rating 1-5, comment}], strengths, improvements, goals) as a draft | `hr.performance` |
+| PATCH | `/api/appraisals/{appraisal_id}` | Edit a draft appraisal | `hr.performance` |
+| POST | `/api/appraisals/{appraisal_id}/share` | Share a draft appraisal with the employee for acknowledgement | `hr.performance` |
+| GET | `/api/hotels/{hotel_id}/hr/appraisals` | Appraisals (?status, ?period) | `hr.performance` |
+| POST | `/api/me/appraisals/{appraisal_id}/acknowledge` | Acknowledge my appraisal with an optional comment | signed in |
+| POST | `/api/me/requests` | Make an HR request: kind salary_advance/loan/letter/data_change/shift_swap/grievance/other, subject, details, amount, months, data | signed in |
+| GET | `/api/me/requests` | My HR requests | signed in |
+| POST | `/api/me/requests/{request_id}/cancel` | Withdraw one of my requests that has not been decided | signed in |
+| GET | `/api/hotels/{hotel_id}/hr/requests` | Staff requests (?status, ?kind); grievances need hr.records | `hr.view` |
+| POST | `/api/hr/requests/{request_id}/decide` | Approve or reject a staff request ({decision, note}); approval applies detail changes and shift swaps, issues letters, and sends advances/loans to payroll | `hr.requests.approve` |
+| POST | `/api/hr/requests/{request_id}/complete` | Mark an approved advance or loan as paid out | `payroll.pay` |
+| GET | `/api/hr/requests/{request_id}/letter.pdf` | Employment confirmation letter for an approved letter request (the employee, or HR) | signed in |
+| POST | `/api/me/leave/{leave_id}/cancel` | Cancel my pending leave, or approved leave that has not started | signed in |
+| POST | `/api/leave/{leave_id}/cancel` | Cancel or end an approved leave early ({reason}); future leave days are returned | `hr.leave.approve` |
+| GET | `/api/hotels/{hotel_id}/hr/leave-calendar` | Who is on (or has asked for) leave between two dates (?from&to, ?department) | `hr.view` |
+| GET | `/api/hotels/{hotel_id}/hr/leave-balances` | Leave balances of every active employee (?year) | `hr.view` |
+| POST | `/api/employees/{employee_id}/leave-adjustments` | Add or remove leave days for a year (leave_type_id, days ±, year, reason), e.g. carry-over or long-service days | `hr.manage` |
+| GET | `/api/hotels/{hotel_id}/holidays` | Public holidays (?year) | `hr.view` |
+| POST | `/api/hotels/{hotel_id}/holidays` | Add a public holiday (holiday_date, name); it is not counted as a leave day | `hr.manage` |
+| DELETE | `/api/holidays/{holiday_id}` | Remove a public holiday | `hr.manage` |
+| GET | `/api/hr/assignable-roles` | Roles HR may give to staff logins (no administrator roles) | `hr.accounts` |
+| POST | `/api/employees/{employee_id}/account` | Give an employee a system login (email, role_id); administrator roles are excluded; returns a temporary password | `hr.accounts` |
+| GET | `/api/me/hr` | My full HR file: profile, line manager, leave, requests, appraisals, training, roster this week, holidays | signed in |
 
 ## Inventory
 

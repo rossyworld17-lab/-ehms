@@ -275,3 +275,7 @@ td.best { background: #eaf7f0; font-weight: 600; }
 .pipe-h { font-weight: 600; font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; color: var(--navy); padding: .2rem .3rem; }
 .pipe-card { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: .45rem .6rem; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: .1rem; }
 .pipe-card:hover { border-color: var(--navy-2); }
+/* 1.1 HR suite */
+.alert-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem; font-size: .9rem; }
+.table.heat td.lv-on { background: var(--navy-2); color: #fff; } .table.heat td.lv-pend { background: #c9d3e6; } .table.heat .hol { background: var(--gold-soft); }
+.stars-ro { color: var(--gold); letter-spacing: 1px; }

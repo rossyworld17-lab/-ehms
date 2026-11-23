@@ -61,6 +61,11 @@ def _payload(ctx: Ctx, partial: bool) -> dict:
         data["employment_type"] = ctx.field("employment_type", kind=str)
         if data["employment_type"] not in EMPLOYMENT_TYPES:
             raise bad_request("Unknown employment type")
+    for k in ("probation_end_date", "contract_end_date"):
+        if k in b:
+            data[k] = parse_date(b[k], k).isoformat() if b[k] else None
+    if "line_manager_id" in b:
+        data["line_manager_id"] = int(b["line_manager_id"]) if b["line_manager_id"] else None
     for k in ("hire_date", "date_of_birth"):
         if k in b or (k == "hire_date" and not partial):
             v = ctx.field(k, required=k == "hire_date" and not partial)
@@ -132,6 +137,8 @@ def get_employee(ctx: Ctx):
         out["payslips"] = c.all("SELECT p.id, r.period, r.status, p.gross, p.net FROM payslips p JOIN payroll_runs r ON r.id = p.run_id WHERE p.employee_id = ? "
                                 "ORDER BY r.period DESC", [e["id"]]) if ctx.can("payroll.view") else None
         out["loans"] = c.all("SELECT * FROM employee_loans WHERE employee_id = ? ORDER BY id DESC", [e["id"]]) if ctx.can("payroll.view") else None
+        from .hrsuite import employee_extras
+        out.update(employee_extras(c, ctx, e))
     return out
 
 
@@ -151,6 +158,17 @@ def update_employee(ctx: Ctx):
                 data["exit_reason"] = ctx.field("exit_reason", kind=str)
                 c.insert("hr_records", {"employee_id": e["id"], "kind": "exit", "record_date": data["exit_date"], "title": st.title(),
                                         "details": data["exit_reason"], "created_by": ctx.user_id, "created_at": now_iso()})
+            if st != "active" and e["user_id"] and e["user_id"] != ctx.user_id:
+                # offboarding: a person who leaves (or is suspended) loses system access at once
+                c.execute("UPDATE users SET status = 'suspended' WHERE id = ? AND status = 'active'", [e["user_id"]])
+                c.execute("UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL", [now_iso(), e["user_id"]])
+            if st == "active" and e["status"] == "suspended" and e["user_id"]:
+                c.execute("UPDATE users SET status = 'active' WHERE id = ? AND status = 'suspended'", [e["user_id"]])
+        if data.get("line_manager_id"):
+            if data["line_manager_id"] == e["id"]:
+                raise bad_request("An employee cannot be their own line manager")
+            if not c.one("SELECT id FROM employees WHERE id = ? AND hotel_id = ?", [data["line_manager_id"], e["hotel_id"]]):
+                raise bad_request("Line manager not found in this hotel")
         if "user_id" in b:
             uid = b["user_id"]
             if uid and c.one("SELECT id FROM employees WHERE user_id = ? AND id <> ?", [int(uid), e["id"]]):
@@ -294,13 +312,24 @@ def leave_balances(c, e: dict, year: int | None = None) -> list[dict]:
                                                        "AND start_date >= ? AND start_date <= ? GROUP BY leave_type_id", [e["id"], f"{year}-01-01", f"{year}-12-31"])}
     pending = {r["leave_type_id"]: r["d"] for r in c.all("SELECT leave_type_id, COALESCE(SUM(days),0) AS d FROM leave_requests WHERE employee_id = ? AND status = 'pending' "
                                                           "GROUP BY leave_type_id", [e["id"]])}
-    return [{"leave_type_id": t["id"], "code": t["code"], "name": t["name"], "entitlement": t["days_per_year"], "paid": bool(t["paid"]),
-             "used": used.get(t["id"], 0), "pending": pending.get(t["id"], 0), "remaining": t["days_per_year"] - used.get(t["id"], 0)}
-            for t in c.all("SELECT * FROM leave_types WHERE hotel_id = ? AND active = 1 ORDER BY id", [e["hotel_id"]])]
+    adj = {r["leave_type_id"]: r["d"] for r in c.all("SELECT leave_type_id, COALESCE(SUM(days),0) AS d FROM leave_adjustments WHERE employee_id = ? AND year = ? "
+                                                      "GROUP BY leave_type_id", [e["id"], year])}
+    out = []
+    for t in c.all("SELECT * FROM leave_types WHERE hotel_id = ? AND active = 1 ORDER BY id", [e["hotel_id"]]):
+        ent = t["days_per_year"] + adj.get(t["id"], 0)
+        out.append({"leave_type_id": t["id"], "code": t["code"], "name": t["name"], "entitlement": ent, "adjustment": adj.get(t["id"], 0), "paid": bool(t["paid"]),
+                    "used": used.get(t["id"], 0), "pending": pending.get(t["id"], 0), "remaining": ent - used.get(t["id"], 0)})
+    return out
 
 
-def working_days(a: dt.date, b: dt.date) -> int:
-    return sum(1 for i in range((b - a).days + 1) if (a + dt.timedelta(days=i)).weekday() < 6)   # Mon–Sat (hotel week)
+def holidays(c, hid: int) -> set[str]:
+    return {str(r["holiday_date"])[:10] for r in c.all("SELECT holiday_date FROM public_holidays WHERE hotel_id = ?", [hid])}
+
+
+def working_days(a: dt.date, b: dt.date, off: set[str] | None = None) -> int:
+    """Mon–Sat (hotel week), excluding public holidays."""
+    off = off or set()
+    return sum(1 for i in range((b - a).days + 1) if (a + dt.timedelta(days=i)).weekday() < 6 and (a + dt.timedelta(days=i)).isoformat() not in off)
 
 
 def _create_leave(c, ctx: Ctx, e: dict, body: dict) -> dict:
@@ -311,7 +340,7 @@ def _create_leave(c, ctx: Ctx, e: dict, body: dict) -> dict:
     a, b = parse_date(body.get("start_date"), "start_date"), parse_date(body.get("end_date"), "end_date")
     if b < a:
         raise bad_request("The end date must be on or after the start date")
-    days = working_days(a, b)
+    days = working_days(a, b, holidays(c, e["hotel_id"]))
     if days <= 0:
         raise bad_request("The selected dates contain no working days")
     if c.one("SELECT id FROM leave_requests WHERE employee_id = ? AND status IN ('pending','approved') AND start_date <= ? AND end_date >= ?",
@@ -365,9 +394,10 @@ def decide_leave(ctx: Ctx):
         note = ctx.field("note", required=decision == "reject", kind=str)
         if decision == "approve":
             a, b = dt.date.fromisoformat(l["start_date"]), dt.date.fromisoformat(l["end_date"])
+            off = holidays(c, e["hotel_id"])
             for i in range((b - a).days + 1):
                 d = a + dt.timedelta(days=i)
-                if d.weekday() < 6:
+                if d.weekday() < 6 and d.isoformat() not in off:
                     _upsert_attendance(c, e["id"], d.isoformat(), {"status": "leave", "clock_in": None, "clock_out": None, "overtime_minutes": 0,
                                                                    "note": f"Leave #{l['id']}"}, ctx.user_id)
         c.update("leave_requests", l["id"], {"status": "approved" if decision == "approve" else "rejected", "decided_by": ctx.user_id,

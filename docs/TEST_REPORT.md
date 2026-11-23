@@ -1,14 +1,15 @@
-# Test report — release 1.0
+# Test report — release 1.1
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 90 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 98 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
 |---|---|---|
+| **HR suite (1.1)** | 8 | employee applies for leave, HR approves, holidays excluded from days, staff cancels, HR ends leave early with days returned; staff requests: change of details applied on approval, shift swap swaps roster shifts, letter PDF only for owner and HR, advance above one month's pay refused, approved advance notifies payroll and is completed by payroll only, nobody decides their own request; grievances hidden from HR officers; appraisals draft → share → acknowledge, no self-appraisal, drafts invisible to staff; job history applies promotion; training expiry list; logins issued by HR cannot carry admin roles; exit suspends login and revokes sessions; HR dashboard alerts |
 | Authentication & RBAC | 11 | login, wrong password logged, lockout after 5 failures, unauthenticated rejection, permission enforcement, hotel scoping, logout & admin session revocation, full MFA enrolment and MFA-gated sign-in, suspension blocks login and is audited, privilege-escalation blocked, scrypt hashing |
 | Reservations | 8 | creation & reference format, per-night quote with 10 % service charge + 7.5 % VAT, honest `not_configured` email status, same room cannot be double-booked (back-to-back allowed), category cannot be oversold without permission + reason, rate override needs permission, max occupancy, modify / cancel / no-show rules, availability decrements, duplicate-guest detection, identity masking |
 | Front office & finance | 10 | full stay: walk-in → check-in → F&B charge (exact net/svc/tax) → blocked check-out with balance → payment → check-out → room dirty → housekeeping → inspection → room available → trial balance & balance sheet balanced; uninspected room refused; payment idempotency & duplicate reference; online payment not faked (501); refund maker-checker; charge reversal; journal lines and audit logs cannot be modified (DB triggers); night audit; room move & block rules; manual journal must balance |

@@ -108,5 +108,6 @@ export function addDays(iso: string, n: number) {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
-export const label = (s?: string | null) => (s || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+const ABBR: Record<string, string> = { fnb: "F&B", hr: "HR", it: "IT", vip: "VIP", pos: "POS", ota: "OTA", nps: "NPS", grn: "GRN", wht: "WHT", paye: "PAYE", nhf: "NHF" };
+export const label = (s?: string | null) => (s || "").split("_").map(w => ABBR[w.toLowerCase()] || w.replace(/\b\w/g, c => c.toUpperCase())).join(" ");
 export const uid = () => (crypto as any).randomUUID ? (crypto as any).randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);

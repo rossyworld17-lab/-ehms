@@ -231,6 +231,74 @@ def seed_demo() -> None:
     seed_crm_demo(hid, org)
     seed_bi_demo(hid, org)
     seed_095_demo(hid, org)
+    seed_hr11_demo(hid, org)
+
+
+def seed_hr11_demo(hid: int, org: int) -> None:
+    """Release 1.1 demo: public holidays, line managers, probation and contract dates, certifications (one about to
+    expire), a shared appraisal and staff requests waiting for HR."""
+    import datetime as _dt
+    import json as _json
+    from .services import business_date, next_number
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM public_holidays WHERE hotel_id = ?", [hid]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        for y in (on.year, on.year + 1):
+            for md, name in (("01-01", "New Year's Day"), ("05-01", "Workers' Day"), ("06-12", "Democracy Day"), ("10-01", "Independence Day"),
+                             ("12-25", "Christmas Day"), ("12-26", "Boxing Day")):
+                c.insert("public_holidays", {"hotel_id": hid, "holiday_date": f"{y}-{md}", "name": name})
+        # every staff login gets an employee record, so everyone can use My HR (later demo roles had none)
+        depts = {"marketing_manager": ("sales", "Marketing Manager", 35_000_000), "customer_service_officer": ("front_office", "Guest Service Officer", 16_000_000)}
+        for u in c.all("SELECT u.id, u.full_name, u.email, MIN(r.code) AS role FROM users u JOIN user_hotels uh ON uh.user_id = u.id JOIN user_roles ur ON ur.user_id = u.id "
+                       "JOIN roles r ON r.id = ur.role_id WHERE uh.hotel_id = ? AND u.status = 'active' AND NOT EXISTS (SELECT 1 FROM employees x WHERE x.user_id = u.id) "
+                       "GROUP BY u.id, u.full_name, u.email", [hid]):
+            dept, pos, pay = depts.get(u["role"], ("other", u["role"].replace("_", " ").title(), 15_000_000))
+            first, _, last = u["full_name"].split(" (")[0].partition(" ")
+            c.insert("employees", {"hotel_id": hid, "employee_no": next_number(c, hid, "employee", "EMP", 4), "user_id": u["id"], "first_name": first, "last_name": last or first,
+                                   "email": u["email"], "department": dept, "position": pos, "employment_type": "full_time", "hire_date": (on - _dt.timedelta(days=200)).isoformat(),
+                                   "status": "active", "basic_salary": pay, "housing_allowance": pay // 4, "transport_allowance": pay // 10, "other_allowance": 0,
+                                   "annual_rent": 0, "created_at": now_iso()})
+        emp = {r["login"]: r for r in c.all("SELECT e.*, u.email AS login FROM employees e JOIN users u ON u.id = e.user_id WHERE e.hotel_id = ?", [hid])}
+        by = lambda k: emp.get(f"{k}@demo.ehms")  # noqa: E731
+        gm, hr = by("gm"), by("hrmanager")
+        if not (gm and hr):
+            return
+        for head, staff in (("gm", ("fom", "finance", "hkmanager", "fnbmanager", "hrmanager", "maintenance", "sales", "security", "inventory")),
+                            ("fom", ("frontdesk",)), ("finance", ("accounts",)), ("hkmanager", ("housekeeper",)), ("fnbmanager", ("cashier", "waiter", "chef")),
+                            ("hrmanager", ("hrofficer",)), ("maintenance", ("technician",)), ("inventory", ("stores", "procurement"))):
+            for s_ in staff:
+                if by(s_) and by(head):
+                    c.update("employees", by(s_)["id"], {"line_manager_id": by(head)["id"]})
+        if by("waiter"):
+            c.update("employees", by("waiter")["id"], {"probation_end_date": (on + _dt.timedelta(days=10)).isoformat()})
+        if by("technician"):
+            c.update("employees", by("technician")["id"], {"employment_type": "contract", "contract_end_date": (on + _dt.timedelta(days=45)).isoformat()})
+        hr_user = hr["user_id"]
+        for k, kind, title, prov, done, exp in (("chef", "certification", "Food hygiene certificate (Level 2)", "Lagos State Ministry of Health", -340, 20),
+                                                ("security", "certification", "Fire safety and first aid", "Red Cross Nigeria", -200, 165),
+                                                ("frontdesk", "training", "Guest service excellence", "In-house", -30, None),
+                                                ("housekeeper", "induction", "Housekeeping induction and chemical safety", "In-house", -90, None)):
+            if by(k):
+                c.insert("trainings", {"employee_id": by(k)["id"], "kind": kind, "title": title, "provider": prov,
+                                       "completed_on": (on + _dt.timedelta(days=done)).isoformat(), "expires_on": (on + _dt.timedelta(days=exp)).isoformat() if exp else None,
+                                       "created_by": hr_user, "created_at": now_iso()})
+        if by("frontdesk"):
+            crit = [{"name": "Guest service", "rating": 4, "comment": "Warm and efficient at check-in"}, {"name": "Accuracy", "rating": 3, "comment": "Two folio errors this quarter"},
+                    {"name": "Teamwork", "rating": 5, "comment": ""}, {"name": "Punctuality", "rating": 4, "comment": ""}]
+            c.insert("appraisals", {"employee_id": by("frontdesk")["id"], "period": f"{on.year} H2", "reviewer_id": by("fom")["user_id"] if by("fom") else hr_user,
+                                    "status": "shared", "criteria": _json.dumps(crit), "overall_rating": 4, "strengths": "Guest feedback mentions her by name.",
+                                    "improvements": "Double-check folio postings before check-out.", "goals": "Complete cashiering training by next quarter.",
+                                    "created_at": now_iso(), "shared_at": now_iso()})
+        for k, kind, subject, details, amount, months, data in (
+                ("housekeeper", "salary_advance", "Salary advance — school fees", "School fees due before resumption.", 5_000_000, 2, None),
+                ("frontdesk", "letter", "Employment letter for visa application", "UK visitor visa", None, None, None),
+                ("waiter", "data_change", "Change of address", None, None, None, {"address": "14 Adeola Odeku St, Victoria Island, Lagos"})):
+            if by(k):
+                c.insert("staff_requests", {"employee_id": by(k)["id"], "number": next_number(c, hid, "staff_request", "REQ", 5), "kind": kind, "subject": subject,
+                                            "details": details, "amount": amount, "months": months, "data": _json.dumps(data) if data else None, "confidential": 0,
+                                            "status": "submitted", "created_by": by(k)["user_id"], "created_at": now_iso()})
 
 
 def seed_095_demo(hid: int, org: int) -> None:
@@ -628,6 +696,7 @@ def _upgrade_demo(org: int) -> None:
         seed_crm_demo(hid, org)
         seed_bi_demo(hid, org)
         seed_095_demo(hid, org)
+        seed_hr11_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -649,6 +718,7 @@ def _upgrade_demo(org: int) -> None:
     seed_crm_demo(hid, org)
     seed_bi_demo(hid, org)
     seed_095_demo(hid, org)
+    seed_hr11_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

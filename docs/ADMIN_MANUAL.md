@@ -162,3 +162,16 @@ requests through the guest profile. Appoint a data protection officer as your ob
 - Costing method: Hotel settings → Stock costing (needs `inventory.manage` and `accounting.view`). Change it at a
   period end with your auditors' agreement; batches received before release 0.95 are costed at the average.
 - Recruitment data: anonymise unsuccessful applicants after closing an opening unless they agreed to be kept on file.
+
+## Full HR suite (release 1.1)
+- Permissions: `hr.requests.approve` (decide staff requests), `hr.performance` (appraisals) and `hr.accounts` (give
+  employees a login). The HR manager role template receives all three on upgrade; add them to custom roles as needed.
+- HR managers can issue logins only with roles that hold no administrator permissions; administrators remain the
+  only people who create admin users.
+- Recording an exit (or any non-active status) suspends the linked login and ends its sessions; reactivating the
+  employee restores it.
+- Public holidays: fixed Nigerian holidays are loaded for two years; add movable holidays (Eid, Easter) each year
+  under Human resources → Leave → Public holidays. They are excluded from leave day counts.
+- Salary advance limit is one month's basic pay; staff loan limit is six months' basic pay (up to 24 months).
+  Approved advances and loans are paid by a holder of `payroll.pay`, who is notified.
+- Every login that should use My HR needs an employee record; the HR dashboard lists logins without one.

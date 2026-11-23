@@ -5,19 +5,27 @@ import { Button, Card, Empty, Field, Input, Kpi, Loadable, Modal, Pill, Select, 
 import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
 import Recruitment from "./Recruitment";
+import { EmployeeExtras, HRDashboard, Holidays, LeaveBalances, LeaveCalendar, MyHRFull, Performance, StaffRequests, TrainingRegister } from "./HRSuite";
 
 // ======================================================================== HR
 export default function HR({ q }: { q: URLSearchParams }) {
-  const [tab, setTab] = useState(q.get("tab") || "employees");
+  const { can } = useAuth();
+  const [tab, setTab] = useState(q.get("tab") || "dashboard");
   useEffect(() => { const t = q.get("tab"); if (t) setTab(t); }, [q.get("tab")]);
   return <div className="page">
-    <div className="page-h"><div><h1>Human resources</h1><p className="muted">Employees, duty rosters, attendance and leave</p></div></div>
-    <Tabs tabs={[{ id: "employees", label: "Employees" }, { id: "roster", label: "Roster" }, { id: "attendance", label: "Attendance" }, { id: "leave", label: "Leave" }, { id: "recruitment", label: "Recruitment" }]} value={tab} onChange={setTab} />
+    <div className="page-h"><div><h1>Human resources</h1><p className="muted">Staff records, leave, requests, performance, training, rosters, attendance and recruitment</p></div></div>
+    <Tabs tabs={[{ id: "dashboard", label: "Dashboard" }, { id: "employees", label: "Employees" }, { id: "leave", label: "Leave" }, { id: "requests", label: "Requests" },
+      ...(can("hr.performance") ? [{ id: "performance", label: "Performance" }] : []), { id: "training", label: "Training" }, { id: "roster", label: "Roster" },
+      { id: "attendance", label: "Attendance" }, { id: "recruitment", label: "Recruitment" }]} value={tab} onChange={setTab} />
+    {tab === "dashboard" && <HRDashboard go={setTab} />}
+    {tab === "requests" && <StaffRequests />}
+    {tab === "performance" && <Performance />}
+    {tab === "training" && <TrainingRegister />}
     {tab === "recruitment" && <Recruitment />}
     {tab === "employees" && <Employees />}
     {tab === "roster" && <Roster />}
     {tab === "attendance" && <Attendance />}
-    {tab === "leave" && <Leave />}
+    {tab === "leave" && <LeaveHub />}
   </div>;
 }
 
@@ -51,10 +59,13 @@ function EmployeeModal({ e, meta, onClose, onDone }: any) {
     hire_date: e.hire_date || new Date().toISOString().slice(0, 10), basic_salary: money0(e.basic_salary), housing_allowance: money0(e.housing_allowance),
     transport_allowance: money0(e.transport_allowance), other_allowance: money0(e.other_allowance), annual_rent: money0(e.annual_rent), bank_name: e.bank_name || "",
     bank_account_number: e.bank_account_number || "", tax_id: e.tax_id || "", pension_pfa: e.pension_pfa || "", pension_pin: e.pension_pin || "", nhf_number: e.nhf_number || "",
-    next_of_kin: e.next_of_kin || "", emergency_contact: e.emergency_contact || "", qualifications: e.qualifications || "", user_id: e.user_id || "" });
+    next_of_kin: e.next_of_kin || "", emergency_contact: e.emergency_contact || "", qualifications: e.qualifications || "", user_id: e.user_id || "",
+    line_manager_id: e.line_manager_id || "", probation_end_date: e.probation_end_date || "", contract_end_date: e.contract_end_date || "" });
+  const staff = useLoad(() => get(`/api/hotels/${hotel!.id}/employees`, { status: "active" }), [hotel?.id]);
   const { busy, run } = useAction();
   const go = async () => {
-    const body: any = { ...f, user_id: f.user_id ? Number(f.user_id) : null };
+    const body: any = { ...f, user_id: f.user_id ? Number(f.user_id) : null, line_manager_id: f.line_manager_id ? Number(f.line_manager_id) : null,
+      probation_end_date: f.probation_end_date || null, contract_end_date: f.contract_end_date || null };
     for (const k of ["basic_salary", "housing_allowance", "transport_allowance", "other_allowance", "annual_rent"]) body[k] = toMinor(f[k] || "0");
     for (const k of ["date_of_birth"]) if (!body[k]) delete body[k];
     if (e.id) for (const k of ["bank_account_number", "tax_id", "pension_pin", "nhf_number"]) if (String(body[k]).startsWith("•")) delete body[k];
@@ -72,6 +83,8 @@ function EmployeeModal({ e, meta, onClose, onDone }: any) {
       <Field label="Type"><Select value={f.employment_type} onChange={x => setF({ ...f, employment_type: x.target.value })}>{meta.employment_types.map((t: string) => <option key={t} value={t}>{label(t)}</option>)}</Select></Field>
       {fld("hire_date", "Hire date", "date")}
       <Field label="System login (optional)"><Select value={f.user_id} onChange={x => setF({ ...f, user_id: x.target.value })}><option value="">None</option>{(users.data?.items || []).map((u: any) => <option key={u.id} value={u.id}>{u.full_name} · {u.email}</option>)}</Select></Field>
+      <Field label="Line manager"><Select value={f.line_manager_id} onChange={x => setF({ ...f, line_manager_id: x.target.value })}><option value="">None</option>{(staff.data?.items || []).filter((s: any) => s.id !== e.id).map((s: any) => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} · {s.position}</option>)}</Select></Field>
+      {fld("probation_end_date", "Probation ends", "date")}{fld("contract_end_date", "Contract ends (fixed-term)", "date")}
       {fld("qualifications", "Qualifications", "text", true)}</div>
     <h4>Monthly pay ({hotel!.currency})</h4><div className="form-grid">{fld("basic_salary", "Basic")}{fld("housing_allowance", "Housing")}{fld("transport_allowance", "Transport")}{fld("other_allowance", "Other allowances")}
       {fld("annual_rent", "Annual rent paid (for rent relief)")}</div>
@@ -104,6 +117,7 @@ export function EmployeeDetail({ id }: { id: number }) {
       <Card title="Leave balances (this year)" pad={false}><Table rows={e.leave_balances} cols={[{ h: "Type", r: b => b.name }, { h: "Entitlement", r: b => b.entitlement, cls: "num" },
         { h: "Used", r: b => b.used, cls: "num" }, { h: "Pending", r: b => b.pending, cls: "num" }, { h: "Remaining", r: b => <b>{b.remaining}</b>, cls: "num" }]} /></Card>
     </div>
+    <EmployeeExtras e={e} reload={st.reload} />
     <DocumentsPanel entityType="employee" entityId={e.id} defaultCategory="contract" />
     {e.records && <Card title="HR records (confidential)" pad={false}><Table rows={e.records} empty="No records" cols={[{ h: "Date", r: r => fmtDate(r.record_date) }, { h: "Kind", r: r => label(r.kind) },
       { h: "Title", r: r => <><b>{r.title}</b>{r.details && <div className="small muted">{r.details}</div>}</> }, { h: "Rating", r: r => r.rating ? "★".repeat(r.rating) : "" }, { h: "By", r: r => r.created_by_name }]} /></Card>}
@@ -207,6 +221,13 @@ function Attendance() {
       { h: "Note", r: r => r.note || "" }]} /></Card>}</Loadable>;
 }
 
+function LeaveHub() {
+  const [v, setV] = useState("requests");
+  return <div className="stack"><div className="row gap-s wrap">{[["requests", "Requests"], ["calendar", "Calendar"], ["balances", "Balances"], ["holidays", "Public holidays"]].map(([k, l]) =>
+    <Button key={k} kind={k === v ? "primary" : "secondary"} onClick={() => setV(k)}>{l}</Button>)}</div>
+    {v === "requests" && <Leave />}{v === "calendar" && <LeaveCalendar />}{v === "balances" && <LeaveBalances />}{v === "holidays" && <Holidays />}</div>;
+}
+
 function Leave() {
   const { hotel, can, user } = useAuth();
   const [status, setStatus] = useState("pending");
@@ -214,14 +235,15 @@ function Leave() {
   const [reject, setReject] = useState<any>(null);
   const [types, setTypes] = useState(false);
   const { busy, run } = useAction();
-  return <Loadable state={st}>{d => <Card title={<Select value={status} onChange={e => setStatus(e.target.value)}><option value="">All requests</option>{["pending", "approved", "rejected"].map(s => <option key={s} value={s}>{label(s)}</option>)}</Select>}
+  return <Loadable state={st}>{d => <Card title={<Select value={status} onChange={e => setStatus(e.target.value)}><option value="">All requests</option>{["pending", "approved", "rejected", "cancelled"].map(s => <option key={s} value={s}>{label(s)}</option>)}</Select>}
     actions={can("hr.manage") && <Button kind="secondary" onClick={() => setTypes(true)}>Leave types</Button>} pad={false}>
     <Table rows={d.items} empty="No leave requests" cols={[{ h: "Employee", r: l => <><b>{l.employee}</b><div className="tiny muted">{label(l.department)}</div></> }, { h: "Type", r: l => l.leave_type },
       { h: "Dates", r: l => `${fmtDate(l.start_date)} → ${fmtDate(l.end_date)}` }, { h: "Days", r: l => l.days, cls: "num" }, { h: "Reason", r: l => l.reason || "" },
       { h: "Status", r: l => <span title={l.decision_note || ""}><Pill s={l.status} /></span> },
       { h: "", r: l => l.status === "pending" && can("hr.leave.approve") && l.user_id !== user!.id && <span className="row gap-s">
         <Button busy={busy} onClick={async () => { if (await run(() => post(`/api/leave/${l.id}/decide`, { decision: "approve" }), "Leave approved")) st.reload(); }}>Approve</Button>
-        <Button kind="ghost" onClick={() => setReject(l)}>Reject</Button></span> }]} />
+        <Button kind="ghost" onClick={() => setReject(l)}>Reject</Button></span> || (l.status === "approved" && can("hr.leave.approve") && l.end_date >= new Date().toISOString().slice(0, 10) &&
+        <Button kind="ghost" busy={busy} onClick={async () => { const reason = prompt("Reason for cancelling or ending this leave early"); if (reason && await run(() => post(`/api/leave/${l.id}/cancel`, { reason }), "Leave updated")) st.reload(); }}>Cancel / end early</Button>) }]} />
     {reject && <RejectModal title={`Reject leave for ${reject.employee}`} onClose={() => setReject(null)} onReject={async (note: string) => { if (await run(() => post(`/api/leave/${reject.id}/decide`, { decision: "reject", note }), "Leave rejected")) { setReject(null); st.reload(); } }} />}
     {types && <Modal title="Leave types" width={640} onClose={() => setTypes(false)}><Table rows={d.types} cols={[{ h: "Code", r: t => t.code }, { h: "Name", r: t => t.name }, { h: "Days / year", r: t => t.days_per_year, cls: "num" }, { h: "Paid", r: t => t.paid ? "Yes" : "No" },
       { h: "", r: t => <button className="link small" onClick={async () => { const v = prompt(`Days per year for ${t.name}`, String(t.days_per_year)); if (v !== null && await run(() => post(`/api/hotels/${hotel!.id}/leave-types`, { code: t.code, name: t.name, days_per_year: Number(v), paid: !!t.paid }), "Saved")) st.reload(); }}>Change</button> }]} /></Modal>}
@@ -325,28 +347,7 @@ function Rules() {
 
 // ======================================================================== My HR (self-service)
 export function MyHR() {
-  const st = useLoad(() => get(`/api/me/employee`), []);
-  const [leave, setLeave] = useState(false);
-  const { busy, run } = useAction();
-  const { hotel } = useAuth();
-  const cur = hotel?.currency || "NGN";
-  return <div className="page"><Loadable state={st}>{d => !d.linked ? <Empty text="Your account is not linked to an employee record. Ask HR to link it." /> : <>
-    <div className="page-h"><div><h1>My HR</h1><p className="muted">{d.employee.first_name} {d.employee.last_name} · {d.employee.employee_no} · {d.employee.position}</p></div>
-      <div className="row gap-s">
-        {!d.today?.clock_in ? <Button kind="gold" busy={busy} onClick={async () => { if (await run(() => post("/api/me/clock", { action: "in" }), "Clocked in")) st.reload(); }}>Clock in</Button>
-          : !d.today?.clock_out ? <Button kind="secondary" busy={busy} onClick={async () => { if (await run(() => post("/api/me/clock", { action: "out" }), "Clocked out")) st.reload(); }}>Clock out (in since {d.today.clock_in})</Button>
-          : <span className="chip">Today {d.today.clock_in}–{d.today.clock_out}</span>}
-        <Button onClick={() => setLeave(true)}>Request leave</Button></div></div>
-    {d.shift_today && <p className="note">Today's shift: {d.shift_today.name} {d.shift_today.start_time}–{d.shift_today.end_time}</p>}
-    <div className="grid-2">
-      <Card title="Leave balances" pad={false}><Table rows={d.leave_balances} cols={[{ h: "Type", r: b => b.name }, { h: "Remaining", r: b => <b>{b.remaining}</b>, cls: "num" }, { h: "Used", r: b => b.used, cls: "num" }, { h: "Pending", r: b => b.pending, cls: "num" }]} /></Card>
-      <Card title="My leave requests" pad={false}><Table rows={d.leave_requests} empty="None yet" cols={[{ h: "Type", r: l => l.leave_type }, { h: "Dates", r: l => `${fmtDate(l.start_date)} → ${fmtDate(l.end_date)}` }, { h: "Days", r: l => l.days, cls: "num" }, { h: "Status", r: l => <span title={l.decision_note || ""}><Pill s={l.status} /></span> }]} /></Card>
-    </div>
-    <Card title="My payslips" pad={false}><Table rows={d.payslips} empty="No payslips yet" cols={[{ h: "Period", r: p => p.period }, { h: "Gross", r: p => money(p.gross, cur), cls: "num" }, { h: "Net", r: p => money(p.net, cur), cls: "num" },
-      { h: "", r: p => <button className="link small" onClick={() => openFile(`/api/payslips/${p.id}.pdf`, `payslip-${p.period}.pdf`, true)}>Download</button> }]} /></Card>
-    <Card title="My attendance this month" pad={false}><Table rows={d.attendance} empty="No attendance recorded this month" cols={[{ h: "Date", r: a => fmtDate(a.work_date) }, { h: "Status", r: a => label(a.status) }, { h: "In", r: a => a.clock_in || "—" }, { h: "Out", r: a => a.clock_out || "—" }]} /></Card>
-    {leave && <MyLeaveModal balances={d.leave_balances} onClose={() => setLeave(false)} onDone={() => { setLeave(false); st.reload(); }} />}
-  </>}</Loadable></div>;
+  return <MyHRFull />;
 }
 
 function MyLeaveModal({ balances, onClose, onDone }: any) {
