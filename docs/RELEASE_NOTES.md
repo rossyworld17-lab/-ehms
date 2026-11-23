@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.1.2 — old screens can no longer be cached
+- A browser that had once opened an early EHMS (0.3) kept running that cached copy of the screens after an upgrade,
+  so the super administrator saw only 14 menu items (no Food & Beverage, Supply chain, People …). Reproduced and fixed:
+  the page now loads its script and styles from an address that changes with their content, so a cached copy from
+  another version is never used.
+- The version is shown on the sign-in page and under the EHMS logo in the menu.
+- `start_demo_windows.bat` refuses to start, and says why, when port 8000 is already taken (usually an older EHMS).
+
 ## 1.1.1 — reliable start-up
 - The interface is shipped pre-built in `frontend/dist`; running EHMS needs only Python. An old interface build
   could silently hide modules (Food & Beverage and Supply chain appeared missing for the super administrator).

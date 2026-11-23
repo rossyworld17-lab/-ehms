@@ -1,3 +1,4 @@
+declare const __APP_VERSION__: string;
 import React, { useState } from "react";
 import { api, ApiError, setToken } from "../api";
 import { useAuth } from "../state";
@@ -46,7 +47,7 @@ export default function Login() {
         <Button type="submit" busy={busy} className="full">{mfaToken ? "Verify" : "Sign in"}</Button>
         <div className="row between small">
           {mfaToken ? <a href="#/login" onClick={() => { setMfaToken(null); setToken(null); setCode(""); }}>Use a different account</a> : <a href="#/forgot">Forgot password?</a>}
-          <span className="muted">Sessions end after inactivity.</span>
+          <span className="muted">Sessions end after inactivity. · EHMS v{__APP_VERSION__}</span>
         </div>
       </form>
     </div>

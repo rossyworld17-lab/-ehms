@@ -5,7 +5,8 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
-> **Release 1.1.1** ships the interface pre-built (no Node needed to run it) and warns on screen if an old interface
+> **Release 1.1.2** makes sure a browser never keeps old cached screens after an upgrade and shows the version on
+> screen. **Release 1.1.1** ships the interface pre-built (no Node needed to run it) and warns on screen if an old interface
 > build is being served. **Release 1.1 — full HR suite.** HR dashboard, staff requests, appraisals, training, leave calendar and public holidays,
 > line managers, probation/contract tracking and staff logins issued by HR (see the release notes).
 >
@@ -73,7 +74,8 @@ EHMS_SEED_DEMO=1 uvicorn ehms.app:app --port 8000
 **Menus or modules missing** (for example no Food & Beverage or Supply chain for the super administrator)? The server
 is sending an old interface build — usually a server started from the folder of an earlier version, or a new
 version unpacked over an old one. Stop every running EHMS window, start it from the new folder, and press
-**Ctrl+F5** in the browser. From 1.1.1 a red banner says so whenever the interface and server versions differ.
+**Ctrl+F5** in the browser. From 1.1.1 a red banner says so whenever the interface and server versions differ, and from 1.1.2 the version
+is shown on the sign-in page and under the logo, so you can see at once which version you are using.
 
 Open <http://localhost:8000> and sign in with a demo account (password `Demo@12345`):
 
@@ -123,7 +125,7 @@ python ../frontend/e2e/smoke.py                         # browser end-to-end (ap
 
 - [Architecture & database](docs/ARCHITECTURE.md)
 - [REST API reference](docs/API.md)
-- **[EHMS v1.1.1 User Guide (Word)](docs/EHMS_v1.1.1_User_Guide.docx)** — complete guide for staff, managers and administrators
+- **[EHMS v1.1.2 User Guide (Word)](docs/EHMS_v1.1.2_User_Guide.docx)** — complete guide for staff, managers and administrators
 - [User guide](docs/USER_GUIDE.md) · [Administrator manual](docs/ADMIN_MANUAL.md)
 - [Deployment, backup & recovery](docs/DEPLOYMENT.md)
 - [Test report](docs/TEST_REPORT.md) · [Requirements traceability](docs/TRACEABILITY.md) · [Progress register](docs/PROGRESS.md) · [Roadmap](docs/ROADMAP.md)

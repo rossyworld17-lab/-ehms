@@ -37,6 +37,9 @@ import Documents from "./pages/Documents";
 import Groups, { GroupDetail } from "./pages/Groups";
 import { Spinner } from "./ui";
 
+declare const __APP_VERSION__: string;
+const APP_VERSION = __APP_VERSION__;
+
 type NavItem = { to: string; label: string; icon: React.ReactNode; perm?: string; any?: string[] };
 const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Operations", items: [
@@ -108,7 +111,7 @@ function Shell({ children, path }: { children: React.ReactNode; path: string }) 
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""}`}>
       <aside className="side">
-        <div className="brand"><span className="logo">E</span><span className="brand-t">EHMS<small>Hotel Management</small></span></div>
+        <div className="brand"><span className="logo">E</span><span className="brand-t">EHMS<small>Hotel Management · v{APP_VERSION}</small></span></div>
         <nav>
           {NAV.map(g => {
             const items = g.items.filter(i => (!i.perm || can(i.perm)) && (!i.any || i.any.some(p => can(p))));

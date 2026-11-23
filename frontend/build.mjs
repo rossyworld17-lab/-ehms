@@ -27,7 +27,7 @@ const options = {
   jsx: "automatic",
   minify: !watch,
   sourcemap: watch ? "inline" : false,
-  define: { "process.env.NODE_ENV": JSON.stringify(watch ? "development" : "production") },
+  define: { "process.env.NODE_ENV": JSON.stringify(watch ? "development" : "production"), __APP_VERSION__: JSON.stringify(version) },
   nodePaths,
   logLevel: "info",
 };

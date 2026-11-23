@@ -22,7 +22,7 @@ def test_shipped_interface_build_matches_server_version():
 def _serve(tmp_path, version):
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets" / "main.js").write_text("console.log(1)")
-    (tmp_path / "index.html").write_text("<html><body><div id=root></div></body></html>")
+    (tmp_path / "index.html").write_text('<html><body><div id=root></div><script type="module" src="/assets/main.js"></script></body></html>')
     if version:
         (tmp_path / "version.json").write_text(json.dumps({"version": version}))
     old = settings.frontend_dist
@@ -38,6 +38,8 @@ def test_matching_build_is_served_without_warning(tmp_path):
     try:
         r = c.get("/")
         assert r.status_code == 200 and "out of date" not in r.text
+        # the script address carries a content hash, so an old cached copy is never reused
+        assert '/assets/main.js?v=' in r.text
         a = c.get("/assets/main.js")
         assert a.status_code == 200 and a.headers.get("cache-control") == "no-cache"
     finally:

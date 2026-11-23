@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import logging
 import os
 
@@ -13,7 +14,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import FileResponse, JSONResponse, Response
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -85,13 +86,21 @@ def _frontend_routes() -> list:
         log.warning("Frontend build at %s is version %s but the server is %s — rebuild it (`npm run build` in /frontend).",
                     dist, ui or "unknown (older than 1.1.1)", __version__)
 
-    async def spa(request: Request) -> Response:
-        if not stale:
-            return FileResponse(index, headers={"Cache-Control": "no-cache"})
-        with open(index, encoding="utf-8") as fh:
-            html = fh.read()
+    with open(index, encoding="utf-8") as fh:
+        html = fh.read()
+    # Give the script and stylesheet an address that changes with their content, so a browser can never run a copy
+    # cached from an earlier version (same file name, different code).
+    for name in ("main.js", "main.css"):
+        path = os.path.join(dist, "assets", name)
+        if os.path.isfile(path):
+            with open(path, "rb") as fh:
+                digest = hashlib.sha256(fh.read()).hexdigest()[:12]
+            html = html.replace(f"/assets/{name}\"", f"/assets/{name}?v={digest}\"")
+    if stale:
         banner = STALE_BANNER.format(ui=ui or "older than 1.1.1", server=__version__)
         html = html.replace("<body>", "<body>" + banner, 1) if "<body>" in html else banner + html
+
+    async def spa(request: Request) -> Response:
         return Response(html, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
     class Assets(StaticFiles):
