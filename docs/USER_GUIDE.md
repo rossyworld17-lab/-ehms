@@ -285,3 +285,24 @@ Share `https://<your-domain>/#/book/<HOTEL_CODE>`. Guests check availability, se
 taxes, enter a promo code, book with "pay at hotel" or (when a gateway is configured) **pay now online** —
 prepaid bookings are confirmed automatically — and can look up or cancel their booking with the reference and email. Online
 bookings arrive as **tentative** for staff to confirm.
+
+## New in 1.2
+- **Language**: click your name (top right) → Language → English or Français.
+- **Breadcrumb and Help**: the line above each page title shows where you are; *Help & support* (under your name or at
+  the bottom of the menu) explains the screens you can use.
+- **Wake-up calls**: on a booking, *Wake-up call* → date and time. Front desk & reservations → *Wake-up calls* lists the
+  day's calls; mark each *Done* or *No answer*. You get a reminder 10 minutes before.
+- **Early check-in / late check-out**: on the booking, the button posts the fee from Hotel settings to the folio.
+- **Registration card**: on the booking, *Registration card* opens a PDF for the guest to sign.
+- **Assign rooms by dragging**: Room board → drag a guest from *Arrivals without a room* onto a free room (or click the
+  guest, then the room).
+- **Table bookings**: Point of sale → *Table bookings* → New booking; seat, complete, cancel or mark no-show.
+- **Returns to suppliers**: Procurement → *Goods received & returns* → open the GRN → enter quantities and the reason.
+- **Referrals**: a guest's profile shows their referral code; new guests enter it on the booking engine or the front
+  desk records it on the booking. Points reach the referrer after the new guest checks out.
+- **Petty cash**: Finance operations → Petty cash → *Pay out* (custodian) or *Top up* (finance); *Voucher* prints a
+  payment voucher. Paid expense claims and supplier payments also have a *Voucher* button.
+- **Welfare** (HR managers): an employee's profile → *Record support*; Human resources → Welfare lists the year.
+- **Insights**: Daily summary, Cancellation risk, Equipment failures and Guest insights tabs.
+- **Backups** (IT administrator): Administration → Backups.
+

@@ -175,3 +175,33 @@ requests through the guest profile. Appoint a data protection officer as your ob
 - Salary advance limit is one month's basic pay; staff loan limit is six months' basic pay (up to 24 months).
   Approved advances and loans are paid by a holder of `payroll.pay`, who is notified.
 - Every login that should use My HR needs an employee record; the HR dashboard lists logins without one.
+
+## Requirements completion (release 1.2)
+- **Backups** (Administration → Backups; permission `admin.backups` and access to all hotels): *Back up now*, the daily
+  schedule (hour in UTC) and how many days automatic backups are kept. Each archive holds every table, the stored
+  documents and room photos, with checksums. *Verify* restores it into a temporary database and compares every table.
+  Administrators are notified if an automatic backup or its verification fails. Archives are written to
+  `EHMS_BACKUP_DIR` (default `backend/data/backups`) — copy them off the server regularly.
+- **Restore**: stop EHMS, point `DATABASE_URL` at a new, empty database and run
+  `python -m ehms.backup restore <file>` in `backend`. Restoring into a database that already holds data is refused.
+  A backup from SQLite can be restored into PostgreSQL and vice versa. Agree your RPO (how much data you can lose —
+  at most one day with daily backups) and RTO (how long a restore may take) before go-live.
+- **Stay fees**: Hotel settings → Stay fees sets the early check-in and late check-out fees (0 = free). Waiving a fee
+  needs `reservations.waive_fee`.
+- **Logo**: Hotel settings → Profile → Logo (PNG/JPEG/WebP up to 1 MB); shown on the booking engine and staff header.
+- **Room photos and videos**: Rooms & rates → *Photos & videos* on a room category (up to 20; JPEG/PNG/WebP up to 5 MB;
+  videos as https links). Photos are public because the booking engine shows them.
+- **Petty cash**: Finance operations → Petty cash (`finance.petty_cash.manage`) opens a fund: each gets its own asset
+  account (codes 1001–1099), a custodian, a float and a per-voucher limit; vouchers above the limit need
+  `finance.petty_cash.approve` from someone else. Top up from cash or bank to restore the float.
+- **Referral programme**: Guest relations → Referrals sets the points a referrer earns (default 500) or switches it off.
+- **Languages**: every user chooses English or French under their name → Language. Untranslated text stays in English.
+- **Integrations**: door locks, key cards and **CCTV** post events to `/api/integrations/access-events`
+  (`EHMS_ACCESS_API_TOKEN`; CCTV sends `source: cctv`, the camera name as `door` and an optional https `clip_url`).
+  Fingerprint/biometric clocks post to `/api/integrations/attendance-events` (`EHMS_ATTENDANCE_API_TOKEN`) with the
+  employee number, `in`/`out` and the time. Without the token these endpoints refuse every request.
+- **New permissions**: `admin.backups` (IT administrator), `procurement.return` (storekeeper, inventory manager,
+  procurement officer), `finance.petty_cash` (accountant, finance manager), `finance.petty_cash.manage` (accountant,
+  finance manager), `finance.petty_cash.approve` (finance manager). Super administrator, owner, general manager and
+  hotel manager hold all permissions.
+

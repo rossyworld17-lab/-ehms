@@ -4,6 +4,7 @@ from __future__ import annotations
 import secrets
 
 from .. import security
+from ..services import paginate
 from ..db import get_db, now_iso
 from ..http import Ctx, audit, bad_request, conflict, forbidden, not_found, route
 from ..rbac import PERMISSIONS
@@ -233,9 +234,8 @@ def audit_logs(ctx: Ctx):
     if ctx.q("to"):
         sql += " AND a.created_at <= ?"
         params.append(ctx.q("to") + "T23:59:59Z")
-    limit = min(int(ctx.q("limit", 200)), 1000)
     with get_db().tx() as c:
-        return {"items": c.all(sql + f" ORDER BY a.id DESC LIMIT {limit}", params)}
+        return paginate(c, ctx, sql, params, "a.id DESC", default_size=min(int(ctx.q("limit", 200)), 1000), max_size=1000)
 
 
 @route("GET", "/api/admin/login-attempts", perm="admin.audit.view", tag="admin", summary="Login history including failed attempts")

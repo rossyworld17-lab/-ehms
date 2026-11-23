@@ -56,6 +56,7 @@ def employee_extras(c, ctx: Ctx, e: dict) -> dict:
         out["login"] = u
     out["appraisals"] = c.all("SELECT a.*, u.full_name AS reviewer FROM appraisals a JOIN users u ON u.id = a.reviewer_id WHERE a.employee_id = ? ORDER BY a.id DESC",
                               [e["id"]]) if (ctx.can("hr.performance") or ctx.can("hr.records")) else None
+    out["welfare"] = c.all("SELECT * FROM welfare_records WHERE employee_id = ? ORDER BY support_date DESC", [e["id"]]) if ctx.can("hr.records") else None
     sql = "SELECT * FROM staff_requests WHERE employee_id = ?" + ("" if ctx.can("hr.records") else " AND confidential = 0")
     out["requests"] = c.all(sql + " ORDER BY id DESC LIMIT 50", [e["id"]])
     for a in out["appraisals"] or []:
@@ -737,3 +738,37 @@ def hr_alerts(c, hotel: dict) -> int:
             _notify_perm(c, hotel["id"], "hr.manage", "Certificate expiring", f"{t['first_name']} {t['last_name']}: {t['title']} expires {t['expires_on']}.", "employee", t["employee_id"])
             n += 1
     return n
+
+
+# ------------------------------------------------------------------ staff welfare (release 1.2)
+WELFARE_KINDS = ("medical", "bereavement", "wedding", "childbirth", "hardship", "wellbeing", "other")
+
+
+@route("POST", "/api/employees/{employee_id:int}/welfare", perm="hr.records", tag="hr",
+       summary="Record welfare support given to an employee: kind, support_date, amount (optional), description (confidential)")
+def add_welfare(ctx: Ctx):
+    kind = ctx.field("kind", kind=str)
+    if kind not in WELFARE_KINDS:
+        raise bad_request(f"kind must be one of {', '.join(WELFARE_KINDS)}")
+    amount = to_minor(ctx.field("amount", required=False, default=0) or 0)
+    if amount < 0:
+        raise bad_request("Amount cannot be negative")
+    with get_db().tx() as c:
+        e = _employee(c, ctx, ctx.path["employee_id"])
+        d = parse_date(ctx.field("support_date", required=False, kind=str) or business_date(get_hotel(c, e["hotel_id"])).isoformat(), "support_date")
+        wid = c.insert("welfare_records", {"employee_id": e["id"], "kind": kind, "support_date": d.isoformat(), "amount": amount,
+                                           "description": str(ctx.field("description", kind=str))[:300], "confidential": 1,
+                                           "created_by": ctx.user_id, "created_at": now_iso()})
+        audit(c, ctx, "hr.welfare_recorded", "employee", e["id"], e["employee_no"], new={"kind": kind, "amount": amount}, hotel_id=e["hotel_id"])
+    return {"id": wid, "_created": True}
+
+
+@route("GET", "/api/hotels/{hotel_id:int}/hr/welfare", perm="hr.records", tag="hr", summary="Welfare register (?year)")
+def list_welfare(ctx: Ctx):
+    hid = ctx.check_hotel(ctx.path["hotel_id"])
+    with get_db().tx() as c:
+        year = int(ctx.q("year") or business_date(get_hotel(c, hid)).year)
+        rows = c.all("SELECT w.*, e.first_name, e.last_name, e.employee_no, e.department, u.full_name AS recorded_by FROM welfare_records w "
+                     "JOIN employees e ON e.id = w.employee_id JOIN users u ON u.id = w.created_by WHERE e.hotel_id = ? AND w.support_date >= ? AND w.support_date <= ? "
+                     "ORDER BY w.support_date DESC, w.id DESC", [hid, f"{year}-01-01", f"{year}-12-31"])
+    return {"year": year, "items": rows, "total_amount": sum(r["amount"] for r in rows), "kinds": WELFARE_KINDS}

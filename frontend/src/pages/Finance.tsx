@@ -4,6 +4,7 @@ import { useAuth } from "../state";
 import { Button, Card, Empty, Field, Input, Kpi, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad, useToast } from "../ui";
 import { RejectModal } from "./Inventory";
 import { ExchangeRates, NotesQueue } from "./Billing";
+import { PettyCash, VoucherButton } from "./Completion";
 
 export default function Finance({ q }: { q: URLSearchParams }) {
   const { can } = useAuth();
@@ -14,6 +15,7 @@ export default function Finance({ q }: { q: URLSearchParams }) {
     ...(can("reports.financial") ? [{ id: "cashflow", label: "Cash flow" }] : []),
     ...(can("finance.notes.request") || can("finance.notes.approve") ? [{ id: "notes", label: "Credit & debit notes" }] : []),
     ...(can("payments.receive") || can("finance.exchange_rates") ? [{ id: "fx", label: "Exchange rates" }] : []),
+    ...(can("finance.petty_cash") ? [{ id: "petty", label: "Petty cash" }] : []),
   ];
   const [tab, setTab] = useState(q.get("tab") || tabs[0]?.id || "expenses");
   useEffect(() => { const t = q.get("tab"); if (t) setTab(t); }, [q.get("tab")]);
@@ -28,6 +30,7 @@ export default function Finance({ q }: { q: URLSearchParams }) {
     {tab === "online" && <OnlinePayments />}
     {tab === "notes" && <NotesQueue />}
     {tab === "fx" && <ExchangeRates />}
+    {tab === "petty" && <PettyCash />}
   </div>;
 }
 
@@ -51,7 +54,8 @@ function Expenses() {
         {e.status === "submitted" && can("finance.expenses.approve") && e.requested_by !== user!.id && <>
           <Button busy={busy} onClick={() => act(() => post(`/api/expenses/${e.id}/decide`, { decision: "approve" }), "Claim approved")}>Approve</Button>
           <Button kind="ghost" onClick={() => setModal({ kind: "reject", e })}>Reject</Button></>}
-        {e.status === "approved" && can("finance.expenses.pay") && <Button kind="gold" onClick={() => setModal({ kind: "pay", e })}>Pay</Button>}</span> }]} />}</Loadable>
+        {e.status === "approved" && can("finance.expenses.pay") && <Button kind="gold" onClick={() => setModal({ kind: "pay", e })}>Pay</Button>}
+        {e.status === "paid" && (can("finance.expenses.pay") || can("finance.expenses.approve") || can("accounting.view")) && <VoucherButton kind="expense" id={e.id} number={e.number} />}</span> }]} />}</Loadable>
     {modal?.kind === "new" && st.data && <NewExpense accounts={st.data.accounts} departments={st.data.departments} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
     {modal?.kind === "reject" && <RejectModal title={`Reject ${modal.e.number}`} onClose={() => setModal(null)} onReject={(note: string) => act(() => post(`/api/expenses/${modal.e.id}/decide`, { decision: "reject", note }), "Claim rejected")} />}
     {modal?.kind === "pay" && <PayExpense e={modal.e} methods={(methods.data?.items || []).filter((m: any) => ["cash", "bank_transfer"].includes(m.kind) && m.active)} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}

@@ -214,6 +214,8 @@ def check_out(ctx: Ctx):
               new={"status": "checked_out", "room": room["number"], "folio": folio["number"], "total_charges": bal["charges"]}, hotel_id=r["hotel_id"])
         from .crm import earn_for_stay, invite_after_checkout
         earned = earn_for_stay(c, ctx, hotel, r, folio["id"])
+        from .referrals import reward_on_checkout
+        referral_points = reward_on_checkout(c, ctx, hotel, r)
         if body.get("send_survey", True):
             invite_after_checkout(c, hotel, r)
         g = c.one("SELECT first_name, email FROM guests WHERE id = ?", [r["guest_id"]])
@@ -222,7 +224,7 @@ def check_out(ctx: Ctx):
                                f"Dear {g['first_name']},\n\nThank you for staying with us. Your final invoice {folio['number']} totals "
                                f"{hotel['currency']} {bal['charges'] / 100:,.2f}. We hope to welcome you again soon.\n\n{hotel['name']}",
                                "reservation", r["id"])
-        return {**reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]])), "loyalty_points_earned": earned}
+        return {**reservation_detail(c, c.one("SELECT * FROM reservations WHERE id = ?", [r["id"]])), "loyalty_points_earned": earned, "referral_points_awarded": referral_points}
 
 
 @route("POST", "/api/reservations/{res_id:int}/room-move", perm="frontdesk.room_move", tag="frontdesk", summary="Move an in-house guest to another room")

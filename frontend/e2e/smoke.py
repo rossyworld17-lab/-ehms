@@ -385,6 +385,72 @@ def main():
         hrm.locator("td", has_text="Sani").first.click()
         expect(hrm.get_by_text("Job history")).to_be_visible(timeout=8000)
         hrm.screenshot(path=f"{SHOTS}/99_hr_employee.png", full_page=True)
+
+        # ---------------- requirements completion (1.2)
+        a = page   # the admin session from the start of the tour (avoids the 10 sign-ins/minute limit)
+        # backups: create and verify by test restore
+        visit(a, "/admin/backups", "A1_backups", "Backup history")
+        a.get_by_role("button", name="Back up now").click()
+        expect(a.get_by_text("Backup created")).to_be_visible(timeout=20000)
+        a.get_by_role("button", name="Verify").first.click()
+        expect(a.get_by_text(re.compile("Verified: \\d+ tables"))).to_be_visible(timeout=60000)
+        a.screenshot(path=f"{SHOTS}/A1_backups.png")
+        visit(a, "/help", "A2_help", "Help & support")
+        expect(a.locator(".crumbs")).to_contain_text("Help & support")
+        visit(a, "/finance?tab=petty", "A3_petty_cash", "Vouchers and top-ups")
+        expect(a.get_by_text("Emergency pipe repair, room 108")).to_be_visible()
+        visit(a, "/pos", "A4_pos", "Point of sale")
+        a.get_by_role("tab", name="Table bookings").click()
+        expect(a.get_by_text("Okonkwo family")).to_be_visible(timeout=8000)
+        a.screenshot(path=f"{SHOTS}/A4_table_bookings.png")
+        visit(a, "/procurement?tab=grns", "A5_grns", "Returns to suppliers")
+        visit(a, "/crm?tab=referrals", "A6_referrals", "Reward per referral")
+        visit(a, "/hr?tab=welfare", "A7_welfare", "Contribution to hospital bill")
+        visit(a, "/reservations?tab=wakeup", "A8_wakeups", "Wake-up calls")
+        visit(a, "/admin/hotel", "A9_settings", "Hotel profile")
+        a.get_by_role("tab", name="Stay fees").click()
+        expect(a.get_by_text("Early check-in fee")).to_be_visible(timeout=8000)
+        visit(a, "/guests", "A10_guests", "Guests")
+        expect(a.locator(".pager")).to_be_visible()
+        # drag-and-drop room assignment: create an unassigned arrival for today, drag it onto a free room
+        tok = a.evaluate("() => Object.keys(sessionStorage).filter(k => k.includes('token')).map(k => sessionStorage.getItem(k))[0]")
+        hdr = {"Authorization": f"Bearer {tok}"}
+        hotel = a.request.get(f"{BASE}/api/hotels/1", headers=hdr).json()
+        std = next(t for t in a.request.get(f"{BASE}/api/hotels/1/room-types", headers=hdr).json()["items"] if t["code"] == "STD")
+        dep = (_dt.date.fromisoformat(hotel["business_date"]) + _dt.timedelta(days=1)).isoformat()
+        nr = a.request.post(f"{BASE}/api/hotels/1/reservations", headers=hdr, data={"arrival": hotel["business_date"], "departure": dep, "room_type_id": std["id"],
+                            "guest": {"first_name": "Drag", "last_name": "Dropson", "email": "drag.dropson@example.com", "force": True}})
+        assert nr.ok, nr.text()
+        a.goto(f"{BASE}/#/rooms")
+        chip = a.locator(".arrival-chip", has_text="Drag Dropson")
+        expect(chip).to_be_visible(timeout=8000)
+        target = a.locator(".room.st-available").first
+        room_no = target.locator(".room-n").inner_text().split("\n")[0].strip()
+        chip.drag_to(target)
+        expect(a.get_by_text(re.compile(f"Drag Dropson assigned to room {room_no}"))).to_be_visible(timeout=8000)
+        a.screenshot(path=f"{SHOTS}/A11_room_board_dnd.png")
+        # reservation detail: guest services card and registration card
+        a.goto(f"{BASE}/#/reservations/{nr.json()['id']}")
+        expect(a.get_by_text("Guest services")).to_be_visible(timeout=8000)
+        a.get_by_role("button", name="Wake-up call").click()
+        a.get_by_role("dialog").get_by_label("Time").fill("06:45")
+        a.get_by_role("dialog").get_by_role("button", name="Book").click()
+        expect(a.get_by_text("Wake-up call booked")).to_be_visible(timeout=8000)
+        # language: switch to French and back
+        a.locator(".user-btn").click()
+        a.locator(".menu-lang select").select_option("fr")
+        expect(a.locator(".side nav")).to_contain_text("Tableau de bord", timeout=5000)
+        a.screenshot(path=f"{SHOTS}/A12_french.png")
+        if not a.locator(".menu-lang select").is_visible():
+            a.locator(".user-btn").click()
+        a.locator(".menu-lang select").select_option("en")
+        expect(a.locator(".side nav")).to_contain_text("Dashboard", timeout=5000)
+        # insights: predictions and the automated daily summary
+        for tab, txt in (("summary", "Daily management summary"), ("cancel_risk", "Cancellation risk"), ("maint_risk", "Predicted equipment failures"), ("guests", "Preferred room categories")):
+            visit(a, f"/insights?tab={tab}", f"A13_{tab}", txt)
+        # booking engine: referral code field and photo gallery data
+        a.goto(f"{BASE}/#/book/CGL")
+        expect(a.get_by_label("Referral code")).to_be_visible(timeout=8000)
         browser.close()
 
     if errors:

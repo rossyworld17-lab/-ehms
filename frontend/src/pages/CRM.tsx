@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, fmtDate, fmtDateTime, get, label, money, patch, post, put, toMinor, fromMinor } from "../api";
 import { useAuth } from "../state";
 import { BarList, Button, Card, Empty, Field, Input, Kpi, LineChart, Loadable, Modal, Pill, Select, Spinner, Table, Tabs, Textarea, errText, useAction, useLoad } from "../ui";
+import { Referrals } from "./Completion";
 
 const PRIO: Record<string, string> = { urgent: "rejected", high: "maintenance", normal: "confirmed", low: "cancelled" };
 const SENT: Record<string, string> = { positive: "approved", neutral: "pending", negative: "rejected" };
@@ -14,8 +15,8 @@ export default function CRM({ q }: { q: URLSearchParams }) {
   return <div className="page">
     <div className="page-h"><div><h1>Guest relations</h1><p className="muted">Complaints, feedback, loyalty and campaigns</p></div></div>
     <Tabs tabs={[{ id: "complaints", label: "Complaints" }, { id: "feedback", label: "Feedback" }, { id: "insights", label: "Insights" }, { id: "loyalty", label: "Loyalty" },
-      ...(can("crm.campaigns") ? [{ id: "campaigns", label: "Campaigns" }] : [])]} value={tab} onChange={setTab} />
-    {tab === "complaints" && <Complaints />}{tab === "feedback" && <Feedback />}{tab === "insights" && <Insights />}{tab === "loyalty" && <Loyalty />}{tab === "campaigns" && <Campaigns />}
+      { id: "referrals", label: "Referrals" }, ...(can("crm.campaigns") ? [{ id: "campaigns", label: "Campaigns" }] : [])]} value={tab} onChange={setTab} />
+    {tab === "complaints" && <Complaints />}{tab === "feedback" && <Feedback />}{tab === "insights" && <Insights />}{tab === "loyalty" && <Loyalty />}{tab === "campaigns" && <Campaigns />}{tab === "referrals" && (can("crm.view") ? <Referrals /> : <p className="muted">Referrals need guest relations access.</p>)}
   </div>;
 }
 

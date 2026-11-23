@@ -1,5 +1,8 @@
 # Requirements traceability
 
+> The full check against every requirement source — business rules, non-functional requirements, integrations,
+> interface, workflows, reports, testing, acceptance and the master prompt — is in [COMPLIANCE.md](COMPLIANCE.md).
+
 Status of every functional requirement in *EHMS Software Requirements Specification v1* against release 0.95.
 
 **Implemented** = working and covered by tests · **Partial** = core behaviour works, noted gaps planned · **Planned** = scheduled in ROADMAP.md

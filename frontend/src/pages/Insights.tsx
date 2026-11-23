@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { addDays, fmtDate, fmtDateTime, get, label, money, patch, post } from "../api";
 import { navigate, useAuth } from "../state";
 import { BarList, Button, Card, Field, Input, Kpi, LineChart, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad } from "../ui";
+import { CancellationRisk, DailySummary, GuestInsights, MaintenanceRisk } from "./Completion";
 
 const short = (v: number) => (v >= 1e8 ? `${(v / 1e8).toFixed(1)}m` : v >= 1e5 ? `${Math.round(v / 1e5)}k` : String(Math.round(v / 100)));
 const Delta = ({ v, invert }: { v?: number | null; invert?: boolean }) => v == null ? <span className="muted">—</span>
@@ -17,14 +18,20 @@ export default function Insights({ q }: { q: URLSearchParams }) {
     can("ai.anomalies.view") && { id: "anomalies", label: "Unusual transactions" },
     can("ai.assistant") && { id: "recommendations", label: "Recommendations" },
     can("bi.schedule") && { id: "schedules", label: "Scheduled reports" },
+    can("dashboard.view") && { id: "summary", label: "Daily summary" },
+    can("reservations.view") && { id: "cancel_risk", label: "Cancellation risk" },
+    can("maintenance.view") && { id: "maint_risk", label: "Equipment failures" },
+    can("crm.view") && { id: "guests", label: "Guest insights" },
   ].filter(Boolean) as { id: string; label: string }[];
   const [tab, setTab] = useState(q.get("tab") && tabs.some(t => t.id === q.get("tab")) ? q.get("tab")! : tabs[0]?.id);
   const change = (t: string) => { setTab(t); navigate(`/insights?tab=${t}`); };
+  useEffect(() => { const t = q.get("tab"); if (t && tabs.some(x => x.id === t)) setTab(t); }, [q.get("tab")]);
   return <div className="page">
     <div className="page-h"><div><h1>Insights</h1><p className="muted">Business intelligence, forecasts, unusual transactions and recommendations — every figure explains where it comes from</p></div></div>
     <Tabs tabs={tabs} value={tab} onChange={change} />
     {tab === "analytics" && <Analytics />}{tab === "forecast" && <Forecast />}{tab === "occupancy" && <OccupancyHistory />}{tab === "hr" && <HrAnalytics />}
     {tab === "anomalies" && <Anomalies />}{tab === "recommendations" && <Recommendations />}{tab === "schedules" && <Schedules />}
+    {tab === "summary" && <DailySummary />}{tab === "cancel_risk" && <CancellationRisk />}{tab === "maint_risk" && <MaintenanceRisk />}{tab === "guests" && <GuestInsights />}
   </div>;
 }
 

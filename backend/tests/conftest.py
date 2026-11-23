@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.environ.setdefault("EHMS_SECRET_KEY", "test-secret-key-not-for-production-0123456789")
 os.environ["EHMS_LOGIN_RATE_LIMIT"] = "1000"
 os.environ["EHMS_WORKER"] = "0"
+os.environ["EHMS_BACKUP_SCHEDULE"] = "0"
 
 from asgi_client import Client  # noqa: E402
 
@@ -18,6 +19,7 @@ def client(tmp_path):
     from ehms.http import _rate
     _rate.clear()
     os.environ["EHMS_DOCUMENT_DIR"] = str(tmp_path / "documents")
+    os.environ["EHMS_BACKUP_DIR"] = str(tmp_path / "backups")
     url = os.environ.get("TEST_DATABASE_URL")
     if url and url.startswith("postgres"):
         # PostgreSQL run (CI): rebuild an empty schema for every test

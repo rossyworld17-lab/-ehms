@@ -261,3 +261,15 @@ def queue_notification(c: Connection, hotel_id: int | None, channel: str, recipi
     return c.insert("notifications", {"hotel_id": hotel_id, "channel": channel, "recipient": recipient, "subject": subject,
                                       "body": body, "status": status, "error": err, "related_entity": entity,
                                       "related_id": None if entity_id is None else str(entity_id), "created_at": now_iso()})
+
+
+def paginate(c: Connection, ctx, sql: str, params: list, order_by: str, default_size: int = 500, max_size: int = 500) -> dict:
+    """Run a list query one page at a time (?page, ?page_size) and report the total, so long lists are never cut off silently."""
+    try:
+        page = max(1, int(ctx.q("page") or 1))
+        size = max(1, min(int(ctx.q("page_size") or default_size), max_size))
+    except ValueError:
+        raise bad_request("page and page_size must be whole numbers")
+    total = c.scalar(f"SELECT COUNT(*) FROM ({sql}) q", params) or 0
+    items = c.all(f"{sql} ORDER BY {order_by} LIMIT {size} OFFSET {(page - 1) * size}", params)
+    return {"items": items, "total": total, "page": page, "page_size": size, "pages": max(1, -(-total // size))}

@@ -18,7 +18,7 @@ def _iso_in(minutes: int) -> str:
 
 def user_profile(c, user_id: int) -> dict:
     u = c.one("SELECT id, organisation_id, email, full_name, phone, status, all_hotels, mfa_enabled, last_login_at, "
-              "must_change_password, department_id FROM users WHERE id = ?", [user_id])
+              "must_change_password, department_id, language FROM users WHERE id = ?", [user_id])
     roles = c.all("SELECT r.id, r.code, r.name FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ? ORDER BY r.name", [user_id])
     perms = sorted({r["permission_code"] for r in c.all(
         "SELECT rp.permission_code FROM user_roles ur JOIN role_permissions rp ON rp.role_id = ur.role_id WHERE ur.user_id = ?", [user_id])})
@@ -27,6 +27,9 @@ def user_profile(c, user_id: int) -> dict:
     else:
         hotels = c.all("SELECT h.id, h.code, h.name, h.currency, h.timezone FROM user_hotels uh JOIN hotels h ON h.id = uh.hotel_id "
                        "WHERE uh.user_id = ? AND h.active = 1 ORDER BY h.name", [user_id])
+    from .predictive import logo_url
+    for h in hotels:
+        h["logo_url"] = logo_url(c, h["id"])
     u["roles"], u["permissions"], u["hotels"] = roles, perms, hotels
     u["mfa_enabled"] = bool(u["mfa_enabled"])
     u["all_hotels"] = bool(u["all_hotels"])

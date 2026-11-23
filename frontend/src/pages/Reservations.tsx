@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import { ApiError, addDays, fmtDate, fmtDateTime, fromMinor, get, label, money, patch, post, toMinor } from "../api";
 import { navigate, useAuth } from "../state";
 import { CancelModal } from "./Billing";
-import { Button, Card, Confirm, Empty, Field, Input, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, errText, useAction, useLoad, useToast } from "../ui";
+import { Button, Card, Confirm, Empty, Field, Input, Loadable, Modal, Pager, Pill, Select, Table, Tabs, Textarea, errText, useAction, useLoad, useToast } from "../ui";
+import { StayServices, WakeUpCalls } from "./Completion";
 import { DocumentsPanel } from "./Documents";
 
 const TABS = [{ id: "arrivals", label: "Arrivals" }, { id: "in_house", label: "In-house" }, { id: "departures", label: "Departures" },
-  { id: "upcoming", label: "Upcoming" }, { id: "search", label: "Search" }];
+  { id: "upcoming", label: "Upcoming" }, { id: "search", label: "Search" }, { id: "wakeup", label: "Wake-up calls" }];
 
 export default function Reservations({ q }: { q: URLSearchParams }) {
   const { hotel, can } = useAuth();
@@ -14,10 +15,12 @@ export default function Reservations({ q }: { q: URLSearchParams }) {
   const [search, setSearch] = useState(q.get("q") || "");
   const [term, setTerm] = useState(q.get("q") || "");
   const [audit, setAudit] = useState(false);
+  const [page, setPage] = useState(1);
   const toast = useToast();
   useEffect(() => { if (q.get("tab")) setTab(q.get("tab")!); if (q.get("q") !== null) { setSearch(q.get("q") || ""); setTerm(q.get("q") || ""); } }, [q.toString()]);
   const params: any = tab === "search" ? { search: term } : tab === "upcoming" ? { status: "confirmed,tentative,waitlisted,enquiry" } : { view: tab };
-  const st = useLoad(() => (tab === "search" && !term ? Promise.resolve({ items: [], business_date: "" }) : get(`/api/hotels/${hotel!.id}/reservations`, params)), [hotel?.id, tab, term]);
+  useEffect(() => setPage(1), [tab, term]);
+  const st = useLoad(() => (tab === "wakeup" || (tab === "search" && !term) ? Promise.resolve({ items: [], business_date: "" }) : get(`/api/hotels/${hotel!.id}/reservations`, { ...params, page, page_size: 50 })), [hotel?.id, tab, term, page]);
   const cur = hotel!.currency;
   return (
     <div className="page">
@@ -30,7 +33,7 @@ export default function Reservations({ q }: { q: URLSearchParams }) {
       {tab === "search" && <form className="row gap-s mb" onSubmit={e => { e.preventDefault(); setTerm(search); }}>
         <Input placeholder="Name, reference, phone, email, room number or company" value={search} onChange={e => setSearch(e.target.value)} style={{ flex: 1 }} autoFocus />
         <Button type="submit">Search</Button></form>}
-      <Card pad={false}><Loadable state={st}>{d => (
+      {tab === "wakeup" ? <WakeUpCalls /> : <Card pad={false}><Loadable state={st}>{d => (<>
         <Table rows={d.items} onRow={r => navigate(`/reservations/${r.id}`)} empty={tab === "search" && !term ? "Enter a search term" : "No reservations"} cols={[
           { h: "Reference", r: r => <b>{r.reference}</b> },
           { h: "Guest", r: r => <>{r.first_name} {r.last_name} {r.vip ? <Pill s="vip_hold" text="VIP" /> : null}<div className="muted small">{r.phone}</div></> },
@@ -39,7 +42,8 @@ export default function Reservations({ q }: { q: URLSearchParams }) {
           { h: "Guests", r: r => `${r.adults}A${r.children ? ` ${r.children}C` : ""}` },
           { h: "Source", r: r => label(r.source) },
           { h: "Status", r: r => <Pill s={r.status} /> },
-        ]} />)}</Loadable></Card>
+        ]} />
+        <Pager page={d.page || 1} pages={d.pages || 1} total={d.total || 0} onPage={setPage} /></>)}</Loadable></Card>}
       {audit && <Confirm title="Run night audit" confirmText="Run night audit" onClose={() => setAudit(false)}
         text={<p>This posts tonight's room charges to every in-house folio and moves the business date forward by one day. It cannot be undone.</p>}
         onConfirm={async () => {
@@ -258,6 +262,7 @@ export function ReservationDetail({ id }: { id: number }) {
             </dl> : <p className="muted">A folio opens at check-in or when a deposit is taken.</p>}</Card>
           </div>
           <div className="grid-2">
+            <StayServices r={r} onChange={st.reload} />
             <DocumentsPanel entityType="reservation" entityId={r.id} />
             <Card title="History"><ul className="timeline">{r.history.map((h: any, i: number) => <li key={i}><b>{label(h.action.split(".")[1])}</b> <span className="muted">by {h.user_name || "system / online"} · {fmtDateTime(h.created_at)}</span></li>)}</ul></Card>
             <Card title="Guest communications">{r.notifications.length ? <Table rows={r.notifications} cols={[

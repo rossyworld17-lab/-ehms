@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder, MdGroups,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder, MdGroups, MdBackup, MdHelpOutline, MdChevronRight,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
-import { get } from "./api";
+import { get, put } from "./api";
+import { useT, LangSelect } from "./i18n";
 import Login, { ForgotPassword } from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import RoomBoard from "./pages/RoomBoard";
@@ -36,6 +37,7 @@ import Assistant from "./pages/Assistant";
 import Documents from "./pages/Documents";
 import Groups, { GroupDetail } from "./pages/Groups";
 import { Spinner } from "./ui";
+import { Backups, Help } from "./pages/Completion";
 
 declare const __APP_VERSION__: string;
 const APP_VERSION = __APP_VERSION__;
@@ -74,14 +76,14 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/revenue", label: "Sales & revenue", icon: <MdTrendingUp />, perm: "sales.view" },
   ]},
   { group: "Intelligence", items: [
-    { to: "/insights", label: "Insights", icon: <MdInsights />, any: ["bi.view", "ai.anomalies.view", "ai.assistant", "bi.schedule"] },
+    { to: "/insights", label: "Insights", icon: <MdInsights />, any: ["bi.view", "ai.anomalies.view", "ai.assistant", "bi.schedule", "crm.view", "maintenance.view"] },
     { to: "/assistant", label: "Ask EHMS", icon: <MdQuestionAnswer />, perm: "ai.assistant" },
     { to: "/documents", label: "Documents", icon: <MdFolder />, any: ["documents.view", "documents.upload"] },
   ]},
   { group: "Finance", items: [
     { to: "/accounting", label: "Accounting", icon: <MdAccountBalance />, perm: "accounting.view" },
     { to: "/approvals", label: "Approvals", icon: <MdVerified />, perm: "approvals.view" },
-    { to: "/finance", label: "Finance operations", icon: <MdReceiptLong />, any: ["finance.expenses.request", "accounting.reconcile", "accounting.view"] },
+    { to: "/finance", label: "Finance operations", icon: <MdReceiptLong />, any: ["finance.expenses.request", "accounting.reconcile", "accounting.view", "finance.petty_cash"] },
     { to: "/promotions", label: "Promotions", icon: <MdLocalOffer />, perm: "promotions.manage" },
     { to: "/reports", label: "Reports", icon: <MdAssessment />, perm: "reports.view" },
   ]},
@@ -92,11 +94,38 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/admin/rooms", label: "Rooms & rates", icon: <MdMeetingRoom />, perm: "rooms.manage" },
     { to: "/admin/audit", label: "Audit trail", icon: <MdHistory />, perm: "admin.audit.view" },
     { to: "/admin/messaging", label: "Messaging", icon: <MdMail />, perm: "admin.notifications.manage" },
+    { to: "/admin/backups", label: "Backups", icon: <MdBackup />, perm: "admin.backups" },
+  ]},
+  { group: "Help", items: [
+    { to: "/help", label: "Help & support", icon: <MdHelpOutline /> },
   ]},
 ];
 
+function Breadcrumb({ path }: { path: string }) {
+  const { t } = useT();
+  if (path === "/") return null;
+  const seg = path.split("/").filter(Boolean);
+  let found: { group: string; item: NavItem } | null = null;
+  for (const g of NAV) for (const i of g.items) {
+    if (i.to !== "/" && (path === i.to || path.startsWith(i.to + "/")) && (!found || i.to.length > found.item.to.length)) found = { group: g.group, item: i };
+  }
+  const parents: Record<string, [string, string]> = { folio: ["/reservations", "Front desk & reservations"] };
+  if (!found && parents[seg[0]]) found = { group: "Operations", item: { to: parents[seg[0]][0], label: parents[seg[0]][1], icon: null } };
+  const detail = found && path !== found.item.to ? seg[seg.length - 1] : null;
+  return (
+    <nav className="crumbs" aria-label="Breadcrumb">
+      <a href="#/">{t("Home")}</a>
+      {found && <><MdChevronRight aria-hidden /><span>{t(found.group)}</span><MdChevronRight aria-hidden />
+        {detail ? <a href={"#" + found.item.to}>{t(found.item.label)}</a> : <span aria-current="page">{t(found.item.label)}</span>}</>}
+      {detail && <><MdChevronRight aria-hidden /><span aria-current="page">{/^\d+$/.test(detail) ? `#${detail}` : t(detail.charAt(0).toUpperCase() + detail.slice(1))}</span></>}
+    </nav>
+  );
+}
+
 function Shell({ children, path }: { children: React.ReactNode; path: string }) {
   const { user, hotel, setHotelId, can, signOut } = useAuth();
+  const { t, lang, setLang } = useT();
+  useEffect(() => { if (user?.language && user.language !== lang) setLang(user.language); }, [user?.id]);
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 900);
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState("");
@@ -111,14 +140,14 @@ function Shell({ children, path }: { children: React.ReactNode; path: string }) 
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""}`}>
       <aside className="side">
-        <div className="brand"><span className="logo">E</span><span className="brand-t">EHMS<small>Hotel Management · v{APP_VERSION}</small></span></div>
+        <div className="brand">{(hotel as any)?.logo_url ? <img className="logo logo-img" src={(hotel as any).logo_url} alt="" /> : <span className="logo">E</span>}<span className="brand-t">EHMS<small>{t("Hotel Management")} · v{APP_VERSION}</small></span></div>
         <nav>
           {NAV.map(g => {
             const items = g.items.filter(i => (!i.perm || can(i.perm)) && (!i.any || i.any.some(p => can(p))));
             if (!items.length) return null;
-            return <div key={g.group} className="nav-g"><div className="nav-gt">{g.group}</div>
-              {items.map(i => <a key={i.to} href={"#" + i.to} className={active(i.to) ? "on" : ""} title={i.label}
-                onClick={() => { if (window.innerWidth < 900) setCollapsed(true); }}>{i.icon}<span>{i.label}</span>
+            return <div key={g.group} className="nav-g"><div className="nav-gt">{t(g.group)}</div>
+              {items.map(i => <a key={i.to} href={"#" + i.to} className={active(i.to) ? "on" : ""} title={t(i.label)}
+                onClick={() => { if (window.innerWidth < 900) setCollapsed(true); }}>{i.icon}<span>{t(i.label)}</span>
                 {i.to === "/approvals" && pending > 0 && <b className="badge">{pending}</b>}</a>)}
             </div>;
           })}
@@ -126,16 +155,16 @@ function Shell({ children, path }: { children: React.ReactNode; path: string }) 
       </aside>
       <div className="main">
         <header className="top">
-          <button className="icon-btn" onClick={() => setCollapsed(c => !c)} aria-label="Toggle navigation"><MdMenu /></button>
+          <button className="icon-btn" onClick={() => setCollapsed(c => !c)} aria-label={t("Toggle navigation")}><MdMenu /></button>
           {user && user.hotels.length > 1 ? (
-            <select className="hotel-sel" value={hotel?.id} onChange={e => setHotelId(Number(e.target.value))} aria-label="Select hotel">
+            <select className="hotel-sel" value={hotel?.id} onChange={e => setHotelId(Number(e.target.value))} aria-label={t("Select hotel")}>
               {user.hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
             </select>
           ) : <strong className="hotel-name">{hotel?.name}</strong>}
-          {bdate && <span className="bdate" title="Business date (advanced by night audit)">Business date <b>{bdate}</b></span>}
+          {bdate && <span className="bdate" title="Business date (advanced by night audit)">{t("Business date")} <b>{bdate}</b></span>}
           {can("reservations.view") && (
             <form className="gsearch" onSubmit={e => { e.preventDefault(); if (search.trim()) navigate(`/reservations?tab=search&q=${encodeURIComponent(search.trim())}`); }}>
-              <MdSearch /><input placeholder="Search guest, reference, room, phone…" value={search} onChange={e => setSearch(e.target.value)} aria-label="Global search" />
+              <MdSearch /><input placeholder={t("Search guest, reference, room, phone…")} value={search} onChange={e => setSearch(e.target.value)} aria-label="Global search" />
             </form>
           )}
           <div className="spacer" />
@@ -146,29 +175,33 @@ function Shell({ children, path }: { children: React.ReactNode; path: string }) 
               <span className="user-n">{user?.full_name}<small>{user?.roles.map(r => r.name).join(", ")}</small></span>
             </button>
             {menu && <div className="menu" role="menu" onMouseLeave={() => setMenu(false)}>
-              <a href="#/profile" onClick={() => setMenu(false)}><MdPerson /> My profile & security</a>
-              <button onClick={() => signOut()}><MdLogout /> Sign out</button>
+              <a href="#/profile" onClick={() => setMenu(false)}><MdPerson /> {t("My profile & security")}</a>
+              <a href="#/help" onClick={() => setMenu(false)}><MdHelpOutline /> {t("Help & support")}</a>
+              <label className="menu-lang">{t("Language")} <LangSelect onChange={l => put("/api/me/preferences", { language: l }).catch(() => undefined)} /></label>
+              <button onClick={() => signOut()}><MdLogout /> {t("Sign out")}</button>
             </div>}
           </div>
         </header>
-        <main className="content">{children}</main>
+        <main className="content"><Breadcrumb path={path} />{children}</main>
       </div>
     </div>
   );
 }
 
 function Forbidden() {
-  return <div className="empty"><h2>No access</h2><p>Your role does not include this area. Contact your administrator if you need access.</p></div>;
+  const { t } = useT();
+  return <div className="empty"><h2>{t("No access")}</h2><p>{t("Your role does not include this area. Contact your administrator if you need access.")}</p></div>;
 }
 
 export default function App() {
   const { user, ready, hotel, can } = useAuth();
+  const { t } = useT();
   const [path, q] = useRoute();
 
   if (window.location.pathname === "/payment-return") return <PaymentReturn />;
   if (path.startsWith("/book/")) return <BookingPortal code={path.split("/")[2] || ""} />;
   if (path.startsWith("/survey/")) return <Survey token={path.split("/")[2] || ""} />;
-  if (!ready) return <Spinner text="Starting EHMS…" />;
+  if (!ready) return <Spinner text={t("Starting EHMS…")} />;
   if (path === "/forgot") return <ForgotPassword />;
   if (!user) return <Login />;
   if (!hotel) return <div className="empty"><h2>No hotel assigned</h2><p>Your account is not assigned to any hotel yet. Ask an administrator to grant access.</p></div>;
@@ -185,13 +218,13 @@ export default function App() {
     case seg[0] === "inventory" && seg[1] === "items" && !!seg[2]: page = guard("inventory.view", <ItemDetail id={Number(seg[2])} />); break;
     case path === "/inventory": page = guard("inventory.view", <Inventory q={q} />); break;
     case path === "/procurement": page = guard("procurement.view", <Procurement q={q} />); break;
-    case path === "/finance": page = ["finance.expenses.request", "accounting.reconcile", "accounting.view"].some(can) ? <Finance q={q} /> : <Forbidden />; break;
+    case path === "/finance": page = ["finance.expenses.request", "accounting.reconcile", "accounting.view", "finance.petty_cash"].some(can) ? <Finance q={q} /> : <Forbidden />; break;
     case path === "/maintenance": page = guard("maintenance.report", <Maintenance q={q} />); break;
     case path === "/security": page = ["security.view", "security.report", "lostfound.manage"].some(can) ? <Security q={q} /> : <Forbidden />; break;
     case path === "/events": page = guard("events.view", <Events />); break;
     case seg[0] === "groups" && !!seg[1]: page = guard("reservations.view", <GroupDetail id={Number(seg[1])} />); break;
     case path === "/groups": page = guard("reservations.view", <Groups />); break;
-    case path === "/insights": page = ["bi.view", "ai.anomalies.view", "ai.assistant", "bi.schedule"].some(can) ? <Insights q={q} /> : <Forbidden />; break;
+    case path === "/insights": page = ["bi.view", "ai.anomalies.view", "ai.assistant", "bi.schedule", "crm.view", "maintenance.view"].some(can) ? <Insights q={q} /> : <Forbidden />; break;
     case path === "/assistant": page = guard("ai.assistant", <Assistant />); break;
     case seg[0] === "documents": page = ["documents.view", "documents.upload"].some(can) ? <Documents q={q} openId={seg[1] ? Number(seg[1]) : undefined} /> : <Forbidden />; break;
     case path === "/crm": page = ["crm.view", "crm.complaints"].some(can) ? <CRM q={q} /> : <Forbidden />; break;
@@ -221,7 +254,9 @@ export default function App() {
     case path === "/admin/rooms": page = guard("rooms.manage", <RoomSetup />); break;
     case path === "/admin/audit": page = guard("admin.audit.view", <AuditLog />); break;
     case path === "/profile": page = <Profile />; break;
-    default: page = <div className="empty"><h2>Page not found</h2><p><a href="#/">Go to the dashboard</a></p></div>;
+    case path === "/help": page = <Help />; break;
+    case path === "/admin/backups": page = guard("admin.backups", <Backups />); break;
+    default: page = <div className="empty"><h2>{t("Page not found")}</h2><p><a href="#/">{t("Go to the dashboard")}</a></p></div>;
   }
   return <Shell path={path}>{page}</Shell>;
 }

@@ -5,6 +5,11 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
+> **Release 1.2 — requirements completion.** Every requirement in the SRS and the master prompt is checked in
+> [docs/COMPLIANCE.md](docs/COMPLIANCE.md); this release adds backups with verified restore, wake-up calls, early/late
+> check-out fees, registration cards, drag-and-drop room assignment, table bookings, purchase returns, referrals, petty
+> cash and payment vouchers, staff welfare, room photos, predictions, English/French and more.
+>
 > **Release 1.1.2** makes sure a browser never keeps old cached screens after an upgrade and shows the version on
 > screen. **Release 1.1.1** ships the interface pre-built (no Node needed to run it) and warns on screen if an old interface
 > build is being served. **Release 1.1 — full HR suite.** HR dashboard, staff requests, appraisals, training, leave calendar and public holidays,
@@ -21,7 +26,7 @@ and policy is configurable for other countries.
 
 | Area | Highlights |
 |---|---|
-| Security & access | scrypt password hashing, JWT sessions with idle timeout and revocation, account lockout, TOTP multi-factor authentication, password reset, 125 permissions, 29 role templates + custom roles, per-hotel scoping, privilege-escalation guard, login history |
+| Security & access | scrypt password hashing, JWT sessions with idle timeout and revocation, account lockout, TOTP multi-factor authentication, password reset, 130 permissions, 29 role templates + custom roles, per-hotel scoping, privilege-escalation guard, login history |
 | Properties | Multiple hotels/branches per organisation, profile & policies, departments, configurable taxes (inclusive/exclusive, effective dates), service charge, payment methods mapped to ledger accounts |
 | Rooms | Categories with standard / weekend / corporate / extra-person rates, room inventory, colour-coded live room board, out-of-order / maintenance / VIP blocks |
 | Reservations | Individual, walk-in, corporate, group, travel-agent, VIP; enquiry → tentative → confirmed → checked-in → checked-out / cancelled / no-show / waitlist; per-night pricing with tax preview; transaction-safe double-booking prevention; authorised overbooking & rate overrides; duplicate-guest detection; room-by-day calendar |
@@ -123,9 +128,12 @@ python ../frontend/e2e/smoke.py                         # browser end-to-end (ap
 
 ## Documentation
 
+- **[Requirements compliance](docs/COMPLIANCE.md)** — every SRS and master-prompt requirement with its status
+- **[Data dictionary](docs/DATA_DICTIONARY.md)** — all tables and columns with ER diagrams (generated)
+
 - [Architecture & database](docs/ARCHITECTURE.md)
 - [REST API reference](docs/API.md)
-- **[EHMS v1.1.2 User Guide (Word)](docs/EHMS_v1.1.2_User_Guide.docx)** — complete guide for staff, managers and administrators
+- **[EHMS v1.2.0 User Guide (Word)](docs/EHMS_v1.2.0_User_Guide.docx)** — complete guide for staff, managers and administrators
 - [User guide](docs/USER_GUIDE.md) · [Administrator manual](docs/ADMIN_MANUAL.md)
 - [Deployment, backup & recovery](docs/DEPLOYMENT.md)
 - [Test report](docs/TEST_REPORT.md) · [Requirements traceability](docs/TRACEABILITY.md) · [Progress register](docs/PROGRESS.md) · [Roadmap](docs/ROADMAP.md)

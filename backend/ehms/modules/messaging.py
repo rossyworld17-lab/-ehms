@@ -18,6 +18,10 @@ DEFAULT_TEMPLATES: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
                   "Please bring a valid ID.\nReservation: {reference}\n\n{hotel}"),
         "sms": ("", "{hotel}: we look forward to welcoming you tomorrow. Check-in from {checkin_time}. Ref {reference}."),
         "whatsapp": ("", "Hello {guest}, {hotel} looks forward to welcoming you tomorrow ({arrival}). Check-in is from {checkin_time}. Ref {reference}.")}),
+    "checkout_reminder": ("Check-out day reminder (with balance due)", {
+        "email": ("Your departure today — {hotel}", "Dear {guest},\n\nWe hope you enjoyed your stay. Check-out is by {checkout_time} today. "
+                  "The balance on your account is {balance}; you can settle it at reception or ask us for a payment link.\n\nRef {reference} — {hotel}"),
+        "sms": ("", "{hotel}: check-out today by {checkout_time}. Balance {balance}. Ref {reference}.")}),
     "checkout_thanks": ("Post check-out thank-you", {
         "email": ("Thank you for staying at {hotel}", "Dear {guest},\n\nThank you for staying with us. We would value two minutes of your time to tell us "
                   "how we did: {survey_link}\n\nWe hope to welcome you again soon.\n\n{hotel}")}),

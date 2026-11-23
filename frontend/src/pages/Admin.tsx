@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { fmtDateTime, get, label, patch, post, put } from "../api";
 import { useAuth } from "../state";
-import { Button, Card, Confirm, Field, Input, Loadable, Modal, Pill, Select, Table, Tabs, errText, useAction, useLoad, useToast } from "../ui";
+import { Button, Card, Confirm, Field, Input, Loadable, Modal, Pager, Pill, Select, Table, Tabs, errText, useAction, useLoad, useToast } from "../ui";
 
 export function Users() {
   const { can } = useAuth();
@@ -121,7 +121,9 @@ export function Roles() {
 export function AuditLog() {
   const [tab, setTab] = useState("audit");
   const [f, setF] = useState({ entity: "", action: "", from: "", to: "" });
-  const audit = useLoad(() => (tab === "audit" ? get("/api/admin/audit-logs", f) : get("/api/admin/login-attempts")), [tab, f.entity, f.action, f.from, f.to]);
+  const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [f.entity, f.action, f.from, f.to]);
+  const audit = useLoad(() => (tab === "audit" ? get("/api/admin/audit-logs", { ...f, page, page_size: 100 }) : get("/api/admin/login-attempts")), [tab, f.entity, f.action, f.from, f.to, page]);
   return <div className="page">
     <div className="page-h"><div><h1>Audit trail</h1><p className="muted">Append-only record of significant actions — cannot be edited or deleted</p></div></div>
     <Tabs tabs={[{ id: "audit", label: "Activity" }, { id: "logins", label: "Sign-in history" }]} value={tab} onChange={setTab} />
@@ -131,11 +133,11 @@ export function AuditLog() {
       <Input placeholder="Action e.g. frontdesk.check_in" value={f.action} onChange={e => setF({ ...f, action: e.target.value })} />
       <Input type="date" value={f.from} onChange={e => setF({ ...f, from: e.target.value })} aria-label="From" />
       <Input type="date" value={f.to} onChange={e => setF({ ...f, to: e.target.value })} aria-label="To" /></div>}
-    <Card pad={false}><Loadable state={audit}>{d => tab === "audit" ? <Table rows={d.items} cols={[
+    <Card pad={false}><Loadable state={audit}>{d => tab === "audit" ? <><Table rows={d.items} cols={[
       { h: "When", r: a => fmtDateTime(a.created_at) }, { h: "User", r: a => a.user_name || "System / guest" }, { h: "Action", r: a => <code>{a.action}</code> },
       { h: "Record", r: a => `${label(a.entity)} ${a.reference || a.entity_id || ""}` },
       { h: "Change", r: a => <details><summary className="small">view</summary>{a.old_value && <pre className="pre">before: {a.old_value}</pre>}{a.new_value && <pre className="pre">after: {a.new_value}</pre>}</details> },
-      { h: "IP", r: a => a.ip || "—" }]} /> : <Table rows={d.items} cols={[
+      { h: "IP", r: a => a.ip || "—" }]} /><Pager page={d.page || 1} pages={d.pages || 1} total={d.total || 0} onPage={setPage} /></> : <Table rows={d.items} cols={[
       { h: "When", r: a => fmtDateTime(a.created_at) }, { h: "Email", r: a => a.email }, { h: "Result", r: a => <Pill s={a.success ? "approved" : "failed"} text={a.success ? "Success" : "Failed"} /> },
       { h: "Reason", r: a => label(a.reason) }, { h: "IP", r: a => a.ip || "—" }]} />}</Loadable></Card>
   </div>;

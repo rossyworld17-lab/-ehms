@@ -1,14 +1,15 @@
-# Test report — release 1.1
+# Test report — release 1.2
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 98 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 115 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
 |---|---|---|
+| **Requirements completion (1.2)** | 14 | wake-up calls (booking, duplicates, outcomes, reminder once and only when due — including calls just after midnight), early check-in / late check-out fees posted to the folio and waiving restricted, registration card PDF; table bookings with clash prevention and seating rules; purchase returns before invoicing (GRNI, order reopened) and after (invoice credit) with stock and ledger reconciled; referral codes, booking-engine referral, self-referral refused, points awarded once at check-out; welfare register confidential to `hr.records`; petty cash fund, voucher limit, approval by another person, overdraw refused, top-up, voucher PDF, books balanced; room photos (type/content checks), video links (https only), public gallery; CCTV clip links (https only); pagination totals; language preference; backup → verify (test restore) → download → restore into an empty database with identical counts and balanced books, restore over data refused, tampered archive rejected; scheduled backup once a day, failure alerts administrators; cancellation risk, equipment-failure prediction, guest insights, daily summary; check-out reminders; public booking confirmation PDF needs the guest's email; hotel logo; biometric clock intake with token |
 | **HR suite (1.1)** | 8 | employee applies for leave, HR approves, holidays excluded from days, staff cancels, HR ends leave early with days returned; staff requests: change of details applied on approval, shift swap swaps roster shifts, letter PDF only for owner and HR, advance above one month's pay refused, approved advance notifies payroll and is completed by payroll only, nobody decides their own request; grievances hidden from HR officers; appraisals draft → share → acknowledge, no self-appraisal, drafts invisible to staff; job history applies promotion; training expiry list; logins issued by HR cannot carry admin roles; exit suspends login and revokes sessions; HR dashboard alerts |
 | Authentication & RBAC | 11 | login, wrong password logged, lockout after 5 failures, unauthenticated rejection, permission enforcement, hotel scoping, logout & admin session revocation, full MFA enrolment and MFA-gated sign-in, suspension blocks login and is audited, privilege-escalation blocked, scrypt hashing |
 | Reservations | 8 | creation & reference format, per-night quote with 10 % service charge + 7.5 % VAT, honest `not_configured` email status, same room cannot be double-booked (back-to-back allowed), category cannot be oversold without permission + reason, rate override needs permission, max occupancy, modify / cancel / no-show rules, availability decrements, duplicate-guest detection, identity masking |
@@ -137,3 +138,11 @@ sales permissions granted, 0.8 demo data added once, books balanced.
 ## Not yet covered
 External penetration test, load/performance test, accessibility audit with assistive technology, and modules
 listed as pending in ROADMAP.md.
+
+## Defects found and fixed while building 1.2
+| # | Defect | Fix |
+|---|---|---|
+| 1 | Wake-up reminders compared clock times as text, so a call due just after midnight was never flagged | Compares full date-times; a test covers a call five minutes ahead across midnight |
+| 2 | The test restore failed on the circular links between reservations, group blocks and folios | Restore order breaks one nullable link per cycle and fills it in afterwards; tested on SQLite and PostgreSQL |
+| 3 | The Insights page ignored a link to another tab while already open | The tab follows the address |
+| 4 | An HR leave test assumed a week without public holidays (it failed in Christmas week) | The test picks a week without seeded holidays |

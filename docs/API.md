@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **410**
+Total endpoints: **456**
 
 ## Accounting
 
@@ -44,6 +44,12 @@ Total endpoints: **410**
 | GET | `/api/admin/audit-logs` | Search the audit trail | `admin.audit.view` |
 | GET | `/api/admin/login-attempts` | Login history including failed attempts | `admin.audit.view` |
 | GET | `/api/hotels/{hotel_id}/notifications` | Outgoing notification log with delivery status | `admin.settings.manage` |
+| GET | `/api/admin/backups` | Backup history, schedule and storage location | `admin.backups` |
+| POST | `/api/admin/backups` | Back up the database and stored documents now | `admin.backups` |
+| POST | `/api/admin/backups/{backup_id}/verify` | Verify a backup: checksums, row counts and a test restore into a temporary database | `admin.backups` |
+| GET | `/api/admin/backups/{backup_id}/download` | Download a backup archive (logged) | `admin.backups` |
+| PUT | `/api/admin/backups/schedule` | Automatic backups: enabled, hour_utc (0–23), retention_days (1–365, scheduled backups older than this are deleted) | `admin.backups` |
+| POST | `/api/hotels/{hotel_id}/logo` | Upload the hotel logo: filename, content_base64 (PNG/JPEG/WebP, up to 1 MB) | `admin.settings.manage` |
 
 ## Ai
 
@@ -59,6 +65,10 @@ Total endpoints: **410**
 | GET | `/api/assistant/status` | Which engine answers and what the user may ask about | `ai.assistant` |
 | POST | `/api/assistant/ask` | Ask a question ({question, hotel_id}); answers use only data you are permitted to see | `ai.assistant` |
 | GET | `/api/hotels/{hotel_id}/assistant/log` | Assistant questions asked (audit) | `admin.audit.view` |
+| GET | `/api/hotels/{hotel_id}/insights/cancellation-risk` | Upcoming bookings scored for cancellation risk with the reasons (?days=30). A prediction only — nothing is changed | `reservations.view` |
+| GET | `/api/hotels/{hotel_id}/insights/maintenance-risk` | Assets likely to fail next, from their repair history (mean time between failures) | `maintenance.view` |
+| GET | `/api/hotels/{hotel_id}/insights/guests` | Guest demographics and preferences: nationality mix, preferred room categories, booking sources, stay length, repeat guests (?from, ?to) | `crm.view` |
+| GET | `/api/hotels/{hotel_id}/insights/daily-summary` | Plain-language management summary of yesterday's business date and today's outlook, from recorded data | `dashboard.view` |
 
 ## Auth
 
@@ -75,6 +85,8 @@ Total endpoints: **410**
 | POST | `/api/auth/password-reset/request` | Request a password-reset link by email | public |
 | POST | `/api/auth/password-reset/confirm` | Set a new password using a reset code | public |
 | GET | `/api/auth/sessions` | List my active sessions | signed in |
+| GET | `/api/me/preferences` | Your interface language and the languages available | signed in |
+| PUT | `/api/me/preferences` | Set your interface language: language (en / fr) | signed in |
 
 ## Bi
 
@@ -102,6 +114,9 @@ Total endpoints: **410**
 | POST | `/api/public/webhooks/flutterwave` | Flutterwave webhook (verif-hash header) | public |
 | GET | `/api/public/feedback/{token}` | Guest survey form details | public |
 | POST | `/api/public/feedback/{token}` | Submit the post-stay survey (ratings 1–5, NPS 0–10, comments) | public |
+| GET | `/api/public/media/{media_id}` | A room photo (public, for the booking engine) | public |
+| GET | `/api/public/bookings/{reference}/confirmation.pdf` | Booking confirmation and pro-forma receipt (PDF) for a guest: ?email= | public |
+| GET | `/api/public/hotels/{hotel_id}/logo` | The hotel logo (404 when none is set) | public |
 
 ## Crm
 
@@ -125,6 +140,11 @@ Total endpoints: **410**
 | POST | `/api/hotels/{hotel_id}/campaigns` | Create a draft campaign (name, channel, segment, subject, body, promo_code) | `crm.campaigns` |
 | POST | `/api/campaigns/{campaign_id}/send` | Send a draft campaign to consenting guests in its segment (queues one message each; includes an opt-out line) | `crm.campaigns` |
 | POST | `/api/guests/{guest_id}/unsubscribe` | Record a guest's marketing opt-out | `guests.manage` |
+| GET | `/api/guests/{guest_id}/referral` | A guest's referral code and the guests they referred | `guests.view` |
+| POST | `/api/guests/{guest_id}/referral` | Create (or return) the guest's personal referral code | `guests.manage` |
+| POST | `/api/reservations/{res_id}/referral` | Record that a booking was referred: code | `reservations.modify` |
+| GET | `/api/hotels/{hotel_id}/referrals` | Referral programme rules and referrals | `crm.view` |
+| PUT | `/api/hotels/{hotel_id}/referrals/rules` | Configure the referral programme: enabled, points_referrer | `crm.manage` |
 
 ## Dashboard
 
@@ -200,6 +220,12 @@ Total endpoints: **410**
 | GET | `/api/hotels/{hotel_id}/notes` | Credit and debit notes (?status) | `folio.view` |
 | POST | `/api/notes/{note_id}/decide` | Approve or reject a credit/debit note ({decision, note}); approval posts it to the folio and the ledger | `finance.notes.approve` |
 | GET | `/api/notes/{note_id}/pdf` | Credit or debit note as PDF | `folio.view` |
+| GET | `/api/hotels/{hotel_id}/petty-cash` | Petty cash funds with balances, and recent vouchers and top-ups (?fund_id) | `finance.petty_cash` |
+| POST | `/api/hotels/{hotel_id}/petty-cash/funds` | Open a petty cash fund: name, custodian_id, imprest, voucher_limit, source_method_id (the float is paid in from cash or bank) | `finance.petty_cash.manage` |
+| POST | `/api/petty-cash/funds/{fund_id}/top-up` | Replenish a fund: source_method_id, amount (default: back up to the float) | `finance.petty_cash.manage` |
+| POST | `/api/petty-cash/funds/{fund_id}/vouchers` | Pay out from petty cash: payee, description, expense_account_id, department, amount (over the fund's limit → needs approval) | `finance.petty_cash` |
+| POST | `/api/petty-cash/vouchers/{entry_id}/decide` | Approve (posts) or reject a petty cash voucher above the limit: decision approve / reject, note | `finance.petty_cash.approve` |
+| GET | `/api/vouchers/{kind}/{voucher_id}` | Payment voucher PDF for a petty cash entry, a paid expense claim or a supplier payment | signed in |
 
 ## Folio
 
@@ -221,6 +247,13 @@ Total endpoints: **410**
 | POST | `/api/reservations/{res_id}/check-out` | Check a guest out (posts remaining room nights; balance must be settled) | `frontdesk.checkout` |
 | POST | `/api/reservations/{res_id}/room-move` | Move an in-house guest to another room | `frontdesk.room_move` |
 | POST | `/api/hotels/{hotel_id}/night-audit` | Night audit: post tonight's room charges for in-house guests and roll the business date | `frontdesk.night_audit` |
+| GET | `/api/hotels/{hotel_id}/wake-up-calls` | Wake-up calls for a date (?date, default today) with guest and room | `frontdesk.checkin` |
+| POST | `/api/reservations/{res_id}/wake-up-calls` | Book a wake-up call for an in-house (or arriving) guest: call_date, call_time (HH:MM), note | `frontdesk.checkin` |
+| POST | `/api/wake-up-calls/{call_id}/status` | Record the outcome of a wake-up call: status done / missed / cancelled | `frontdesk.checkin` |
+| GET | `/api/hotels/{hotel_id}/stay-fees` | Early check-in and late check-out fees | `reservations.view` |
+| PUT | `/api/hotels/{hotel_id}/stay-fees` | Set the early check-in and late check-out fees (amounts in the hotel currency; 0 = free) | `admin.settings.manage` |
+| POST | `/api/reservations/{res_id}/early-late` | Grant early check-in or late check-out: kind early_check_in / late_check_out, until (HH:MM, late check-out), waive_reason (needs reservations.waive_fee to waive the fee) | `reservations.modify` |
+| GET | `/api/reservations/{res_id}/registration-card.pdf` | Guest registration card (PDF) to print and sign at check-in | `frontdesk.checkin` |
 
 ## Groups
 
@@ -313,6 +346,9 @@ Total endpoints: **410**
 | GET | `/api/hr/assignable-roles` | Roles HR may give to staff logins (no administrator roles) | `hr.accounts` |
 | POST | `/api/employees/{employee_id}/account` | Give an employee a system login (email, role_id); administrator roles are excluded; returns a temporary password | `hr.accounts` |
 | GET | `/api/me/hr` | My full HR file: profile, line manager, leave, requests, appraisals, training, roster this week, holidays | signed in |
+| POST | `/api/employees/{employee_id}/welfare` | Record welfare support given to an employee: kind, support_date, amount (optional), description (confidential) | `hr.records` |
+| GET | `/api/hotels/{hotel_id}/hr/welfare` | Welfare register (?year) | `hr.records` |
+| POST | `/api/integrations/attendance-events` | Fingerprint / biometric clocks push clock-ins and outs (header X-EHMS-Integration-Token): hotel_code, events[{employee_no, action in/out, occurred_at}] | public |
 
 ## Inventory
 
@@ -463,6 +499,9 @@ Total endpoints: **410**
 | POST | `/api/pos/orders/{order_id}/void` | Void an unsettled order (reason required) | `pos.void` |
 | POST | `/api/pos/orders/{order_id}/settle` | Settle an order with one or more tenders: [{tender:'method', method_id, amount, reference} / {tender:'room', reservation_id, amount}] | `pos.settle` |
 | GET | `/api/pos/orders/{order_id}/receipt.pdf` | Order receipt / bill as PDF (80 mm) | `pos.view` |
+| GET | `/api/hotels/{hotel_id}/table-reservations` | Table reservations for a date (?date, ?outlet_id) | `pos.view` |
+| POST | `/api/hotels/{hotel_id}/table-reservations` | Book a table: outlet_id, table_id (optional), guest_name, phone, party_size, reserved_date, reserved_time, duration_min, reservation_id (in-house guest), notes | `pos.order` |
+| POST | `/api/table-reservations/{booking_id}/status` | Change a table booking: status seated / completed / cancelled / no_show; table_id when seating an unassigned booking | `pos.order` |
 
 ## Procurement
 
@@ -489,6 +528,10 @@ Total endpoints: **410**
 | POST | `/api/procurement/invoices/{invoice_id}/decide` | Approve a supplier invoice for payment (posts it to Accounts Payable) or reject it | `procurement.invoice_approve` |
 | POST | `/api/procurement/invoices/{invoice_id}/payments` | Pay an approved supplier invoice (cash or bank transfer); withholding tax is deducted at the supplier's rate | `procurement.pay` |
 | GET | `/api/hotels/{hotel_id}/procurement/summary` | Procurement dashboard: open orders, awaiting approval, payables ageing and spend by supplier (?from, ?to) | `procurement.view` |
+| GET | `/api/procurement/grns/{grn_id}` | Goods received note with lines, quantities already returned and returns made | `procurement.view` |
+| GET | `/api/hotels/{hotel_id}/procurement/grns` | Goods received notes (?q = GRN or PO number) | `procurement.view` |
+| GET | `/api/hotels/{hotel_id}/procurement/returns` | Purchase returns | `procurement.view` |
+| POST | `/api/procurement/grns/{grn_id}/returns` | Return goods to the supplier: lines[{grn_line_id, quantity}], reason, invoice_id (if the supplier already invoiced them) | `procurement.return` |
 
 ## Property
 
@@ -540,6 +583,9 @@ Total endpoints: **410**
 | PATCH | `/api/rooms/{room_id}` | Edit room details | `rooms.manage` |
 | POST | `/api/rooms/{room_id}/housekeeping-status` | Set room housekeeping status (dirty / clean / inspected) | `rooms.status.update` |
 | POST | `/api/rooms/{room_id}/service-status` | Block a room / set out of order, out of service, maintenance, VIP hold, or return to service | `rooms.block` |
+| GET | `/api/room-types/{rt_id}/media` | Photos and videos of a room category | `rooms.view` |
+| POST | `/api/room-types/{rt_id}/media` | Add a photo (filename, content_base64; JPEG/PNG/WebP up to 5 MB) or a video (kind=video, url) with a caption | `rooms.manage` |
+| DELETE | `/api/media/{media_id}` | Remove a photo or video | `rooms.manage` |
 
 ## Sales
 
@@ -580,6 +626,6 @@ Total endpoints: **410**
 | POST | `/api/lost-found/{item_id}/release` | Return an item to its owner (claimant name & contact, ID checked required for valuables) or dispose/donate after the holding period | `lostfound.manage` |
 | GET | `/api/hotels/{hotel_id}/emergency-contacts` | Emergency contacts (any signed-in staff member) | signed in |
 | PUT | `/api/hotels/{hotel_id}/emergency-contacts` | Replace the emergency contact list: items[{name, role, phone, notes}] | `security.manage` |
-| POST | `/api/integrations/access-events` | Door-lock / key-card / access-control systems push events here (header X-EHMS-Integration-Token) | public |
+| POST | `/api/integrations/access-events` | Door-lock, key-card, access-control and CCTV systems push events here (header X-EHMS-Integration-Token); CCTV sends source=cctv, door=camera name, event=motion/tamper/alarm and an optional https clip_url | public |
 | GET | `/api/hotels/{hotel_id}/access-events` | Access-control event log (?door, ?date) | `security.view` |
 

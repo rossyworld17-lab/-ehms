@@ -502,6 +502,8 @@ def receive(ctx: Ctx):
 # ------------------------------------------------------------------ supplier invoices & payments
 def _uninvoiced_receipts(c, po_id: int, exclude_invoice: int | None = None) -> int:
     received = c.scalar("SELECT COALESCE(SUM(value),0) FROM goods_receipts WHERE po_id = ?", [po_id]) or 0
+    # goods returned before they were invoiced no longer await an invoice
+    received -= c.scalar("SELECT COALESCE(SUM(value),0) FROM purchase_returns WHERE po_id = ? AND settlement = 'grni'", [po_id]) or 0
     sql = "SELECT COALESCE(SUM(received_value),0) FROM supplier_invoices WHERE po_id = ? AND status <> 'rejected'"
     params: list = [po_id]
     if exclude_invoice:

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { fmtDate, fmtDateTime, get, label, money, patch, post, toMinor, fromMinor, uid } from "../api";
 import { useAuth } from "../state";
 import { BarList, Button, Card, Field, Input, Kpi, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad, useToast } from "../ui";
+import { GoodsReceived, VoucherButton } from "./Completion";
 import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
 
@@ -12,10 +13,11 @@ export default function Procurement({ q }: { q: URLSearchParams }) {
     <div className="page">
       <div className="page-h"><div><h1>Procurement</h1><p className="muted">Requisition → quotation → purchase order → goods received → invoice → payment</p></div></div>
       <Tabs tabs={[{ id: "overview", label: "Overview" }, { id: "requisitions", label: "Requisitions & quotes" }, { id: "orders", label: "Purchase orders" },
-        { id: "invoices", label: "Supplier invoices" }, { id: "suppliers", label: "Suppliers" }]} value={tab} onChange={setTab} />
+        { id: "grns", label: "Goods received & returns" }, { id: "invoices", label: "Supplier invoices" }, { id: "suppliers", label: "Suppliers" }]} value={tab} onChange={setTab} />
       {tab === "overview" && <Overview go={setTab} />}
       {tab === "requisitions" && <Requisitions />}
       {tab === "orders" && <Orders />}
+      {tab === "grns" && <GoodsReceived />}
       {tab === "invoices" && <Invoices />}
       {tab === "suppliers" && <Suppliers />}
     </div>
@@ -310,7 +312,8 @@ function Invoices() {
         {i.status === "pending_approval" && can("procurement.invoice_approve") && i.created_by !== user!.id && <>
           <Button busy={busy} onClick={() => setModal({ kind: "approve", inv: i })}>Approve</Button>
           <Button kind="ghost" onClick={() => setModal({ kind: "reject", inv: i })}>Reject</Button></>}
-        {["approved", "part_paid"].includes(i.status) && can("procurement.pay") && <Button kind="gold" onClick={() => setModal({ kind: "pay", inv: i })}>Pay</Button>}</span> }]} />}</Loadable>
+        {["approved", "part_paid"].includes(i.status) && can("procurement.pay") && <Button kind="gold" onClick={() => setModal({ kind: "pay", inv: i })}>Pay</Button>}
+        {(i.payments || []).map((p: any) => <VoucherButton key={p.id} kind="supplier_payment" id={p.id} number={p.number} />)}</span> }]} />}</Loadable>
     {modal?.kind === "new" && <InvoiceModal onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
     {modal?.kind === "approve" && <ApproveInvoice inv={modal.inv} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
     {modal?.kind === "reject" && <RejectModal title={`Reject ${modal.inv.number}`} onClose={() => setModal(null)} onReject={async (note: string) => { if (await run(() => post(`/api/procurement/invoices/${modal.inv.id}/decide`, { decision: "reject", note }), "Invoice rejected")) { setModal(null); st.reload(); } }} />}

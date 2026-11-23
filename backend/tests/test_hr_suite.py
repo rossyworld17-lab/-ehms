@@ -56,7 +56,9 @@ def test_holidays_adjustments_and_all_staff_balances(client):
     h, _ = ctx_ids()
     client.login("hrmanager@demo.ehms")
     mon = next_weekday(dt.date.fromisoformat(h["business_date"]), 21)
-    while mon.weekday() != 0:
+    with get_db().tx() as c:   # a Monday whose week has no seeded public holiday (e.g. not Christmas week)
+        hols = {r["holiday_date"] for r in c.all("SELECT holiday_date FROM public_holidays WHERE hotel_id = ?", [h["id"]])}
+    while mon.weekday() != 0 or any((mon + dt.timedelta(days=i)).isoformat() in hols for i in range(6)):
         mon += dt.timedelta(days=1)
     assert client.post(f"/api/hotels/{h['id']}/holidays", {"holiday_date": mon.isoformat(), "name": "Test holiday"}).status_code == 201
     assert client.post(f"/api/hotels/{h['id']}/holidays", {"holiday_date": mon.isoformat(), "name": "Twice"}).status_code == 409

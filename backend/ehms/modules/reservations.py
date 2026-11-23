@@ -6,7 +6,7 @@ import json
 
 from ..db import get_db, now_iso
 from ..http import Ctx, audit, bad_request, conflict, forbidden, not_found, route
-from ..services import business_date, get_hotel, nights_between, parse_date, price_breakdown, queue_notification, to_minor, next_number
+from ..services import paginate, business_date, get_hotel, nights_between, parse_date, price_breakdown, queue_notification, to_minor, next_number
 from .guests import create_guest_row, find_duplicates
 from .rooms import ACTIVE_RES, overlapping_room_reservations, type_availability
 
@@ -173,8 +173,8 @@ def list_reservations(ctx: Ctx):
             sql += (" AND (lower(r.reference) LIKE ? OR lower(g.first_name || ' ' || g.last_name) LIKE ? OR g.phone LIKE ? "
                     "OR lower(g.email) LIKE ? OR rm.number = ? OR lower(r.company_name) LIKE ?)")
             params += [s, s, s, s, ctx.q("search"), s]
-        rows = c.all(sql + " ORDER BY r.arrival, r.id LIMIT 500", params)
-    return {"items": rows, "business_date": today}
+        out = paginate(c, ctx, sql, params, "r.arrival, r.id")
+    return {**out, "business_date": today}
 
 
 @route("POST", "/api/hotels/{hotel_id:int}/reservations", perm="reservations.create", tag="reservations",

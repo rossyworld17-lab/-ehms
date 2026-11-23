@@ -36,10 +36,15 @@ def public_hotel(ctx: Ctx):
         types = c.all("SELECT id, code, name, description, max_occupancy, beds, bed_config, size_sqm, amenities, base_rate, weekend_rate, image_url "
                       "FROM room_types WHERE hotel_id = ? AND active = 1 ORDER BY base_rate", [h["id"]])
         taxes = c.all("SELECT name, rate_bp, is_inclusive FROM tax_rules WHERE hotel_id = ? AND active = 1", [h["id"]])
+        from .media import public_media
+        from .predictive import logo_url
+        logo = logo_url(c, h["id"])
+        for t in types:
+            t["media"] = public_media(c, t["id"])
     return {"code": h["code"], "name": h["name"], "address": h["address"], "city": h["city"], "phone": h["phone"], "email": h["email"],
             "star_rating": h["star_rating"], "currency": h["currency"], "check_in_time": h["check_in_time"], "check_out_time": h["check_out_time"],
             "cancellation_policy": h["cancellation_policy"], "terms": h["terms"], "amenities": h["amenities"], "room_types": types,
-            "taxes": taxes, "service_charge_bp": h["service_charge_bp"], "online_payment_available": gateway_configured()}
+            "taxes": taxes, "service_charge_bp": h["service_charge_bp"], "online_payment_available": gateway_configured(), "logo_url": logo}
 
 
 @route("GET", "/api/public/hotels/{code}/availability", public=True, tag="booking-engine", rate_limit=60,
@@ -128,6 +133,9 @@ def public_book(ctx: Ctx):
                                         "cancellation_policy_id": c.scalar("SELECT id FROM cancellation_policies WHERE hotel_id = ? AND is_default = 1 AND active = 1", [h["id"]]),
                                         "special_requests": (b.get("special_requests") or "")[:1000],
                                         "notes": "Online booking — awaiting online payment" if pay_online else "Online booking — pay at hotel", "created_at": now_iso(), "updated_at": now_iso()})
+        if b.get("referral_code"):
+            from .referrals import link
+            link(c, None, c.one("SELECT * FROM reservations WHERE id = ?", [rid]), str(b["referral_code"]))
         audit(c, None, "booking_engine.booking", "reservation", rid, ref, new={"total": q["total"], "ip": ctx.ip}, hotel_id=h["id"])
         queue_notification(c, h["id"], "email", email, f"Booking received {ref} — {h['name']}",
                            f"Dear {b['first_name']},\n\nThank you for booking with {h['name']}. Your booking reference is {ref}.\n"

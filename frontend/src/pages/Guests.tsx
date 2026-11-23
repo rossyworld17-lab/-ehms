@@ -3,7 +3,8 @@ import { GuestLoyalty } from "./CRM";
 import { DocumentsPanel } from "./Documents";
 import { ApiError, fmtDate, get, label, money, patch, post } from "../api";
 import { navigate, useAuth } from "../state";
-import { Button, Card, Field, Input, Loadable, Modal, Pill, Table, Textarea, errText, useAction, useLoad, useToast } from "../ui";
+import { Button, Card, Field, Input, Loadable, Modal, Pager, Pill, Table, Textarea, errText, useAction, useLoad, useToast } from "../ui";
+import { GuestReferral } from "./Completion";
 
 export default function Guests() {
   const { can } = useAuth();
@@ -11,19 +12,21 @@ export default function Guests() {
   const [term, setTerm] = useState("");
   const [vip, setVip] = useState(false);
   const [creating, setCreating] = useState(false);
-  const st = useLoad(() => get("/api/guests", { search: term, vip: vip ? 1 : "" }), [term, vip]);
+  const [page, setPage] = useState(1);
+  const st = useLoad(() => get("/api/guests", { search: term, vip: vip ? 1 : "", page, page_size: 50 }), [term, vip, page]);
   return (
     <div className="page">
       <div className="page-h"><div><h1>Guests</h1><p className="muted">Central guest profiles and stay history</p></div>
         {can("guests.manage") && <Button onClick={() => setCreating(true)}>New guest</Button>}</div>
-      <form className="row gap-s mb" onSubmit={e => { e.preventDefault(); setTerm(q); }}>
+      <form className="row gap-s mb" onSubmit={e => { e.preventDefault(); setTerm(q); setPage(1); }}>
         <Input placeholder="Search name, email, phone or company" value={q} onChange={e => setQ(e.target.value)} style={{ flex: 1 }} />
-        <label className="check"><input type="checkbox" checked={vip} onChange={e => setVip(e.target.checked)} /> VIP only</label>
+        <label className="check"><input type="checkbox" checked={vip} onChange={e => { setVip(e.target.checked); setPage(1); }} /> VIP only</label>
         <Button type="submit">Search</Button></form>
-      <Card pad={false}><Loadable state={st}>{d => <Table rows={d.items} onRow={g => navigate(`/guests/${g.id}`)} cols={[
+      <Card pad={false}><Loadable state={st}>{d => <><Table rows={d.items} onRow={g => navigate(`/guests/${g.id}`)} cols={[
         { h: "Name", r: g => <><b>{g.first_name} {g.last_name}</b> {g.vip && <Pill s="vip_hold" text="VIP" />}</> },
         { h: "Email", r: g => g.email || "—" }, { h: "Phone", r: g => g.phone || "—" }, { h: "Company", r: g => g.company || "—" },
-        { h: "Stays", r: g => g.stays }, { h: "Nationality", r: g => g.nationality || "—" }]} />}</Loadable></Card>
+        { h: "Stays", r: g => g.stays }, { h: "Nationality", r: g => g.nationality || "—" }]} />
+        <Pager page={d.page || 1} pages={d.pages || 1} total={d.total || 0} onPage={setPage} /></>}</Loadable></Card>
       {creating && <GuestForm onClose={() => setCreating(false)} onSaved={g => navigate(`/guests/${g.id}`)} />}
     </div>
   );
@@ -82,6 +85,7 @@ export function GuestDetail({ id }: { id: number }) {
       <Card title="Preferences & notes"><p>{g.preferences || <span className="muted">No preferences recorded</span>}</p>{g.notes && <p className="note">{g.notes}</p>}</Card>
     </div>
     <DocumentsPanel entityType="guest" entityId={g.id} defaultCategory="identity" />
+    <GuestReferral guestId={g.id} />
     <Card title="Stay history" pad={false}><Table rows={g.stays} onRow={s => navigate(`/reservations/${s.id}`)} cols={[
       { h: "Reference", r: s => s.reference }, { h: "Hotel", r: s => s.hotel_name }, { h: "Dates", r: s => `${fmtDate(s.arrival)} → ${fmtDate(s.departure)}` },
       { h: "Room", r: s => s.room_number ? `${s.room_number} (${s.room_type_name})` : s.room_type_name }, { h: "Status", r: s => <Pill s={s.status} /> }]} empty="No stays yet" /></Card>

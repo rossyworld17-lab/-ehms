@@ -1,10 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, get, setToken, setUnauthorizedHandler, getToken } from "./api";
 
-export type Hotel = { id: number; code: string; name: string; currency: string; timezone: string };
+export type Hotel = { id: number; code: string; name: string; currency: string; timezone: string; logo_url?: string | null };
 export type User = {
   id: number; email: string; full_name: string; permissions: string[]; roles: { id: number; code: string; name: string }[];
-  hotels: Hotel[]; mfa_enabled: boolean; must_change_password: number; all_hotels: boolean;
+  hotels: Hotel[]; mfa_enabled: boolean; must_change_password: number; all_hotels: boolean; language?: string;
 };
 
 type Auth = {

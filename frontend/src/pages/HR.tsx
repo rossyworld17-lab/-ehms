@@ -5,6 +5,7 @@ import { Button, Card, Empty, Field, Input, Kpi, Loadable, Modal, Pill, Select, 
 import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
 import Recruitment from "./Recruitment";
+import { EmployeeWelfare, WelfareRegister } from "./Completion";
 import { EmployeeExtras, HRDashboard, Holidays, LeaveBalances, LeaveCalendar, MyHRFull, Performance, StaffRequests, TrainingRegister } from "./HRSuite";
 
 // ======================================================================== HR
@@ -16,7 +17,7 @@ export default function HR({ q }: { q: URLSearchParams }) {
     <div className="page-h"><div><h1>Human resources</h1><p className="muted">Staff records, leave, requests, performance, training, rosters, attendance and recruitment</p></div></div>
     <Tabs tabs={[{ id: "dashboard", label: "Dashboard" }, { id: "employees", label: "Employees" }, { id: "leave", label: "Leave" }, { id: "requests", label: "Requests" },
       ...(can("hr.performance") ? [{ id: "performance", label: "Performance" }] : []), { id: "training", label: "Training" }, { id: "roster", label: "Roster" },
-      { id: "attendance", label: "Attendance" }, { id: "recruitment", label: "Recruitment" }]} value={tab} onChange={setTab} />
+      { id: "attendance", label: "Attendance" }, { id: "recruitment", label: "Recruitment" }, ...(can("hr.records") ? [{ id: "welfare", label: "Welfare" }] : [])]} value={tab} onChange={setTab} />
     {tab === "dashboard" && <HRDashboard go={setTab} />}
     {tab === "requests" && <StaffRequests />}
     {tab === "performance" && <Performance />}
@@ -26,6 +27,7 @@ export default function HR({ q }: { q: URLSearchParams }) {
     {tab === "roster" && <Roster />}
     {tab === "attendance" && <Attendance />}
     {tab === "leave" && <LeaveHub />}
+    {tab === "welfare" && <WelfareRegister />}
   </div>;
 }
 
@@ -118,6 +120,7 @@ export function EmployeeDetail({ id }: { id: number }) {
         { h: "Used", r: b => b.used, cls: "num" }, { h: "Pending", r: b => b.pending, cls: "num" }, { h: "Remaining", r: b => <b>{b.remaining}</b>, cls: "num" }]} /></Card>
     </div>
     <EmployeeExtras e={e} reload={st.reload} />
+    <EmployeeWelfare employee={e} onChange={st.reload} />
     <DocumentsPanel entityType="employee" entityId={e.id} defaultCategory="contract" />
     {e.records && <Card title="HR records (confidential)" pad={false}><Table rows={e.records} empty="No records" cols={[{ h: "Date", r: r => fmtDate(r.record_date) }, { h: "Kind", r: r => label(r.kind) },
       { h: "Title", r: r => <><b>{r.title}</b>{r.details && <div className="small muted">{r.details}</div>}</> }, { h: "Rating", r: r => r.rating ? "★".repeat(r.rating) : "" }, { h: "By", r: r => r.created_by_name }]} /></Card>}

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api, fmtDateTime, get, label, money, openFile, patch, post, put, toMinor, fromMinor } from "../api";
 import { useAuth } from "../state";
 import { Button, Card, Confirm, Empty, Field, Input, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad, useToast, errText } from "../ui";
+import { TableBookings } from "./Completion";
 
 // ======================================================================== POS terminal
 export default function Pos() {
@@ -20,6 +21,7 @@ export default function Pos() {
   const [shiftModal, setShiftModal] = useState<"open" | "close" | null>(null);
   const myShift = shift.data?.items?.[0];
   const reloadAll = () => { orders.reload(); outlets.reload(); shift.reload(); };
+  const [view, setView] = useState<"terminal" | "bookings">("terminal");
 
   return (
     <div className="page">
@@ -32,8 +34,10 @@ export default function Pos() {
             : <Button kind="gold" onClick={() => setShiftModal("open")} disabled={!outlet}>Open shift</Button>)}
           <Button kind="secondary" onClick={reloadAll}>Refresh</Button>
         </div></div>
-      {!outlets.loading && !outlet && <Empty text="No outlets are configured yet.">{can("pos.manage") && <a href="#/pos/setup">Set up outlets and menus</a>}</Empty>}
-      {outlet && <div className="pos-grid">
+      <Tabs tabs={[{ id: "terminal", label: "Orders & tables" }, { id: "bookings", label: "Table bookings" }]} value={view} onChange={v => setView(v as any)} />
+      {view === "bookings" && outlets.data && <TableBookings outlets={outlets.data.items.filter((o: any) => o.active)} />}
+      {view === "terminal" && !outlets.loading && !outlet && <Empty text="No outlets are configured yet.">{can("pos.manage") && <a href="#/pos/setup">Set up outlets and menus</a>}</Empty>}
+      {view === "terminal" && outlet && <div className="pos-grid">
         <div className="stack">
           <Card title="Tables" actions={<div className="row gap-s">
             {can("pos.order") && <Button kind="secondary" onClick={() => setNewOrder({ type: "takeaway" })}>Takeaway</Button>}

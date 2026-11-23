@@ -279,3 +279,34 @@ td.best { background: #eaf7f0; font-weight: 600; }
 .alert-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem; font-size: .9rem; }
 .table.heat td.lv-on { background: var(--navy-2); color: #fff; } .table.heat td.lv-pend { background: #c9d3e6; } .table.heat .hol { background: var(--gold-soft); }
 .stars-ro { color: var(--gold); letter-spacing: 1px; }
+
+/* ---------- release 1.2: breadcrumb, pager, language, drag-and-drop, media, help */
+.crumbs { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; font-size: .8rem; color: var(--muted); margin: 0 0 .6rem; }
+.crumbs svg { font-size: .95rem; opacity: .6; } .crumbs [aria-current] { color: var(--navy); font-weight: 600; }
+.pager { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; padding: .6rem .9rem; border-top: 1px solid var(--line); }
+.lang-sel { width: auto; padding: .3rem .5rem; font-size: .85rem; }
+.lang-sel.light { background: rgba(255,255,255,.12); color: #fff; border-color: rgba(255,255,255,.35); } .lang-sel.light option { color: var(--text); }
+.menu-lang { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .45rem .7rem; font-size: .9rem; }
+.arrival-chip { display: inline-flex; gap: .4rem; align-items: center; border: 1px dashed var(--navy-3); background: #f2f5fb; border-radius: 8px; padding: .4rem .65rem; cursor: grab; font: inherit; }
+.arrival-chip.on { background: var(--gold-soft); border: 1px solid var(--gold-2); } .arrival-chip:active { cursor: grabbing; }
+.room.drop-ok { outline: 3px solid var(--green); outline-offset: 1px; } .room.drop-no { outline: 3px solid var(--red); outline-offset: 1px; opacity: .7; }
+.room.drop-target { box-shadow: 0 0 0 2px var(--gold) inset; }
+.portal-img { position: relative; cursor: default; } .portal-img[role=button] { cursor: zoom-in; }
+.img-count { position: absolute; right: .5rem; bottom: .5rem; background: rgba(0,0,0,.55); color: #fff; font-style: normal; font-size: .75rem; padding: .15rem .45rem; border-radius: 6px; letter-spacing: 0; }
+.img-video { position: absolute; left: .5rem; bottom: .5rem; background: rgba(15,31,61,.85); color: #fff; font-size: .75rem; padding: .25rem .55rem; border-radius: 6px; letter-spacing: 0; }
+.lightbox { position: fixed; inset: 0; background: rgba(8,14,28,.88); z-index: 80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: 1rem; color: #fff; }
+.lightbox img { max-width: min(1000px, 96vw); max-height: 78vh; border-radius: 8px; cursor: pointer; }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; }
+.media-tile { position: relative; margin: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--soft); }
+.media-tile img { width: 100%; height: 110px; object-fit: cover; display: block; }
+.media-tile figcaption { font-size: .75rem; padding: .3rem .45rem; color: var(--muted); min-height: 1.6rem; }
+.media-tile .x { position: absolute; top: .25rem; right: .3rem; background: rgba(255,255,255,.9); border: 0; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 1rem; }
+.media-video { display: grid; place-items: center; height: 110px; background: var(--navy); color: #fff; font-weight: 600; }
+.help-list { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .45rem; line-height: 1.45; }
+.steps { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: .45rem; line-height: 1.45; }
+.code-chip { font-family: ui-monospace, Menlo, monospace; background: var(--gold-soft); border: 1px solid var(--gold); border-radius: 6px; padding: .1rem .45rem; letter-spacing: .05em; }
+@media (max-width: 640px) { .pager { justify-content: center; } .crumbs { font-size: .75rem; } }
+.logo-img { object-fit: contain; background: #fff; padding: 2px; } .logo-preview { max-height: 64px; max-width: 220px; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
+.portal-logo { height: 48px; max-width: 140px; object-fit: contain; background: #fff; border-radius: 8px; padding: 3px; }
+.bar-row { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr auto; gap: .5rem; align-items: center; }
+.bar { background: var(--soft); border-radius: 99px; height: 8px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--navy-2); border-radius: 99px; }

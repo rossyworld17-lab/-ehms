@@ -1,5 +1,33 @@
 # Release notes
 
+## 1.2 — requirements completion
+A line-by-line review of the SRS and the master prompt (see [COMPLIANCE.md](COMPLIANCE.md)) found items that were
+missing or thin; this release builds them.
+- **Front office**: wake-up calls with reminders 10 minutes before (and overdue flags), early check-in and late
+  check-out with configurable fees posted to the folio (waiving needs permission), printable guest registration card,
+  drag-and-drop (or click-to-assign) room assignment on the room board, check-out-day reminder to guests with the balance due.
+- **Restaurant**: table reservations with clash prevention, seating, no-show and completion.
+- **Procurement**: returns to supplier — before invoicing (order line reopens) or after (credit on the invoice), with
+  stock and ledger entries; list of goods received notes.
+- **Guest relations**: referral programme (personal codes, booking-engine field, points to the referrer after the new
+  guest's first stay, self-referral and repeat guests refused); guest demographics and preferences.
+- **HR**: confidential staff welfare register; biometric/fingerprint clock intake.
+- **Finance**: petty cash funds (own ledger account, custodian, float, per-voucher limit, approval above the limit,
+  top-ups) and printable payment vouchers for petty cash, paid expense claims and supplier payments.
+- **Intelligence**: cancellation-risk scoring, equipment-failure prediction from repair history, automated daily
+  management summary — all explainable and advisory only.
+- **Booking engine**: room photo gallery and video links, referral code, downloadable confirmation / pro-forma
+  receipt, hotel logo; French translation.
+- **Administration**: backups screen — back up now, daily schedule and retention, history, verification by test
+  restore, download, failure alerts; command-line restore into an empty SQLite or PostgreSQL database; hotel logo.
+- **Interface**: English/French language switch (menu, header, sign-in, booking engine), breadcrumb navigation,
+  paging on long lists (reservations, guests, audit trail), Help & support page.
+- **Security integrations**: CCTV events with https clip links through the access-event intake.
+- **Docs**: [COMPLIANCE.md](COMPLIANCE.md) (every requirement source), generated [DATA_DICTIONARY.md](DATA_DICTIONARY.md) with ER diagrams.
+- Fixes: wake-up reminders around midnight; Insights tabs now follow links; an HR test no longer depends on the calendar.
+- Permissions added: `admin.backups`, `procurement.return`, `finance.petty_cash`, `finance.petty_cash.manage`,
+  `finance.petty_cash.approve` (granted once to the matching system roles on upgrade).
+
 ## 1.1.2 — old screens can no longer be cached
 - A browser that had once opened an early EHMS (0.3) kept running that cached copy of the screens after an upgrade,
   so the super administrator saw only 14 menu items (no Food & Beverage, Supply chain, People …). Reproduced and fixed:

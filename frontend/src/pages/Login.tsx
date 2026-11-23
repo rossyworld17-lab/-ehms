@@ -3,9 +3,11 @@ import React, { useState } from "react";
 import { api, ApiError, setToken } from "../api";
 import { useAuth } from "../state";
 import { Button, Field, Input } from "../ui";
+import { LangSelect, useT } from "../i18n";
 
 export default function Login() {
   const { signIn } = useAuth();
+  const { t } = useT();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -27,27 +29,27 @@ export default function Login() {
         location.hash = "#/";
       }
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : "Sign-in failed");
+      setErr(e instanceof ApiError ? e.message : t("Sign-in failed"));
     } finally { setBusy(false); }
   }
 
   return (
     <div className="auth-page">
-      <div className="auth-art"><div><span className="logo lg">E</span><h1>Enterprise Hotel<br />Management System</h1>
-        <p>Reservations, front office, housekeeping, folios, payments and accounting in one secure platform.</p></div></div>
+      <div className="auth-art"><div><span className="logo lg">E</span><h1>{t("Enterprise Hotel")}<br />{t("Management System")}</h1>
+        <p>{t("Reservations, front office, housekeeping, folios, payments and accounting in one secure platform.")}</p></div></div>
       <form className="auth-card" onSubmit={submit}>
-        <h2>{mfaToken ? "Two-step verification" : "Sign in"}</h2>
+        <div className="row between"><h2>{mfaToken ? t("Two-step verification") : t("Sign in")}</h2><LangSelect /></div>
         {!mfaToken ? <>
-          <Field label="Email"><Input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required autoFocus /></Field>
-          <Field label="Password"><Input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></Field>
-        </> : <Field label="6-digit code from your authenticator app">
+          <Field label={t("Email")}><Input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required autoFocus /></Field>
+          <Field label={t("Password")}><Input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></Field>
+        </> : <Field label={t("6-digit code from your authenticator app")}>
           <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ""))} autoFocus required />
         </Field>}
         {err && <div className="field-e" role="alert">{err}</div>}
-        <Button type="submit" busy={busy} className="full">{mfaToken ? "Verify" : "Sign in"}</Button>
+        <Button type="submit" busy={busy} className="full">{mfaToken ? t("Verify") : t("Sign in")}</Button>
         <div className="row between small">
-          {mfaToken ? <a href="#/login" onClick={() => { setMfaToken(null); setToken(null); setCode(""); }}>Use a different account</a> : <a href="#/forgot">Forgot password?</a>}
-          <span className="muted">Sessions end after inactivity. · EHMS v{__APP_VERSION__}</span>
+          {mfaToken ? <a href="#/login" onClick={() => { setMfaToken(null); setToken(null); setCode(""); }}>{t("Use a different account")}</a> : <a href="#/forgot">{t("Forgot password?")}</a>}
+          <span className="muted">{t("Sessions end after inactivity.")} · EHMS v{__APP_VERSION__}</span>
         </div>
       </form>
     </div>

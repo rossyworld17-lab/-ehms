@@ -278,7 +278,8 @@ def save_emergency_contacts(ctx: Ctx):
 
 # ------------------------------------------------------------------ access control / key cards (integration intake)
 @route("POST", "/api/integrations/access-events", public=True, rate_limit=600, tag="security",
-       summary="Door-lock / key-card / access-control systems push events here (header X-EHMS-Integration-Token)")
+       summary="Door-lock, key-card, access-control and CCTV systems push events here (header X-EHMS-Integration-Token); "
+               "CCTV sends source=cctv, door=camera name, event=motion|tamper|alarm and an optional https clip_url")
 def access_events_in(ctx: Ctx):
     token = os.environ.get("EHMS_ACCESS_API_TOKEN", "")
     if not token or not hmac.compare_digest(token, ctx.request.headers.get("x-ehms-integration-token", "")):
@@ -295,7 +296,8 @@ def access_events_in(ctx: Ctx):
                 raise bad_request("Each event needs door, event and occurred_at")
             c.insert("access_events", {"hotel_id": hotel["id"], "source": str(ctx.field("source", required=False, default="lock-system"))[:40], "door": str(e["door"])[:80],
                                        "credential": (str(e.get("credential") or ""))[:80] or None, "person": (str(e.get("person") or ""))[:150] or None,
-                                       "event": str(e["event"])[:30], "occurred_at": str(e["occurred_at"]), "received_at": now_iso()})
+                                       "event": str(e["event"])[:30], "occurred_at": str(e["occurred_at"]), "received_at": now_iso(),
+                                       "clip_url": (str(e.get("clip_url") or "")[:500] if str(e.get("clip_url") or "").startswith("https://") else None)})
     return {"accepted": len(events)}
 
 

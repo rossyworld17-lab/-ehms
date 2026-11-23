@@ -139,6 +139,12 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "hr.requests.approve": ("hr", "Decide staff requests: salary advances, loans, letters, detail changes, shift swaps, grievances"),
     "hr.performance": ("hr", "Write appraisals and share them with employees"),
     "hr.accounts": ("hr", "Give employees a system login (administrator roles excluded)"),
+    # --- release 1.2: requirements completion
+    "admin.backups": ("admin", "Create, verify, download and schedule whole-database backups"),
+    "procurement.return": ("procurement", "Return received goods to suppliers"),
+    "finance.petty_cash": ("finance", "Pay out petty cash vouchers from a fund in your custody"),
+    "finance.petty_cash.manage": ("finance", "Open petty cash funds and top them up"),
+    "finance.petty_cash.approve": ("finance", "Approve petty cash vouchers above the fund limit"),
 }
 
 ALL = list(PERMISSIONS)
@@ -169,14 +175,16 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
                              ["dashboard.view", "rooms.view", "guests.view", "guests.manage", "reservations.view", "reservations.create",
                               "reservations.modify", "reservations.cancel", "folio.view", "payments.receive", "reports.view", "documents.view", "documents.upload", "reservations.groups"]),
     "accountant": ("Accountant", "Accounting and payments", _FIN + ["payments.receive", "payroll.view", "payroll.pay", "finance.expenses.request", "finance.expenses.pay", "accounting.reconcile", "procurement.view", "procurement.invoice",
-                                                                    "procurement.pay", "inventory.view", "pos.view", "bi.view", "ai.anomalies.view", "documents.view", "documents.upload", "finance.notes.request", "finance.exchange_rates"]),
+                                                                    "procurement.pay", "inventory.view", "pos.view", "bi.view", "ai.anomalies.view", "documents.view", "documents.upload", "finance.notes.request", "finance.exchange_rates",
+                                                                    "finance.petty_cash", "finance.petty_cash.manage"]),
     "finance_manager": ("Finance Manager", "Financial control", _FIN + ["accounting.manage_accounts", "payments.refund_approve",
                                                                          "folio.adjust", "admin.settings.manage", "admin.audit.view",
                                                                          "procurement.view", "procurement.approve", "procurement.approve_high",
                                                                          "procurement.invoice_approve", "inventory.view", "pos.view", "payroll.view", "payroll.approve", "events.view", "events.invoice",
                                                                          "sales.view", "sales.pricing_approve",
                                                                          "finance.expenses.request", "finance.expenses.approve", "accounting.reconcile",
-                                                                         "accounting.budgets", "accounting.close_period", "promotions.manage", "bi.view", "bi.schedule", "ai.assistant", "ai.anomalies.view", "ai.review", "documents.manage", "documents.confidential", "documents.view", "documents.upload", "finance.notes.request", "finance.notes.approve", "finance.exchange_rates", "reservations.waive_fee"]),
+                                                                         "accounting.budgets", "accounting.close_period", "promotions.manage", "bi.view", "bi.schedule", "ai.assistant", "ai.anomalies.view", "ai.review", "documents.manage", "documents.confidential", "documents.view", "documents.upload", "finance.notes.request", "finance.notes.approve", "finance.exchange_rates", "reservations.waive_fee",
+                                                                         "finance.petty_cash", "finance.petty_cash.manage", "finance.petty_cash.approve"]),
     "auditor": ("Auditor", "Read-only audit access", _VIEW_ALL + ["admin.audit.view"]),
     "hr_manager": ("Human Resources Manager", "Employee administration", ["dashboard.view", "admin.users.view", "hr.view", "hr.manage", "hr.records",
                                                                     "hr.attendance", "hr.leave.approve", "payroll.view", "payroll.run", "reports.view",
@@ -198,10 +206,10 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "waiter": ("Waiter / Waitress", "Food and beverage service", ["pos.view", "pos.order", "kitchen.view"]),
     "chef": ("Chef / Kitchen Staff", "Kitchen operations", ["kitchen.view", "kitchen.update", "inventory.view", "inventory.requisition", "maintenance.report"]),
     "inventory_manager": ("Inventory Manager", "Inventory control", ["dashboard.view", "reports.view", "procurement.view", "procurement.requisition",
-                                                                     "procurement.receive"] + _INV_ALL),
-    "storekeeper": ("Storekeeper", "Stores", ["inventory.view", "inventory.requisition", "inventory.issue", "procurement.view", "procurement.receive", "ai.assistant", "documents.view", "documents.upload"]),
+                                                                     "procurement.receive", "procurement.return"] + _INV_ALL),
+    "storekeeper": ("Storekeeper", "Stores", ["inventory.view", "inventory.requisition", "inventory.issue", "procurement.view", "procurement.receive", "procurement.return", "ai.assistant", "documents.view", "documents.upload"]),
     "procurement_officer": ("Procurement Officer", "Purchasing", ["dashboard.view", "inventory.view", "procurement.view", "procurement.suppliers",
-                                                                  "procurement.requisition", "procurement.order", "procurement.receive", "reports.view", "ai.assistant", "documents.view", "documents.upload"]),
+                                                                  "procurement.requisition", "procurement.order", "procurement.receive", "procurement.return", "reports.view", "ai.assistant", "documents.view", "documents.upload"]),
     "maintenance_manager": ("Maintenance Manager", "Assets and repairs", ["dashboard.view", "rooms.view", "rooms.block", "maintenance.view", "maintenance.report",
                                                                       "maintenance.work", "maintenance.manage", "reports.view",
                                                                       "inventory.view", "inventory.requisition", "procurement.requisition", "finance.expenses.request",
@@ -217,7 +225,7 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
                                                                             "crm.view", "crm.complaints", "documents.view", "documents.upload"]),
     "it_admin": ("IT Administrator", "Technical administration", ["dashboard.view", "admin.users.view", "admin.users.manage",
                                                                    "admin.sessions.manage", "admin.audit.view", "admin.settings.manage",
-                                                                   "admin.notifications.manage"]),
+                                                                   "admin.notifications.manage", "admin.backups"]),
     "guest": ("Guest / Customer", "Guest self-service", []),
 }
 
@@ -254,6 +262,7 @@ INTRODUCED: dict[str, list[str]] = {
     "0.95": ["reservations.groups", "reservations.waive_fee", "folio.transfer", "finance.notes.request", "finance.notes.approve",
              "finance.exchange_rates", "hr.recruit"],
     "1.1": ["hr.requests.approve", "hr.performance", "hr.accounts"],
+    "1.2": ["admin.backups", "procurement.return", "finance.petty_cash", "finance.petty_cash.manage", "finance.petty_cash.approve"],
 }
 
 

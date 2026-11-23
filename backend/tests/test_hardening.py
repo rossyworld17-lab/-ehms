@@ -19,6 +19,8 @@ SELF_SERVICE = {
     # release 1.1 self-service: each is limited to the signed-in employee's own record (or HR for letters)
     "/api/me/hr", "/api/me/requests", "/api/me/requests/{request_id:int}/cancel", "/api/me/leave/{leave_id:int}/cancel",
     "/api/me/appraisals/{appraisal_id:int}/acknowledge", "/api/hr/requests/{request_id:int}/letter.pdf",
+    # release 1.2: own language preference; voucher PDFs check the permission of each voucher kind in the handler
+    "/api/me/preferences", "/api/vouchers/{kind}/{voucher_id:int}.pdf",
 }
 SCOPE = re.compile(r"check_hotel|org_id|ctx\.user_id|organisation_id = \?|recipient = \?")
 

@@ -225,3 +225,15 @@ export function BarList({ items, fmt = (v: number) => String(v), color = "var(--
       <span className="barlist-bar"><i style={{ width: `${(i.value / max) * 100}%`, background: color }} /></span><span className="barlist-v">{fmt(i.value)}</span></div>))}
   </div>;
 }
+
+/** Page navigation for lists the server returns a page at a time ({ total, page, pages }). */
+export function Pager({ page, pages, total, onPage }: { page: number; pages: number; total: number; onPage: (p: number) => void }) {
+  if (!total || pages <= 1) return total ? <div className="pager muted small">{total} result{total === 1 ? "" : "s"}</div> : null;
+  return (
+    <nav className="pager" aria-label="Pages">
+      <Button kind="secondary" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Previous page">‹</Button>
+      <span className="small">Page {page} of {pages} · {total} results</span>
+      <Button kind="secondary" disabled={page >= pages} onClick={() => onPage(page + 1)} aria-label="Next page">›</Button>
+    </nav>
+  );
+}

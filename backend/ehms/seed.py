@@ -232,6 +232,68 @@ def seed_demo() -> None:
     seed_bi_demo(hid, org)
     seed_095_demo(hid, org)
     seed_hr11_demo(hid, org)
+    seed_v12_demo(hid, org)
+
+
+def seed_v12_demo(hid: int, org: int) -> None:
+    """Release 1.2 demo: a petty cash fund with vouchers, stay fees, table bookings, a wake-up call, a referral code and
+    a welfare record — all posted through the real services so the books stay balanced."""
+    import datetime as _dt
+    import json as _json
+    from .services import account_id, business_date, next_number, post_journal, set_hotel_setting
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM petty_cash_funds WHERE hotel_id = ?", [hid]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        on = business_date(hotel)
+        uid = lambda email: c.scalar("SELECT id FROM users WHERE email = ?", [email])  # noqa: E731
+        accts, fin, hr = uid("accounts@demo.ehms"), uid("finance@demo.ehms"), uid("hrmanager@demo.ehms")
+        if not (accts and fin):
+            return
+        set_hotel_setting(c, hid, "frontdesk.stay_fees", _json.dumps({"early_check_in": 1_000_000, "late_check_out": 1_500_000}))
+        # petty cash: own ledger account, float paid from cash, two vouchers (one waiting for approval)
+        used = {r["code"] for r in c.all("SELECT code FROM accounts WHERE organisation_id = ?", [org])}
+        code = next(x for x in [*range(1001, 1010), *range(1020, 1100)] if str(x) not in used)
+        acc = c.insert("accounts", {"organisation_id": org, "code": str(code), "name": "Petty Cash - Front office", "type": "asset", "is_postable": 1, "active": 1})
+        fid = c.insert("petty_cash_funds", {"hotel_id": hid, "name": "Front office", "account_id": acc, "custodian_id": accts, "imprest": 10_000_000,
+                                            "voucher_limit": 2_000_000, "active": 1, "created_at": now_iso()})
+        cash = account_id(c, org, "cash")
+        n1 = next_number(c, hid, "petty_cash", "PCV")
+        je = post_journal(c, hid, on, f"Petty cash top-up Front office ({n1})", "petty_cash", n1, [(acc, 10_000_000, 0, "finance", "Opening float"), (cash, 0, 10_000_000, "finance", "Cash")], fin)
+        c.insert("petty_cash_entries", {"hotel_id": hid, "fund_id": fid, "number": n1, "kind": "top_up", "description": "Opening float", "source_account_id": cash,
+                                        "amount": 10_000_000, "status": "posted", "requested_by": fin, "decided_by": fin, "journal_entry_id": je, "created_at": now_iso(), "decided_at": now_iso()})
+        fuel = account_id(c, org, "exp_fuel")
+        n2 = next_number(c, hid, "petty_cash", "PCV")
+        je = post_journal(c, hid, on, f"Petty cash {n2}: Diesel for generator", "petty_cash", n2, [(fuel, 1_250_000, 0, "maintenance", "Mobil station Diesel for generator"),
+                                                                                                    (acc, 0, 1_250_000, "maintenance", "Petty cash Front office")], accts)
+        c.insert("petty_cash_entries", {"hotel_id": hid, "fund_id": fid, "number": n2, "kind": "voucher", "payee": "Mobil station", "description": "Diesel for generator",
+                                        "expense_account_id": fuel, "department": "maintenance", "amount": 1_250_000, "status": "posted", "requested_by": accts,
+                                        "decided_by": accts, "journal_entry_id": je, "created_at": now_iso(), "decided_at": now_iso()})
+        c.insert("petty_cash_entries", {"hotel_id": hid, "fund_id": fid, "number": next_number(c, hid, "petty_cash", "PCV"), "kind": "voucher", "payee": "QuickFix Plumbing",
+                                        "description": "Emergency pipe repair, room 108", "expense_account_id": account_id(c, org, "exp_maintenance"), "department": "maintenance",
+                                        "amount": 3_500_000, "status": "pending", "requested_by": accts, "created_at": now_iso()})
+        # table bookings tonight and tomorrow
+        rest = c.one("SELECT id FROM outlets WHERE hotel_id = ? AND code = 'REST'", [hid])
+        if rest:
+            tables = c.all("SELECT * FROM pos_tables WHERE outlet_id = ? ORDER BY id", [rest["id"]])
+            for i, (name, size, t, days) in enumerate([("Mr & Mrs Adeyemi", 2, "19:30", 0), ("Okonkwo family", 4, "20:00", 0), ("Ms Danjuma (birthday)", 6, "19:00", 1)]):
+                tb = next((x for x in tables if x["seats"] >= size), None)
+                c.insert("table_reservations", {"hotel_id": hid, "outlet_id": rest["id"], "table_id": tb["id"] if tb and i != 2 else None, "guest_name": name,
+                                                "phone": "0803 000 00" + str(10 + i), "party_size": size, "reserved_date": (on + _dt.timedelta(days=days)).isoformat(),
+                                                "reserved_time": t, "duration_min": 90, "status": "booked", "notes": "Cake at 20:30" if i == 2 else None,
+                                                "created_by": uid("fnbmanager@demo.ehms") or fin, "created_at": now_iso()})
+        # a wake-up call for an in-house guest and a referral code for a loyal guest
+        ih = c.one("SELECT * FROM reservations WHERE hotel_id = ? AND status = 'checked_in' ORDER BY id", [hid])
+        if ih:
+            c.insert("wake_up_calls", {"hotel_id": hid, "reservation_id": ih["id"], "call_date": (on + _dt.timedelta(days=1)).isoformat(), "call_time": "06:00",
+                                       "note": "Airport transfer at 07:00", "status": "pending", "created_by": uid("frontdesk@demo.ehms") or fin, "created_at": now_iso()})
+        loyal = c.one("SELECT g.id FROM guests g JOIN loyalty_accounts a ON a.guest_id = g.id WHERE g.organisation_id = ? ORDER BY g.id", [org])
+        if loyal and not c.one("SELECT id FROM referral_codes WHERE guest_id = ?", [loyal["id"]]):
+            c.insert("referral_codes", {"guest_id": loyal["id"], "code": "REF-DEMO26", "created_at": now_iso()})
+        emp = c.one("SELECT e.id FROM employees e JOIN users u ON u.id = e.user_id WHERE u.email = 'housekeeper@demo.ehms'")
+        if emp and hr:
+            c.insert("welfare_records", {"employee_id": emp["id"], "kind": "medical", "support_date": (on - _dt.timedelta(days=12)).isoformat(), "amount": 7_500_000,
+                                         "description": "Contribution to hospital bill after a work injury", "confidential": 1, "created_by": hr, "created_at": now_iso()})
 
 
 def seed_hr11_demo(hid: int, org: int) -> None:
@@ -697,6 +759,7 @@ def _upgrade_demo(org: int) -> None:
         seed_bi_demo(hid, org)
         seed_095_demo(hid, org)
         seed_hr11_demo(hid, org)
+        seed_v12_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -719,6 +782,7 @@ def _upgrade_demo(org: int) -> None:
     seed_bi_demo(hid, org)
     seed_095_demo(hid, org)
     seed_hr11_demo(hid, org)
+    seed_v12_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

@@ -63,6 +63,10 @@ def run_jobs() -> dict:
             done["preventive_work_orders"] += raise_due_preventive(c, h)
             from .modules.crm import escalate_overdue
             done["complaints_escalated"] += escalate_overdue(c, h)
+            from .modules.predictive import checkout_reminders
+            done["checkout_reminders"] = done.get("checkout_reminders", 0) + checkout_reminders(c, h)
+            from .modules.guestservices import wakeup_alerts
+            done["wakeup_alerts"] = done.get("wakeup_alerts", 0) + wakeup_alerts(c, h)
             from .modules.hrsuite import hr_alerts
             done["hr_alerts"] = done.get("hr_alerts", 0) + hr_alerts(c, h)
             from .modules.groups import release_after_cutoff
@@ -79,6 +83,12 @@ def run_jobs() -> dict:
                     notify_template(c, h, "invoices_due", {"user_id": uid}, {"count": due["n"], "total": f"{h['currency']} {due['total'] / 100:,.2f}"},
                                     "procurement", h["id"])
                 done["invoice_alerts"] += 1
+    if os.environ.get("EHMS_BACKUP_SCHEDULE", "1") == "1":
+        from .modules.backups import scheduled_backup
+        try:
+            done["scheduled_backup"] = scheduled_backup()
+        except Exception:  # pragma: no cover - a backup problem must never stop the other jobs
+            log.exception("scheduled backup failed")
     return done
 
 

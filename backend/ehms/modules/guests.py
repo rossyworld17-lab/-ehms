@@ -1,6 +1,7 @@
 """Guest profiles and history (CRM foundation). (FR-CRM-001..003, FR-RES-006 duplicate detection)"""
 from __future__ import annotations
 
+from ..services import paginate
 from ..db import get_db, now_iso
 from ..http import Ctx, audit, bad_request, conflict, not_found, route
 
@@ -63,8 +64,8 @@ def list_guests(ctx: Ctx):
     if ctx.q("vip") == "1":
         sql += " AND g.vip = 1"
     with get_db().tx() as c:
-        rows = c.all(sql + " ORDER BY g.last_name, g.first_name LIMIT 200", params)
-    return {"items": [mask(ctx, r) for r in rows]}
+        out = paginate(c, ctx, sql, params, "g.last_name, g.first_name, g.id", default_size=200)
+    return {**out, "items": [mask(ctx, r) for r in out["items"]]}
 
 
 @route("POST", "/api/guests", perm="guests.manage", tag="guests", summary="Create a guest profile (warns about likely duplicates)")

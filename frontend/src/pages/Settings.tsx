@@ -3,15 +3,16 @@ import { fmtDateTime, fromMinor, get, label, money, patch, post, toMinor } from 
 import { useAuth } from "../state";
 import { Button, Card, Field, Input, Loadable, Modal, Pill, Select, Table, Tabs, Textarea, useAction, useLoad } from "../ui";
 import { CancellationPolicies, CostingSetting } from "./Billing";
+import { HotelLogo, RoomMedia, StayFees } from "./Completion";
 
 export default function HotelSettings() {
   const [tab, setTab] = useState("profile");
   return <div className="page">
     <div className="page-h"><div><h1>Hotel settings</h1><p className="muted">Profile, policies, taxes, payment methods and messaging</p></div></div>
     <Tabs tabs={[{ id: "profile", label: "Profile & policies" }, { id: "cancellation", label: "Cancellation policies" }, { id: "taxes", label: "Taxes & charges" }, { id: "payments", label: "Payment methods" },
-      { id: "stock", label: "Stock costing" }, { id: "messages", label: "Message log" }]} value={tab} onChange={setTab} />
-    {tab === "cancellation" && <CancellationPolicies />}{tab === "stock" && <CostingSetting />}
-    {tab === "profile" && <Profile />}{tab === "taxes" && <Taxes />}{tab === "payments" && <PaymentMethods />}{tab === "messages" && <Messages />}
+      { id: "stayfees", label: "Stay fees" }, { id: "stock", label: "Stock costing" }, { id: "messages", label: "Message log" }]} value={tab} onChange={setTab} />
+    {tab === "cancellation" && <CancellationPolicies />}{tab === "stock" && <CostingSetting />}{tab === "stayfees" && <StayFees />}
+    {tab === "profile" && <><HotelLogo /><Profile /></>}{tab === "taxes" && <Taxes />}{tab === "payments" && <PaymentMethods />}{tab === "messages" && <Messages />}
   </div>;
 }
 
@@ -106,6 +107,7 @@ export function RoomSetup() {
   const rooms = useLoad(() => get(`/api/hotels/${hotel!.id}/rooms`), [hotel?.id]);
   const [editType, setEditType] = useState<any>(null);
   const [newRoom, setNewRoom] = useState(false);
+  const [media, setMedia] = useState<any>(null);
   const cur = hotel!.currency;
   return <div className="page">
     <div className="page-h"><div><h1>Rooms & rates</h1><p className="muted">Room categories, rate plans and room inventory</p></div>
@@ -114,7 +116,9 @@ export function RoomSetup() {
       { h: "Code", r: t => <b>{t.code}</b> }, { h: "Name", r: t => t.name }, { h: "Rooms", r: t => t.room_count }, { h: "Max guests", r: t => t.max_occupancy },
       { h: "Standard", r: t => money(t.base_rate, cur), cls: "num" }, { h: "Weekend", r: t => (t.weekend_rate ? money(t.weekend_rate, cur) : "—"), cls: "num" },
       { h: "Corporate", r: t => (t.corporate_rate ? money(t.corporate_rate, cur) : "—"), cls: "num" }, { h: "Extra person", r: t => money(t.extra_person_charge, cur), cls: "num" },
-      { h: "Status", r: t => <Pill s={t.active ? "active" : "deactivated"} /> }]} />}</Loadable></Card>
+      { h: "Status", r: t => <Pill s={t.active ? "active" : "deactivated"} /> },
+      { h: "", r: t => <Button kind="ghost" onClick={e => { e.stopPropagation(); setMedia(t); }}>Photos & videos</Button> }]} />}</Loadable></Card>
+    {media && <RoomMedia roomType={media} onClose={() => { setMedia(null); types.reload(); }} />}
     <Card title="Rooms" pad={false}><Loadable state={rooms}>{d => <Table rows={d.items} cols={[
       { h: "Room", r: r => <b>{r.number}</b> }, { h: "Category", r: r => r.room_type_name }, { h: "Floor", r: r => r.floor }, { h: "Wing", r: r => r.wing || "—" },
       { h: "Status", r: r => <Pill s={r.display_status} /> }]} />}</Loadable></Card>
