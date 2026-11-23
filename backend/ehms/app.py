@@ -56,17 +56,52 @@ tr.innerHTML=`<td class="m ${m.toUpperCase()}">${m.toUpperCase()}</td><td><code>
     return Response(html, media_type="text/html")
 
 
+def frontend_build_version(dist: str) -> str | None:
+    """Version of the interface build in `dist` (written by frontend/build.mjs), or None for builds before 1.1.1."""
+    import json
+    try:
+        with open(os.path.join(dist, "version.json"), encoding="utf-8") as fh:
+            return str(json.load(fh).get("version"))
+    except (OSError, ValueError):
+        return None
+
+
+STALE_BANNER = ('<div style="background:#b42318;color:#fff;padding:10px 16px;font:14px system-ui,sans-serif">'
+                "<b>This screen is out of date.</b> The interface build (version {ui}) does not match the EHMS server "
+                "(version {server}), so some modules and menus are missing. Stop the server and start it from the folder "
+                "of the version you unpacked, or run <code>npm run build</code> in the <code>frontend</code> folder, "
+                "then press Ctrl+F5.</div>")
+
+
 def _frontend_routes() -> list:
     dist = os.path.abspath(settings.frontend_dist)
     if not os.path.isdir(dist):
         log.warning("Frontend build not found at %s — API only. Run `npm run build` in /frontend.", dist)
         return []
     index = os.path.join(dist, "index.html")
+    ui = frontend_build_version(dist)
+    stale = ui != __version__
+    if stale:
+        log.warning("Frontend build at %s is version %s but the server is %s — rebuild it (`npm run build` in /frontend).",
+                    dist, ui or "unknown (older than 1.1.1)", __version__)
 
     async def spa(request: Request) -> Response:
-        return FileResponse(index, headers={"Cache-Control": "no-cache"})
+        if not stale:
+            return FileResponse(index, headers={"Cache-Control": "no-cache"})
+        with open(index, encoding="utf-8") as fh:
+            html = fh.read()
+        banner = STALE_BANNER.format(ui=ui or "older than 1.1.1", server=__version__)
+        html = html.replace("<body>", "<body>" + banner, 1) if "<body>" in html else banner + html
+        return Response(html, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
-    return [Mount("/assets", app=StaticFiles(directory=os.path.join(dist, "assets")), name="assets"),
+    class Assets(StaticFiles):
+        # Asset names are not hashed, so browsers must revalidate them (ETag) or they keep an old interface.
+        async def get_response(self, path, scope):
+            resp = await super().get_response(path, scope)
+            resp.headers["Cache-Control"] = "no-cache"
+            return resp
+
+    return [Mount("/assets", app=Assets(directory=os.path.join(dist, "assets")), name="assets"),
             Route("/{path:path}", spa)]
 
 

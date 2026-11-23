@@ -5,7 +5,8 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
-> **Release 1.1 — full HR suite.** HR dashboard, staff requests, appraisals, training, leave calendar and public holidays,
+> **Release 1.1.1** ships the interface pre-built (no Node needed to run it) and warns on screen if an old interface
+> build is being served. **Release 1.1 — full HR suite.** HR dashboard, staff requests, appraisals, training, leave calendar and public holidays,
 > line managers, probation/contract tracking and staff logins issued by HR (see the release notes).
 >
 > **Release 1.0 — production ready.** All 127 SRS requirements are implemented and traced; the release adds a
@@ -62,9 +63,17 @@ export EHMS_SECRET_KEY=$(python -c "import secrets;print(secrets.token_urlsafe(4
 export DATABASE_URL=sqlite:///./ehms.db      # or postgresql://user:pass@host/db
 EHMS_SEED_DEMO=1 uvicorn ehms.app:app --port 8000
 
-# Frontend (Node 20+), in another terminal
-cd frontend && npm install && npm run build   # the backend serves frontend/dist
+# The interface is pre-built in frontend/dist and served by the backend.
+# Only after changing frontend code (Node 20+): cd frontend && npm install && npm run build
 ```
+
+**Windows:** unzip, then double-click `start_demo_windows.bat` (needs Python 3.11+ on the PATH) and open
+<http://localhost:8000>.
+
+**Menus or modules missing** (for example no Food & Beverage or Supply chain for the super administrator)? The server
+is sending an old interface build — usually a server started from the folder of an earlier version, or a new
+version unpacked over an old one. Stop every running EHMS window, start it from the new folder, and press
+**Ctrl+F5** in the browser. From 1.1.1 a red banner says so whenever the interface and server versions differ.
 
 Open <http://localhost:8000> and sign in with a demo account (password `Demo@12345`):
 

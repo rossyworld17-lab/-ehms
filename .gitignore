@@ -6,6 +6,5 @@ __pycache__/
 *.db-shm
 .env
 node_modules/
-frontend/dist/
 .venv/
 backend/data/

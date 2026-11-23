@@ -1,2 +1,2 @@
 """Enterprise Hotel Management System (EHMS) backend."""
-__version__ = "1.1.0"
+__version__ = "1.1.1"

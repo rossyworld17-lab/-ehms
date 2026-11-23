@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.1 — reliable start-up
+- The interface is shipped pre-built in `frontend/dist`; running EHMS needs only Python. An old interface build
+  could silently hide modules (Food & Beverage and Supply chain appeared missing for the super administrator).
+- The server now compares the interface build with its own version and shows a red banner, and logs a warning,
+  when they differ; interface files are always revalidated by the browser so an upgrade is never hidden by its cache.
+- `start_demo_windows.bat` starts the demo on Windows with a double-click.
+
 ## 1.1 — full HR suite
 - HR dashboard with alerts (probation, contract end, expiring certificates, unlinked logins), birthdays and anniversaries.
 - Employee records gain line manager, probation and contract end dates, job history (promotions, transfers, pay
