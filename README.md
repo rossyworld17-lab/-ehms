@@ -111,6 +111,7 @@ python ../frontend/e2e/smoke.py                         # browser end-to-end (ap
 
 - [Architecture & database](docs/ARCHITECTURE.md)
 - [REST API reference](docs/API.md)
+- **[EHMS v1.0.0 User Guide (Word)](docs/EHMS_v1.0.0_User_Guide.docx)** — complete guide for staff, managers and administrators
 - [User guide](docs/USER_GUIDE.md) · [Administrator manual](docs/ADMIN_MANUAL.md)
 - [Deployment, backup & recovery](docs/DEPLOYMENT.md)
 - [Test report](docs/TEST_REPORT.md) · [Requirements traceability](docs/TRACEABILITY.md) · [Progress register](docs/PROGRESS.md) · [Roadmap](docs/ROADMAP.md)
