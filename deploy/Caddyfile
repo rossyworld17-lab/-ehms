@@ -1,0 +1,24 @@
+# HTTPS for EHMS. Caddy obtains and renews the Let's Encrypt certificate for EHMS_DOMAIN automatically
+# (the domain's DNS A record must point at this server and ports 80/443 must be open).
+{
+	email {$ACME_EMAIL}
+}
+
+{$EHMS_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 20MB
+	}
+	reverse_proxy app:8000 {
+		header_up X-Forwarded-Proto {scheme}
+	}
+	log {
+		output stdout
+		format console
+	}
+}
+
+# Visitors typing www. are sent to the main address
+www.{$EHMS_DOMAIN} {
+	redir https://{$EHMS_DOMAIN}{uri} permanent
+}

@@ -14,7 +14,7 @@ from ..db import get_db, now_iso
 from ..http import Ctx, audit, bad_request, forbidden, not_found, route
 from ..services import queue_notification
 
-DEFAULT_SCHEDULE = {"enabled": True, "hour_utc": 1, "retention_days": 14}
+DEFAULT_SCHEDULE = {"enabled": True, "hour_utc": 1, "retention_days": int(os.environ.get("EHMS_BACKUP_RETENTION_DAYS", "14"))}
 
 
 def schedule(c) -> dict:
