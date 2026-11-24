@@ -123,7 +123,7 @@ git pull                     # or unzip the new release over the folder, keeping
 sudo bash deploy/update.sh   # takes a verified backup, rebuilds, restarts, runs preflight and a health check
 ```
 Database migrations run automatically at start-up and are forward-only. To roll back: restore the backup taken by
-`update.sh` (§6) after checking out the previous release (`git checkout v1.3.0`, `docker compose up -d --build`).
+`update.sh` (§6) after putting the previous release back (unzip the earlier release zip, or `git checkout <previous commit>`, then `docker compose up -d --build`).
 
 ## 8. Monitoring
 - `GET https://<domain>/api/health` returns `{"status":"ok","version":…,"database":"postgresql"}`. Point an uptime
