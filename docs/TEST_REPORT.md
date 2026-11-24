@@ -76,6 +76,12 @@ generated secrets: health check through HTTPS, website and `/staff` served, HSTS
 `must_change_password`, encrypted backup (`EHMSENC1`, mode 600) created and verified (145 tables). Found and fixed:
 encrypted values exceeded PostgreSQL `VARCHAR` limits (migration 0014); the worker started before migrations on first
 boot (now waits for the healthy app); backup files were world-readable (now 600).
+A second clean install found that the app's two processes created the same tables at once on a brand-new database
+(one crashed, so the first `docker compose up` reported the app unhealthy and did not start the worker); start-up is
+now serialised with a PostgreSQL advisory lock, and the clean install comes up healthy first time. The live stack was
+then exercised end to end: owner forced to set up two-step verification, employee registered (bank number stored
+`enc:v1:…` in PostgreSQL), staff photo, portrait card design, card queued automatically, A4 PDF printed, card handed
+over, and the QR verification page served over HTTPS showing "Valid staff ID card".
 
 **Android**: the TWA project builds on GitHub Actions (`bundleRelease` + `assembleDebug`), producing the `.aab` and `.apk`.
 
