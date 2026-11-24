@@ -21,6 +21,7 @@ Evidence: 131 automated API/integration tests (SQLite and PostgreSQL), the brows
 | SRS functional requirements (FR-…) | 127 / 127 Met |
 | SRS business rules (BR-001…014) | 14 / 14 Met |
 | Master prompt sections 1–34 | all Met, except the items listed under *Open items* |
+| Client requirements added after the SRS | 7 / 7 Met (C1–C7) |
 | Open items | 5 (1 partial, 4 needing external providers or optional); 2 closed in 1.4 — listed at the end |
 
 Release 1.2 closed the gaps a line-by-line review found in 1.1.2: multiple languages, in-app backups with
@@ -113,6 +114,18 @@ biometric attendance intake, breadcrumb navigation, pagination, in-app help, and
 | 12 Testing strategy, critical scenarios, **backup restoration test**, defect register | Met | Restore tested automatically ([TEST_REPORT.md](TEST_REPORT.md)); defects listed per release in ACCEPTANCE.md and TEST_REPORT.md |
 | 13 Acceptance — UAT completed and signed off; production approved | Your step | UAT scenarios and sign-off form in [ACCEPTANCE.md](ACCEPTANCE.md) |
 | 15 Deliverables: architecture, design, ER and **data dictionary**, interface designs (screenshots), apps, migrations, API, integration docs, test plans/reports, UAT records, deployment, manuals, maintenance and backup docs, repository, training and handover | Met / Your step | All in `docs/`; UAT records and production deployment are completed by the hotel |
+
+## Requirements added by the client after the SRS
+
+| # | Requirement | Status | Where |
+|---|---|---|---|
+| C1 | Public hotel website with a link to the staff system; content editable by administrators without code | Met (1.3) | `/` website, `/staff` EHMS, Administration → Website (draft, preview, publish, images, French) |
+| C2 | Tightened security for live deployment | Met (1.4) | Field and backup encryption, enforced MFA for privileged roles, password blocklist, address throttling, preflight, hardened headers and containers — [SECURITY.md](SECURITY.md) |
+| C3 | App version ready for Google Play | Met (1.4) — publishing is the hotel's step | Android Trusted Web Activity built and signed on GitHub Actions; installable web app; privacy notice at `/privacy` — [ANDROID_APP.md](ANDROID_APP.md) |
+| C4 | Everything ready for live deployment | Met (1.4) — server, domain and keys are the hotel's step | `deploy/install.sh`, HTTPS stack, daily encrypted off-site backups, `deploy/update.sh` — [DEPLOYMENT.md](DEPLOYMENT.md) |
+| C5 | Staff ID card printing in HR, generated automatically after recruitment | Met (1.4) | HR → ID cards: card queued on hire, photo, A4 or card-printer PDF, hand-over, replacement, automatic cancellation on exit, QR verification page |
+| C6 | ID card design editable by administrators | Met (1.4) | Administration → ID card design: portrait/landscape, colours, wording, fields shown, signature image, validity; live preview and PDF proofs; permission `admin.id_card_design`; audited |
+| C7 | Comprehensive system analysis document and updated user guide | Met (1.4) | [EHMS_System_Analysis.docx](EHMS_System_Analysis.docx), [EHMS_v1.4.0_User_Guide.docx](EHMS_v1.4.0_User_Guide.docx) |
 
 ## Open items
 
