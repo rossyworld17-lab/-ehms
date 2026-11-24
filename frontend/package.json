@@ -1,6 +1,6 @@
 {
   "name": "ehms-frontend",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "EHMS web client (React + TypeScript)",
   "type": "module",

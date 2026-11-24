@@ -306,3 +306,10 @@ bookings arrive as **tentative** for staff to confirm.
 - **Insights**: Daily summary, Cancellation risk, Equipment failures and Guest insights tabs.
 - **Backups** (IT administrator): Administration → Backups.
 
+## New in 1.3 — the hotel website
+- Staff now sign in at **/staff** (e.g. `http://localhost:8000/staff`); the main address shows the hotel website.
+- **Administration → Website**: change any text (English or French), upload photos and choose where they appear,
+  hide sections, add map and social links, then **Preview** and **Publish**. Nothing changes on the public website until you publish.
+- **Website enquiries** arrive in Guest relations → Website enquiries (and in the website editor): reply by email,
+  then mark the enquiry replied or closed.
+

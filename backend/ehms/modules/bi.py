@@ -395,7 +395,7 @@ def run_schedule(c, s: dict, hotel: dict, today: dt.date) -> dict:
                 skipped += 1
                 continue
             notify_template(c, hotel, "scheduled_report", {"user_id": u.user_id, "email": u.user["email"]},
-                            {"report": s["name"] or REPORTS.get(s["report_code"]), "period": label, "link": f"{base}/#/documents/{doc_id}"}, "document", doc_id)
+                            {"report": s["name"] or REPORTS.get(s["report_code"]), "period": label, "link": f"{base}/staff#/documents/{doc_id}"}, "document", doc_id)
             sent += 1
     except Exception as e:  # report parameter errors are recorded on the schedule, not raised in the worker
         status, err = "failed", getattr(e, "message", str(e))[:300]

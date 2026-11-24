@@ -21,6 +21,8 @@ SELF_SERVICE = {
     "/api/me/appraisals/{appraisal_id:int}/acknowledge", "/api/hr/requests/{request_id:int}/letter.pdf",
     # release 1.2: own language preference; voucher PDFs check the permission of each voucher kind in the handler
     "/api/me/preferences", "/api/vouchers/{kind}/{voucher_id:int}.pdf",
+    # release 1.3: website enquiries are open to website, guest-relations or events staff — checked in the handler
+    "/api/hotels/{hotel_id:int}/website/enquiries", "/api/website/enquiries/{enquiry_id:int}/status",
 }
 SCOPE = re.compile(r"check_hotel|org_id|ctx\.user_id|organisation_id = \?|recipient = \?")
 

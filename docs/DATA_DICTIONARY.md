@@ -1,8 +1,8 @@
-# Data dictionary — EHMS 1.2.0
+# Data dictionary — EHMS 1.3.0
 
 Generated from the migrations by `python -m ehms.datadict`; do not edit by hand. Types are shown as they are in PostgreSQL (SQLite uses compatible storage classes). Money columns hold whole kobo (minor units); `*_milli` quantities hold thousandths.
 
-**143 tables**, 1646 columns, 410 foreign keys.
+**146 tables**, 1679 columns, 417 foreign keys.
 
 ## Contents
 
@@ -16,7 +16,7 @@ Generated from the migrations by `python -m ehms.datadict`; do not edit by hand.
 - **Human resources and payroll**: [applicant_events](#applicant_events), [applicants](#applicants), [appraisals](#appraisals), [attendance](#attendance), [employee_history](#employee_history), [employee_loans](#employee_loans), [employees](#employees), [hr_records](#hr_records), [job_openings](#job_openings), [leave_adjustments](#leave_adjustments), [leave_requests](#leave_requests), [leave_types](#leave_types), [payroll_adjustments](#payroll_adjustments), [payroll_runs](#payroll_runs), [payslips](#payslips), [public_holidays](#public_holidays), [shift_assignments](#shift_assignments), [shift_templates](#shift_templates), [staff_requests](#staff_requests), [trainings](#trainings), [welfare_records](#welfare_records)
 - **Maintenance, security and events**: [access_events](#access_events), [asset_depreciation](#asset_depreciation), [assets](#assets), [emergency_contacts](#emergency_contacts), [event_costs](#event_costs), [event_items](#event_items), [event_staff](#event_staff), [event_venues](#event_venues), [events](#events), [incident_notes](#incident_notes), [lost_found](#lost_found), [maintenance_schedules](#maintenance_schedules), [security_incidents](#security_incidents), [venues](#venues), [visitors](#visitors), [work_order_notes](#work_order_notes), [work_order_parts](#work_order_parts), [work_orders](#work_orders)
 - **Guest relations, sales and revenue**: [campaign_recipients](#campaign_recipients), [campaigns](#campaigns), [competitor_rates](#competitor_rates), [complaint_updates](#complaint_updates), [complaints](#complaints), [corporate_accounts](#corporate_accounts), [corporate_rates](#corporate_rates), [feedback](#feedback), [loyalty_accounts](#loyalty_accounts), [loyalty_transactions](#loyalty_transactions), [sales_targets](#sales_targets)
-- **Intelligence, documents and messaging**: [ai_interactions](#ai_interactions), [anomaly_flags](#anomaly_flags), [document_access_log](#document_access_log), [documents](#documents), [integration_logs](#integration_logs), [notification_templates](#notification_templates), [notifications](#notifications), [report_schedules](#report_schedules)
+- **Intelligence, documents, messaging and website**: [ai_interactions](#ai_interactions), [anomaly_flags](#anomaly_flags), [document_access_log](#document_access_log), [documents](#documents), [integration_logs](#integration_logs), [notification_templates](#notification_templates), [notifications](#notifications), [report_schedules](#report_schedules), [website_content](#website_content), [website_enquiries](#website_enquiries), [website_media](#website_media)
 
 ## Organisation, users and security
 
@@ -2954,7 +2954,7 @@ Defined in `0007_crm_sales_revenue.sql`. Unique: (hotel_id, period, metric).
 | target | INTEGER | no |  |  |
 | owner_id | INTEGER | yes |  | → users |
 
-## Intelligence, documents and messaging
+## Intelligence, documents, messaging and website
 
 ```mermaid
 erDiagram
@@ -2976,6 +2976,13 @@ erDiagram
     HOTELS ||--o{ NOTIFICATIONS : "hotel_id"
     USERS ||--o{ REPORT_SCHEDULES : "created_by"
     HOTELS ||--o{ REPORT_SCHEDULES : "hotel_id"
+    USERS ||--o{ WEBSITE_CONTENT : "published_by"
+    USERS ||--o{ WEBSITE_CONTENT : "updated_by"
+    HOTELS ||--o{ WEBSITE_CONTENT : "hotel_id"
+    USERS ||--o{ WEBSITE_ENQUIRIES : "handled_by"
+    HOTELS ||--o{ WEBSITE_ENQUIRIES : "hotel_id"
+    USERS ||--o{ WEBSITE_MEDIA : "created_by"
+    HOTELS ||--o{ WEBSITE_MEDIA : "hotel_id"
 ```
 
 ### ai_interactions
@@ -3138,6 +3145,60 @@ Defined in `0008_bi_ai_documents.sql`.
 | last_run_on | TEXT | yes |  |  |
 | last_status | VARCHAR(30) | yes |  |  |
 | last_error | TEXT | yes |  |  |
+| created_by | INTEGER | no |  | → users |
+| created_at | TEXT | no |  |  |
+
+### website_content
+
+Defined in `0013_website.sql`. Unique: (hotel_id).
+
+| Column | Type | Null | Default | Key / reference |
+|---|---|---|---|---|
+| id | INTEGER | no |  | PK |
+| hotel_id | INTEGER | no |  | → hotels |
+| draft | TEXT | no |  |  |
+| published | TEXT | yes |  |  |
+| updated_by | INTEGER | yes |  | → users |
+| updated_at | TEXT | no |  |  |
+| published_by | INTEGER | yes |  | → users |
+| published_at | TEXT | yes |  |  |
+
+### website_enquiries
+
+Defined in `0013_website.sql`.
+
+| Column | Type | Null | Default | Key / reference |
+|---|---|---|---|---|
+| id | INTEGER | no |  | PK |
+| hotel_id | INTEGER | no |  | → hotels |
+| kind | VARCHAR(10) | no |  |  |
+| name | VARCHAR(150) | no |  |  |
+| email | VARCHAR(200) | no |  |  |
+| phone | VARCHAR(50) | yes |  |  |
+| subject | VARCHAR(200) | yes |  |  |
+| message | TEXT | no |  |  |
+| event_date | TEXT | yes |  |  |
+| guests | INTEGER | yes |  |  |
+| marketing_consent | INTEGER | no | 0 |  |
+| status | VARCHAR(10) | no | 'new' |  |
+| note | VARCHAR(500) | yes |  |  |
+| handled_by | INTEGER | yes |  | → users |
+| handled_at | TEXT | yes |  |  |
+| ip | VARCHAR(64) | yes |  |  |
+| created_at | TEXT | no |  |  |
+
+### website_media
+
+Defined in `0013_website.sql`.
+
+| Column | Type | Null | Default | Key / reference |
+|---|---|---|---|---|
+| id | INTEGER | no |  | PK |
+| hotel_id | INTEGER | no |  | → hotels |
+| filename | VARCHAR(200) | no |  |  |
+| content_type | VARCHAR(50) | no |  |  |
+| caption | VARCHAR(150) | yes |  |  |
+| size_bytes | INTEGER | no |  |  |
 | created_by | INTEGER | no |  | → users |
 | created_at | TEXT | no |  |  |
 

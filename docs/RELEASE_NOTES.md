@@ -1,5 +1,22 @@
 # Release notes
 
+## 1.3 — hotel website
+- **Public website at the main address**: home with headline and announcement bar, highlights, about, rooms & suites
+  (live from Rooms & rates with photos and "from" prices), restaurant & bar with opening hours, meetings & events,
+  facilities, photo gallery, location with Google Maps link and directions, contact details and a contact form,
+  footer with social links and the group's other hotels. English and French, phone-friendly, the hotel's own title
+  and description for Google and link previews.
+- **Book now** opens the existing booking engine; **Staff login** opens EHMS, which now lives at `/staff`. Old staff
+  links (`/#/…`) are forwarded to `/staff` automatically; booking, survey and payment links are unchanged.
+- **Administration → Website** (`website.manage`; marketing manager and senior managers): edit every text in English
+  and French, upload images and choose the photos for each section and the gallery, show or hide sections, set the
+  map, WhatsApp and social links, and the Google title/description. Changes are saved as a **draft**, shown in a
+  **preview**, then **published**; unpublished changes can be discarded. Every save and publish is in the audit trail.
+- **Website enquiries**: the contact form (spam-trapped and rate-limited) creates an enquiry; guest relations is
+  notified (events staff for event enquiries) and handles it under Guest relations → Website enquiries or in the
+  website editor; reply by email, mark replied, closed or spam.
+- Multi-property groups: `/?hotel=CODE` shows another hotel's site; `EHMS_WEBSITE_HOTEL` chooses the main one.
+
 ## 1.2 — requirements completion
 A line-by-line review of the SRS and the master prompt (see [COMPLIANCE.md](COMPLIANCE.md)) found items that were
 missing or thin; this release builds them.

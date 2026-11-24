@@ -233,6 +233,29 @@ def seed_demo() -> None:
     seed_095_demo(hid, org)
     seed_hr11_demo(hid, org)
     seed_v12_demo(hid, org)
+    seed_v13_demo(hid, org)
+
+
+def seed_v13_demo(hid: int, org: int) -> None:
+    """Release 1.3 demo: the hotel website published with its default text, and two enquiries from the contact form."""
+    import json as _json
+    from .modules.website import default_content
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM website_content WHERE hotel_id = ?", [hid]):
+            return
+        hotel = c.one("SELECT * FROM hotels WHERE id = ?", [hid])
+        doc = default_content(hotel)
+        doc["text"]["fr"] = {"hero_title": f"Bienvenue au {hotel['name']}", "hero_subtitle": "Des chambres confortables, l'hospitalité nigériane et une excellente cuisine.",
+                             "about_title": "À propos", "rooms_title": "Chambres et suites", "dining_title": "Restaurant et bar", "events_title": "Réunions et événements",
+                             "contact_title": "Nous contacter"}
+        doc["social"]["whatsapp"] = "+234 803 000 0000"
+        raw = _json.dumps(doc, ensure_ascii=False, sort_keys=True)
+        admin = c.scalar("SELECT id FROM users WHERE email = 'admin@demo.ehms'")
+        c.insert("website_content", {"hotel_id": hid, "draft": raw, "published": raw, "updated_by": admin, "updated_at": now_iso(), "published_by": admin, "published_at": now_iso()})
+        for kind, name, email, msg, extra in (("event", "Chiamaka Obi", "chiamaka.obi@example.com", "We would like to host a wedding reception for about 150 guests. Please send packages.", {"guests": 150}),
+                                              ("rooms", "David Mensah", "d.mensah@example.com", "Do you offer a corporate rate for 5 rooms next month?", {})):
+            c.insert("website_enquiries", {"hotel_id": hid, "kind": kind, "name": name, "email": email, "message": msg, "status": "new", "marketing_consent": 0,
+                                           "created_at": now_iso(), **extra})
 
 
 def seed_v12_demo(hid: int, org: int) -> None:
@@ -760,6 +783,7 @@ def _upgrade_demo(org: int) -> None:
         seed_095_demo(hid, org)
         seed_hr11_demo(hid, org)
         seed_v12_demo(hid, org)
+        seed_v13_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -783,6 +807,7 @@ def _upgrade_demo(org: int) -> None:
     seed_095_demo(hid, org)
     seed_hr11_demo(hid, org)
     seed_v12_demo(hid, org)
+    seed_v13_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

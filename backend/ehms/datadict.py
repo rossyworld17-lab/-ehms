@@ -23,7 +23,7 @@ GROUPS = [
     ("Human resources and payroll", r"^(employee|leave|attendance|shift|roster|payroll|payslip|statutory|staff_|appraisals|trainings|public_holidays|welfare|job_|applicant|recruit|hr_)"),
     ("Maintenance, security and events", r"^(asset|maintenance|work_order|preventive|incident|security_|visitor|lost_|access_|emergency|venue|event)"),
     ("Guest relations, sales and revenue", r"^(loyalty|complaint|feedback|survey|campaign|corporate|agent|sales|season|pricing|competitor|crm)"),
-    ("Intelligence, documents and messaging", r"^(report|bi_|ai_|anomal|document|notification|message|template|integration)"),
+    ("Intelligence, documents, messaging and website", r"^(report|bi_|ai_|anomal|document|notification|message|template|integration|website)"),
 ]
 
 

@@ -205,3 +205,24 @@ requests through the guest profile. Appoint a data protection officer as your ob
   finance manager), `finance.petty_cash.approve` (finance manager). Super administrator, owner, general manager and
   hotel manager hold all permissions.
 
+## Hotel website (release 1.3)
+- **Addresses**: the hotel website is at the main address (e.g. `https://www.yourhotel.com`), the booking engine at
+  `/#/book/<HOTEL CODE>` (linked from *Book now*), and EHMS at `/staff`. If you deploy on a domain, staff use
+  `https://www.yourhotel.com/staff` — or give EHMS its own name such as `https://ehms.yourhotel.com/staff` in the reverse proxy.
+- **Which hotel**: in a group, the site shows the hotel set in `EHMS_WEBSITE_HOTEL` (hotel code), otherwise the first
+  hotel; `/?hotel=CODE` shows another hotel's site, and each site links to the others in its footer.
+- **Editing** (Administration → Website, permission `website.manage`, granted to the marketing manager and to the
+  general manager/hotel manager/owner/super administrator): Text (English, with optional French — empty French fields
+  show the English), Images (upload up to 200 JPEG/PNG/WebP images of up to 5 MB, choose the hero/about/dining/events
+  photos and the gallery), Sections & links (hide sections, Google Maps link, WhatsApp and social media links).
+  **Save draft** keeps your work private, **Preview** shows the result, **Publish** makes it live; *Discard draft
+  changes* goes back to the published version. Images used by the draft or the live site cannot be deleted.
+- **Live facts are not edited here**: hotel name, address, phone, email, logo and check-in/out times come from Hotel
+  settings; rooms, prices and room photos from Rooms & rates — change them there and the website follows.
+- **Enquiries**: the contact form sends enquiries to EHMS (not to an email inbox). Holders of guest-relations access
+  are notified and see all enquiries (Guest relations → Website enquiries); events staff see event enquiries.
+  Answer by email from the enquiry and mark it replied. The form has a spam trap and allows 5 messages a minute per address.
+- **Keeping an existing website**: if the hotel already has a website, add two links to it — *Book now* →
+  `https://<EHMS address>/#/book/<HOTEL CODE>` and *Staff login* → `https://<EHMS address>/staff` — and simply leave the
+  EHMS website unpublished or unused.
+

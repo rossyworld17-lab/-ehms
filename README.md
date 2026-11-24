@@ -5,6 +5,10 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
+> **Release 1.3 — hotel website.** The main address now shows the hotel's public website (rooms, dining, events, gallery,
+> location, contact form, English/French); EHMS itself is at `/staff`. Administrators edit the website under
+> Administration → Website — text, photos, sections and links — and publish without touching code.
+>
 > **Release 1.2 — requirements completion.** Every requirement in the SRS and the master prompt is checked in
 > [docs/COMPLIANCE.md](docs/COMPLIANCE.md); this release adds backups with verified restore, wake-up calls, early/late
 > check-out fees, registration cards, drag-and-drop room assignment, table bookings, purchase returns, referrals, petty
@@ -73,8 +77,7 @@ EHMS_SEED_DEMO=1 uvicorn ehms.app:app --port 8000
 # Only after changing frontend code (Node 20+): cd frontend && npm install && npm run build
 ```
 
-**Windows:** unzip, then double-click `start_demo_windows.bat` (needs Python 3.11+ on the PATH) and open
-<http://localhost:8000>.
+**Windows:** unzip, then double-click `start_demo_windows.bat` (needs Python 3.11+ on the PATH).
 
 **Menus or modules missing** (for example no Food & Beverage or Supply chain for the super administrator)? The server
 is sending an old interface build — usually a server started from the folder of an earlier version, or a new
@@ -82,7 +85,10 @@ version unpacked over an old one. Stop every running EHMS window, start it from 
 **Ctrl+F5** in the browser. From 1.1.1 a red banner says so whenever the interface and server versions differ, and from 1.1.2 the version
 is shown on the sign-in page and under the logo, so you can see at once which version you are using.
 
-Open <http://localhost:8000> and sign in with a demo account (password `Demo@12345`):
+- Hotel website: <http://localhost:8000> (the booking engine is behind *Book now*)
+- Staff sign-in (EHMS): <http://localhost:8000/staff> — demo accounts below, password `Demo@12345`. Old links such as
+  `http://localhost:8000/#/reservations` are sent on to `/staff` automatically.
+
 
 | Email | Role |
 |---|---|
@@ -133,7 +139,7 @@ python ../frontend/e2e/smoke.py                         # browser end-to-end (ap
 
 - [Architecture & database](docs/ARCHITECTURE.md)
 - [REST API reference](docs/API.md)
-- **[EHMS v1.2.0 User Guide (Word)](docs/EHMS_v1.2.0_User_Guide.docx)** — complete guide for staff, managers and administrators
+- **[EHMS v1.3.0 User Guide (Word)](docs/EHMS_v1.3.0_User_Guide.docx)** — complete guide for staff, managers and administrators
 - [User guide](docs/USER_GUIDE.md) · [Administrator manual](docs/ADMIN_MANUAL.md)
 - [Deployment, backup & recovery](docs/DEPLOYMENT.md)
 - [Test report](docs/TEST_REPORT.md) · [Requirements traceability](docs/TRACEABILITY.md) · [Progress register](docs/PROGRESS.md) · [Roadmap](docs/ROADMAP.md)

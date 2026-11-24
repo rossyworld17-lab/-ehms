@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder, MdGroups, MdBackup, MdHelpOutline, MdChevronRight,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder, MdGroups, MdBackup, MdHelpOutline, MdChevronRight, MdLanguage,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get, put } from "./api";
@@ -38,6 +38,8 @@ import Documents from "./pages/Documents";
 import Groups, { GroupDetail } from "./pages/Groups";
 import { Spinner } from "./ui";
 import { Backups, Help } from "./pages/Completion";
+import Website from "./pages/Website";
+import WebsiteAdmin from "./pages/WebsiteAdmin";
 
 declare const __APP_VERSION__: string;
 const APP_VERSION = __APP_VERSION__;
@@ -94,6 +96,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/admin/rooms", label: "Rooms & rates", icon: <MdMeetingRoom />, perm: "rooms.manage" },
     { to: "/admin/audit", label: "Audit trail", icon: <MdHistory />, perm: "admin.audit.view" },
     { to: "/admin/messaging", label: "Messaging", icon: <MdMail />, perm: "admin.notifications.manage" },
+    { to: "/admin/website", label: "Website", icon: <MdLanguage />, perm: "website.manage" },
     { to: "/admin/backups", label: "Backups", icon: <MdBackup />, perm: "admin.backups" },
   ]},
   { group: "Help", items: [
@@ -199,6 +202,8 @@ export default function App() {
   const [path, q] = useRoute();
 
   if (window.location.pathname === "/payment-return") return <PaymentReturn />;
+  // the public website lives at the main address; EHMS itself lives under /staff
+  if (!window.location.pathname.startsWith("/staff") && !path.startsWith("/book/") && !path.startsWith("/survey/")) return <Website />;
   if (path.startsWith("/book/")) return <BookingPortal code={path.split("/")[2] || ""} />;
   if (path.startsWith("/survey/")) return <Survey token={path.split("/")[2] || ""} />;
   if (!ready) return <Spinner text={t("Starting EHMS…")} />;
@@ -256,6 +261,7 @@ export default function App() {
     case path === "/profile": page = <Profile />; break;
     case path === "/help": page = <Help />; break;
     case path === "/admin/backups": page = guard("admin.backups", <Backups />); break;
+    case path === "/admin/website": page = guard("website.manage", <WebsiteAdmin />); break;
     default: page = <div className="empty"><h2>{t("Page not found")}</h2><p><a href="#/">{t("Go to the dashboard")}</a></p></div>;
   }
   return <Shell path={path}>{page}</Shell>;

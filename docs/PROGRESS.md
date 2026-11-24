@@ -68,13 +68,13 @@ Independent penetration test; UAT execution and sign-off ([ACCEPTANCE.md](ACCEPT
 
 None known. Defects found and fixed while building 0.4 are listed in [TEST_REPORT.md](TEST_REPORT.md).
 
-## Test results (release 1.2)
+## Test results (release 1.3)
 
 | Suite | Result |
 |---|---|
-| API / integration (`pytest`), SQLite | 115 passed, 0 failed |
-| API / integration (`pytest`), PostgreSQL 16 | 115 passed, 0 failed |
+| API / integration (`pytest`), SQLite | 120 passed, 0 failed |
+| API / integration (`pytest`), PostgreSQL 16 | 120 passed, 0 failed |
 | Load test (PostgreSQL, 1 year of history, 50 virtual users) | 291 requests/s, p95 170 ms, 0 errors — see PERFORMANCE.md |
 | Security review | 6 findings fixed, residual risks listed — see SECURITY.md |
-| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report, guest relations and revenue tabs, public post-stay survey submitted on a phone-sized screen, all Insights tabs, two assistant questions answered, a document opened with its access history, group block detail, credit-note queue, exchange rates, cancellation policies, stock costing, applicant record; HR suite: staff leave and letter request, HR dashboard, approvals, all HR tabs and employee profile; 1.2: backup created and verified in the browser, help, petty cash, table bookings, returns, referrals, welfare, wake-up calls, stay fees, paging, drag-and-drop room assignment, French switch, predictions, booking-engine referral field |
-| Upgrade from 0.3, 0.4, 0.7, 0.8, 0.9, 0.95, 1.0 and 1.1 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |
+| Browser end-to-end (`frontend/e2e/smoke.py`) | passed — every screen for several roles, front-desk stay, POS cash sale, payroll prepare → approve, event confirmation, mobile self clock-in and fault report, guest relations and revenue tabs, public post-stay survey submitted on a phone-sized screen, all Insights tabs, two assistant questions answered, a document opened with its access history, group block detail, credit-note queue, exchange rates, cancellation policies, stock costing, applicant record; HR suite: staff leave and letter request, HR dashboard, approvals, all HR tabs and employee profile; 1.2: backup created and verified in the browser, help, petty cash, table bookings, returns, referrals, welfare, wake-up calls, stay fees, paging, drag-and-drop room assignment, French switch, predictions, booking-engine referral field; 1.3: website at the main address (rooms, contact form sent, French, phone menu), Staff login → /staff, old links forwarded, booking engine still public, editor preview and publish with the change visible on the live site, enquiry visible to staff |
+| Upgrade from 0.3, 0.4, 0.7, 0.8, 0.9, 0.95, 1.0, 1.1 and 1.2 databases | passed — migrations applied, permissions granted once, accounts added, demo data added once, books balanced |

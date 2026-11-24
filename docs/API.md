@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **456**
+Total endpoints: **469**
 
 ## Accounting
 
@@ -628,4 +628,22 @@ Total endpoints: **456**
 | PUT | `/api/hotels/{hotel_id}/emergency-contacts` | Replace the emergency contact list: items[{name, role, phone, notes}] | `security.manage` |
 | POST | `/api/integrations/access-events` | Door-lock, key-card, access-control and CCTV systems push events here (header X-EHMS-Integration-Token); CCTV sends source=cctv, door=camera name, event=motion/tamper/alarm and an optional https clip_url | public |
 | GET | `/api/hotels/{hotel_id}/access-events` | Access-control event log (?door, ?date) | `security.view` |
+
+## Website
+
+| Method | Path | Purpose | Access |
+|---|---|---|---|
+| GET | `/api/public/site` | Published website of the main hotel (?hotel=CODE for another property) | public |
+| GET | `/api/public/website-media/{media_id}` | A website image | public |
+| POST | `/api/public/site/enquiries` | Contact form: hotel (code, optional), kind general/rooms/dining/event, name, email, phone, subject, message, event_date, guests, marketing_consent | public |
+| GET | `/api/hotels/{hotel_id}/website` | Website editor: draft and published content, images, status and the editable fields | `website.manage` |
+| PUT | `/api/hotels/{hotel_id}/website` | Save the website draft (content document; validated) | `website.manage` |
+| POST | `/api/hotels/{hotel_id}/website/publish` | Publish the saved draft to the public website | `website.manage` |
+| POST | `/api/hotels/{hotel_id}/website/discard` | Throw away unpublished changes (draft goes back to the published version) | `website.manage` |
+| POST | `/api/hotels/{hotel_id}/website/preview` | What the public site would look like with this content (not saved) | `website.manage` |
+| POST | `/api/hotels/{hotel_id}/website/media` | Upload a website image: filename, content_base64 (JPEG/PNG/WebP up to 5 MB), caption | `website.manage` |
+| PATCH | `/api/website/media/{media_id}` | Change an image's caption | `website.manage` |
+| DELETE | `/api/website/media/{media_id}` | Remove an image (refused while the published website or the draft uses it) | `website.manage` |
+| GET | `/api/hotels/{hotel_id}/website/enquiries` | Enquiries sent from the website (?status) | signed in |
+| POST | `/api/website/enquiries/{enquiry_id}/status` | Record handling of an enquiry: status replied / closed / spam, note | signed in |
 

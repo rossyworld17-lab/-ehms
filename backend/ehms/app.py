@@ -16,6 +16,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
+from starlette.concurrency import run_in_threadpool
 from starlette.staticfiles import StaticFiles
 
 from . import __version__, modules  # noqa: F401  (registers routes)
@@ -101,7 +102,19 @@ def _frontend_routes() -> list:
         html = html.replace("<body>", "<body>" + banner, 1) if "<body>" in html else banner + html
 
     async def spa(request: Request) -> Response:
-        return Response(html, media_type="text/html", headers={"Cache-Control": "no-cache"})
+        page = html
+        if not request.url.path.startswith("/staff"):
+            # the public website: the hotel's own title and description, for search engines and link previews
+            from .modules.website import seo_for_index
+            seo = await run_in_threadpool(seo_for_index)
+            if seo:
+                import html as _h
+                title, desc, site = (_h.escape(x, quote=True) for x in seo)
+                page = page.replace("<title>EHMS — Enterprise Hotel Management System</title>",
+                                    f'<title>{title}</title><meta name="description" content="{desc}" />'
+                                    f'<meta property="og:title" content="{title}" /><meta property="og:description" content="{desc}" />'
+                                    f'<meta property="og:site_name" content="{site}" /><meta property="og:type" content="website" />', 1)
+        return Response(page, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
     class Assets(StaticFiles):
         # Asset names are not hashed, so browsers must revalidate them (ETag) or they keep an old interface.

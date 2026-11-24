@@ -29,22 +29,24 @@ def gateway_configured() -> bool:
     return bool(configured_providers())
 
 
-@route("GET", "/api/public/hotels/{code}", public=True, rate_limit=60, tag="booking-engine", summary="Public hotel profile and room categories")
-def public_hotel(ctx: Ctx):
-    with get_db().tx() as c:
-        h = _hotel_by_code(c, ctx.path["code"])
-        types = c.all("SELECT id, code, name, description, max_occupancy, beds, bed_config, size_sqm, amenities, base_rate, weekend_rate, image_url "
-                      "FROM room_types WHERE hotel_id = ? AND active = 1 ORDER BY base_rate", [h["id"]])
-        taxes = c.all("SELECT name, rate_bp, is_inclusive FROM tax_rules WHERE hotel_id = ? AND active = 1", [h["id"]])
-        from .media import public_media
-        from .predictive import logo_url
-        logo = logo_url(c, h["id"])
-        for t in types:
-            t["media"] = public_media(c, t["id"])
+def public_hotel_data(c, h: dict) -> dict:
+    types = c.all("SELECT id, code, name, description, max_occupancy, beds, bed_config, size_sqm, amenities, base_rate, weekend_rate, image_url "
+                  "FROM room_types WHERE hotel_id = ? AND active = 1 ORDER BY base_rate", [h["id"]])
+    taxes = c.all("SELECT name, rate_bp, is_inclusive FROM tax_rules WHERE hotel_id = ? AND active = 1", [h["id"]])
+    from .media import public_media
+    from .predictive import logo_url
+    for t in types:
+        t["media"] = public_media(c, t["id"])
     return {"code": h["code"], "name": h["name"], "address": h["address"], "city": h["city"], "phone": h["phone"], "email": h["email"],
             "star_rating": h["star_rating"], "currency": h["currency"], "check_in_time": h["check_in_time"], "check_out_time": h["check_out_time"],
             "cancellation_policy": h["cancellation_policy"], "terms": h["terms"], "amenities": h["amenities"], "room_types": types,
-            "taxes": taxes, "service_charge_bp": h["service_charge_bp"], "online_payment_available": gateway_configured(), "logo_url": logo}
+            "taxes": taxes, "service_charge_bp": h["service_charge_bp"], "online_payment_available": gateway_configured(), "logo_url": logo_url(c, h["id"])}
+
+
+@route("GET", "/api/public/hotels/{code}", public=True, rate_limit=60, tag="booking-engine", summary="Public hotel profile and room categories")
+def public_hotel(ctx: Ctx):
+    with get_db().tx() as c:
+        return public_hotel_data(c, _hotel_by_code(c, ctx.path["code"]))
 
 
 @route("GET", "/api/public/hotels/{code}/availability", public=True, tag="booking-engine", rate_limit=60,

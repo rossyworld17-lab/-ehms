@@ -145,6 +145,8 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "finance.petty_cash": ("finance", "Pay out petty cash vouchers from a fund in your custody"),
     "finance.petty_cash.manage": ("finance", "Open petty cash funds and top them up"),
     "finance.petty_cash.approve": ("finance", "Approve petty cash vouchers above the fund limit"),
+    # --- release 1.3: public website
+    "website.manage": ("website", "Edit, preview and publish the hotel website and answer its enquiries"),
 }
 
 ALL = list(PERMISSIONS)
@@ -217,7 +219,7 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "maintenance_technician": ("Maintenance Technician", "Repairs", ["rooms.view", "maintenance.view", "maintenance.report", "maintenance.work", "inventory.view"]),
     "security_officer": ("Security Officer", "Security and incidents", ["dashboard.view", "rooms.view", "security.view", "security.report", "security.manage",
                                                                   "security.sensitive", "lostfound.manage", "maintenance.view", "maintenance.report", "documents.view", "documents.upload"]),
-    "marketing_manager": ("Marketing Manager", "Marketing", ["dashboard.view", "guests.view", "reports.view", "promotions.manage", "finance.expenses.request",
+    "marketing_manager": ("Marketing Manager", "Marketing", ["dashboard.view", "guests.view", "reports.view", "promotions.manage", "website.manage", "finance.expenses.request",
                                                           "crm.view", "crm.campaigns", "crm.manage", "sales.view", "bi.view", "ai.assistant", "documents.view", "documents.upload"]),
     "sales_manager": ("Sales Manager", "Sales and corporate accounts", ["dashboard.view", "guests.view", "reservations.view", "reservations.create", "reports.view",
                                                                         "promotions.manage", "events.view", "events.manage", "sales.view", "sales.manage", "sales.pricing", "crm.view", "bi.view", "ai.assistant", "documents.view", "documents.upload", "reservations.groups"]),
@@ -263,6 +265,7 @@ INTRODUCED: dict[str, list[str]] = {
              "finance.exchange_rates", "hr.recruit"],
     "1.1": ["hr.requests.approve", "hr.performance", "hr.accounts"],
     "1.2": ["admin.backups", "procurement.return", "finance.petty_cash", "finance.petty_cash.manage", "finance.petty_cash.approve"],
+    "1.3": ["website.manage"],
 }
 
 

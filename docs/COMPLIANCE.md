@@ -1,4 +1,4 @@
-# Requirements compliance — EHMS 1.2.0
+# Requirements compliance — EHMS 1.3.0
 
 This document checks EHMS against **every** requirement source: the *EHMS Software Requirements Specification v1*
 (SRS) and the *Master software development prompt*, section by section, including the parts the functional
@@ -11,7 +11,7 @@ account, device or server to switch on · **Partial**: core behaviour built, the
 **Your step**: depends on the hotel (hosting, sign-off, contracts) · **Optional / planned**: marked optional in
 the SRS or planned for after this release.
 
-Evidence: 115 automated API/integration tests (SQLite and PostgreSQL), the browser end-to-end test
+Evidence: 120 automated API/integration tests (SQLite and PostgreSQL), the browser end-to-end test
 (`frontend/e2e/smoke.py`), [TEST_REPORT.md](TEST_REPORT.md) and the source.
 
 ## Summary
@@ -48,6 +48,7 @@ biometric attendance intake, breadcrumb navigation, pagination, in-app help, and
 | 4.3 | Real-time colour room board, all statuses, automatic updates, no overlapping allocations without authorised override | Met | Room board; status from check-in/out and housekeeping; overbooking needs `reservations.overbook` + reason |
 | 5 | Individual, group, corporate, walk-in, agent, online, phone, email, repeat, VIP, event bookings; all fields; all statuses | Met | Reservations (statuses incl. waitlisted), booking types and sources |
 | 5 | Booking & availability calendars, **drag-and-drop room assignment**, modify/cancel/confirm, references, confirmation email, SMS/WhatsApp, reminders, cancellation & refunds, deposits, group allocation, history, source tracking, overbooking prevention, audit | Met | Calendar; room board drag-and-drop (1.2); cancellation policies; refunds maker-checker; group blocks |
+| 6 | **Hotel website** ("visit the hotel's website, view hotel information") | Met | Public website at the main address with about, rooms, dining, events, facilities, gallery, location, contact form; edited and published from Administration → Website without code (1.3) |
 | 6 | Booking engine: info, categories, **photos and videos**, availability, prices, booking, online payment, confirmation, modify/cancel, **download receipt**; promo/corporate/packages; no double booking | Met (ready) | `#/book/<code>` with gallery, video link, promo and **referral code**, downloadable confirmation PDF (1.2). Paystack/Flutterwave built — live payments need your merchant keys. Channel managers: see open items |
 | 7 | Check-in: search, walk-in, ID capture (masked), lawful photos, assign room, deposit, **registration card**, arrival time, requests | Met | Front desk; registration card PDF (1.2); ID documents in the document store |
 | 7 | Check-out: charges from all departments, taxes, discounts, invoice, payment, refunds, receipt, room status, housekeeping trigger | Met | Folio, invoice PDF, dirty status + housekeeping task at check-out |
@@ -82,11 +83,11 @@ biometric attendance intake, breadcrumb navigation, pagination, in-app help, and
 | 24 | Confirmations, registration forms, invoices, receipts, pro-forma, **payment vouchers**, POs, GRNs, payslips, contracts, quotations, statements, reports; PDF/Excel; secure storage | Met | PDFs throughout; vouchers (1.2); document store with access control and integrity checks |
 | 25 | Audit of all listed actions with user, reference, action, old/new value, time, IP/device; tamper-protected | Met | `audit_logs` with database triggers blocking change/deletion |
 | 26 | Payment gateways, email, SMS, WhatsApp, booking platforms, channel managers, accounting/payroll apps, locks, key cards, CCTV, access control, e-invoicing; secure auth, webhook validation, retries, logs; no simulated success | Met (ready) / open item | Built: Paystack, Flutterwave, SMTP, Termii SMS, WhatsApp Cloud, lock/key-card/CCTV/attendance intakes, open REST API, signed webhooks, retries and integration log. Vendor-specific channel-manager, bank, accounting, payroll and e-invoicing connectors: see open items |
-| 27 | Normalised relational schema with all listed entities, keys, indexes, constraints, transactions | Met | 143 tables, 410 foreign keys — [DATA_DICTIONARY.md](DATA_DICTIONARY.md) |
+| 27 | Normalised relational schema with all listed entities, keys, indexes, constraints, transactions | Met | 146 tables, 417 foreign keys — [DATA_DICTIONARY.md](DATA_DICTIONARY.md) |
 | 28 | Navy/gold design, collapsible menu, top bar, hotel selector, profile, notifications, global search, **breadcrumbs**, tables, search/filter, **pagination**, confirmations, loading, errors, success, responsive; role dashboards | Met | Breadcrumb and paging added in 1.2 |
 | 29 | Hashing, MFA, RBAC, validation, SQL injection and XSS protection, CSRF where applicable, secure API auth, HTTPS, rate limiting, sessions, encryption in transit, **encryption at rest where appropriate**, backup, audit, revocation, dependency updates; OWASP; privacy | **Partial** | All built and reviewed in [SECURITY.md](SECURITY.md). CSRF does not apply (tokens are not cookies). HTTPS via the reverse proxy in DEPLOYMENT.md. At rest: no card data stored, identity numbers masked, documents checksummed; database and backup encryption is done at disk level by the server, not field by field in EHMS |
 | 30 | Scheduled and manual backups, secure storage, history, **verification**, restoration, disaster recovery, failure notifications, retention | Met | Administration → **Backups** (1.2): back up now, daily schedule, retention, history, test-restore verification, download, failure alerts; `python -m ehms.backup restore` |
-| 31 | Unit, integration and end-to-end tests of every listed area | Met | 115 tests + browser E2E; mobile layout; security audit test |
+| 31 | Unit, integration and end-to-end tests of every listed area | Met | 120 tests + browser E2E; mobile layout; security audit test |
 | 32 | 23 deliverables | Met | App, dashboards, portal, backend, schema, migrations, API docs, auth, modules, finance, inventory, HR, AI, PDF/Excel, automations, audit, tests and reports, deployment config, backup/recovery, user guide (Word + online), administrator manual, technical docs |
 | 33 | Phased delivery, progress register | Met | Releases 0.3 → 1.2 in [RELEASE_NOTES.md](RELEASE_NOTES.md); [PROGRESS.md](PROGRESS.md) |
 | 34 | Final acceptance criteria 1–12 | Met | Each is covered by tests or this table |
@@ -105,7 +106,7 @@ biometric attendance intake, breadcrumb navigation, pagination, in-app help, and
 | 7 Integrations (high/medium) | Met (ready) | Paystack, Flutterwave, email, SMS, WhatsApp |
 | 7 OTA platforms, accounting software (medium) | Open item | Open REST API and exports available; no vendor connector |
 | 7 Biometric devices, door access, channel manager, identity provider, smart room, BI tools (optional) | Met (ready) / Optional | Biometric clock and door-access intakes built (1.2); BI tools use CSV/XLSX exports or the API; channel manager, SSO and smart-room not built |
-| 8 Interface, management and department dashboards, usability, **help and support access** | Met | Help & support page (1.2) |
+| 8 Interface, management and department dashboards, usability, **help and support access** | Met | Help & support page (1.2); public website with staff login link (1.3) |
 | 9 Workflows (reservation → check-out, restaurant → folio, procurement, maintenance) | Met | Each runs end to end in tests |
 | 10 Reports (operational, financial, commercial, HR, inventory) with filters and exports | Met | Reports, Insights, HR analytics |
 | 11 Audit and internal control | Met | See master prompt §25 |
