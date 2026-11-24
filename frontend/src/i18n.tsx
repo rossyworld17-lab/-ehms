@@ -52,7 +52,7 @@ const FR: Record<string, string> = {
   // public website
   "About": "À propos", "Rooms": "Chambres", "Dining": "Restauration", "Events": "Événements", "Gallery": "Galerie", "Location": "Accès", "Contact": "Contact",
   "Menu": "Menu", "Contact us": "Nous contacter", "up to": "jusqu'à", "from": "à partir de", "Send an event enquiry": "Demande pour un événement",
-  "Open in Google Maps": "Ouvrir dans Google Maps", "Staff login": "Espace personnel", "Enquiry about": "Votre demande concerne", "General enquiry": "Demande générale",
+  "Open in Google Maps": "Ouvrir dans Google Maps", "Staff login": "Espace personnel", "Privacy": "Confidentialité", "Enquiry about": "Votre demande concerne", "General enquiry": "Demande générale",
   "Event or meeting": "Événement ou réunion", "Your name": "Votre nom", "Event date": "Date de l'événement", "Subject": "Objet", "Number of guests": "Nombre d'invités",
   "Message": "Message", "Send me offers by email (optional)": "Recevoir nos offres par e-mail (facultatif)",
   "We use your details only to answer your enquiry.": "Vos coordonnées servent uniquement à répondre à votre demande.", "Send message": "Envoyer",

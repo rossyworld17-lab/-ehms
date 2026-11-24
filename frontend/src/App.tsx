@@ -215,6 +215,7 @@ export default function App() {
   const guard = (perm: string, el: React.ReactNode) => (can(perm) ? el : <Forbidden />);
   let page: React.ReactNode;
   switch (true) {
+    case !!user.mfa_enrollment_required: page = <Profile />; break;   // the hotel requires two-step verification for this role first
     case path === "/": page = can("dashboard.view") ? <Dashboard /> : can("housekeeping.view") ? <Housekeeping /> : can("pos.view") ? <Pos />
       : can("laundry.view") ? <Laundry /> : can("kitchen.view") ? <Kitchen /> : can("inventory.view") ? <Inventory q={q} /> : can("procurement.view") ? <Procurement q={q} /> : <Profile />; break;
     case path === "/pos": page = guard("pos.view", <Pos />); break;

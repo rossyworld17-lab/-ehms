@@ -1,8 +1,63 @@
-# Production-style stack: PostgreSQL + EHMS app + scheduled backups.
-#   cp .env.example .env   (edit secrets)
-#   docker compose up -d --build
-#   docker compose exec app python -m ehms.seed bootstrap --org "..." --org-code ABC --hotel "..." --hotel-code H1 --admin-email you@example.com --admin-name "Your Name"
+# EHMS production stack — HTTPS (Caddy + Let's Encrypt) → EHMS app → PostgreSQL, plus the background worker
+# (reminders, reports, verified encrypted backups). The database is on an internal network with no route outside.
+#
+# Quickest path on a fresh Ubuntu server:   sudo bash deploy/install.sh
+# By hand:  cp .env.example .env  (fill every CHANGE-ME)  →  docker compose up -d --build
+#           docker compose exec app python -m ehms.preflight
+#           docker compose exec app python -m ehms.seed bootstrap --org "..." --org-code ABC --hotel "..." --hotel-code H1 \
+#                                   --admin-email you@example.com --admin-name "Your Name"
+x-ehms: &ehms
+  build: .
+  image: ehms:${EHMS_IMAGE_TAG:-latest}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql://ehms:${POSTGRES_PASSWORD}@db:5432/ehms
+    FORWARDED_ALLOW_IPS: 172.30.10.0/24
+  volumes:
+    - ehms-data:/data            # documents, room/website photos, encrypted backups
+  read_only: true
+  tmpfs: ["/tmp:size=512m"]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: ["ALL"]
+  depends_on:
+    db:
+      condition: service_healthy
+
 services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      EHMS_DOMAIN: ${EHMS_DOMAIN:?set EHMS_DOMAIN in .env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge]
+    depends_on: [app]
+
+  app:
+    <<: *ehms
+    environment:
+      DATABASE_URL: postgresql://ehms:${POSTGRES_PASSWORD}@db:5432/ehms
+      FORWARDED_ALLOW_IPS: 172.30.10.0/24
+      EHMS_WORKER: "0"             # jobs run in the worker service below
+    networks:
+      edge: { ipv4_address: 172.30.10.10 }
+      internal: {}
+
+  worker:
+    <<: *ehms
+    command: ["python", "-m", "ehms.worker", "--loop"]
+    healthcheck: { disable: true }
+    depends_on:
+      db: { condition: service_healthy }
+      app: { condition: service_healthy }   # the app applies database migrations first
+    networks: [internal, edge]     # edge = outbound email, SMS and payment-provider calls
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -10,41 +65,22 @@ services:
       POSTGRES_DB: ehms
       POSTGRES_USER: ehms
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+    volumes: [pgdata:/var/lib/postgresql/data]
+    security_opt: ["no-new-privileges:true"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ehms -d ehms"]
       interval: 10s
-      retries: 5
+      retries: 6
+    networks: [internal]
 
-  app:
-    build: .
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql://ehms:${POSTGRES_PASSWORD}@db:5432/ehms
-    volumes:
-      - documents:/data/documents   # uploaded documents and scheduled-report files
-    ports:
-      - "8000:8000"   # put a TLS-terminating reverse proxy (Caddy / Nginx) in front in production
-
-  backup:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    depends_on: [db]
-    environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
-    volumes:
-      - ./deploy/backup.sh:/backup.sh:ro
-      - backups:/backups
-      - documents:/documents:ro
-    entrypoint: ["/bin/sh", "-c", "while true; do /bin/sh /backup.sh; sleep 86400; done"]
+networks:
+  edge:
+    ipam: { config: [{ subnet: 172.30.10.0/24 }] }
+  internal:
+    internal: true
 
 volumes:
   pgdata:
-  backups:
-  documents:
+  ehms-data:
+  caddy-data:
+  caddy-config:

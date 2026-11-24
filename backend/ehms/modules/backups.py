@@ -14,7 +14,7 @@ from ..db import get_db, now_iso
 from ..http import Ctx, audit, bad_request, forbidden, not_found, route
 from ..services import queue_notification
 
-DEFAULT_SCHEDULE = {"enabled": True, "hour_utc": 1, "retention_days": 14}
+DEFAULT_SCHEDULE = {"enabled": True, "hour_utc": 1, "retention_days": int(os.environ.get("EHMS_BACKUP_RETENTION_DAYS", "14"))}
 
 
 def schedule(c) -> dict:
@@ -83,7 +83,7 @@ def download_backup(ctx: Ctx):
         if not os.path.isfile(path):
             raise not_found("Backup file")
         audit(c, ctx, "admin.backup_downloaded", "backup", b["id"], b["filename"])
-    return FileResponse(path, media_type="application/zip", filename=b["filename"])
+    return FileResponse(path, media_type="application/zip" if b["filename"].endswith(".zip") else "application/octet-stream", filename=b["filename"])
 
 
 @route("PUT", "/api/admin/backups/schedule", perm="admin.backups", tag="admin",

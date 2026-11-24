@@ -27,3 +27,8 @@ createRoot(document.getElementById("root")!).render(
     </LangProvider>
   </React.StrictMode>
 );
+
+// Installable staff app (and the Android app): register the service worker for the staff application only.
+if ("serviceWorker" in navigator && window.location.pathname.startsWith("/staff")) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(() => undefined); });
+}

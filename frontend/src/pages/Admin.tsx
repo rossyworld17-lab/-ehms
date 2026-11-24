@@ -27,15 +27,17 @@ export function Users() {
         <Button kind="ghost" onClick={() => setEdit(u)}>Edit</Button>
         {can("admin.sessions.manage") && <Button kind="ghost" onClick={() => setSessions(u)}>Sessions</Button>}
         <Button kind="ghost" onClick={() => setConfirm({ u, kind: "reset" })}>Reset password</Button>
+        {u.mfa_enabled && <Button kind="ghost" onClick={() => setConfirm({ u, kind: "mfa" })}>Reset two-step</Button>}
         {u.status === "active" ? <Button kind="ghost" onClick={() => setConfirm({ u, kind: "suspended" })}>Suspend</Button> : <Button kind="ghost" onClick={() => setConfirm({ u, kind: "active" })}>Activate</Button>}
       </div> }]} />}</Loadable></Card>
     {edit && <UserForm u={edit} onClose={() => setEdit(null)} onSaved={(t?: string) => { setEdit(null); st.reload(); if (t) setTemp(t); }} />}
     {sessions && <SessionsModal u={sessions} onClose={() => setSessions(null)} />}
-    {confirm && <Confirm title={confirm.kind === "reset" ? "Reset password" : `${label(confirm.kind === "active" ? "activate" : "suspend")} user`} danger={confirm.kind !== "active"}
-      text={<p>{confirm.kind === "reset" ? `Issue a temporary password for ${confirm.u.full_name}? Their current sessions will end.` : `${confirm.kind === "active" ? "Re-activate" : "Suspend"} ${confirm.u.full_name}?`}</p>}
+    {confirm && <Confirm title={confirm.kind === "reset" ? "Reset password" : confirm.kind === "mfa" ? "Reset two-step verification" : `${label(confirm.kind === "active" ? "activate" : "suspend")} user`} danger={confirm.kind !== "active"}
+      text={<p>{confirm.kind === "reset" ? `Issue a temporary password for ${confirm.u.full_name}? Their current sessions will end.` : confirm.kind === "mfa" ? `Remove ${confirm.u.full_name}'s two-step verification (for a lost or replaced phone)? Their sessions end and they set it up again at their next sign-in. Do this only after confirming who is asking.` : `${confirm.kind === "active" ? "Re-activate" : "Suspend"} ${confirm.u.full_name}?`}</p>}
       onClose={() => setConfirm(null)} onConfirm={async () => {
         try {
           if (confirm.kind === "reset") { const r = await post(`/api/admin/users/${confirm.u.id}/reset-password`); setTemp(r.temporary_password); }
+          else if (confirm.kind === "mfa") { await post(`/api/admin/users/${confirm.u.id}/reset-mfa`); toast("success", "Two-step verification removed"); }
           else { await post(`/api/admin/users/${confirm.u.id}/status`, { status: confirm.kind }); toast("success", "User updated"); }
           setConfirm(null); st.reload();
         } catch (e) { toast("error", errText(e)); }

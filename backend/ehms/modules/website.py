@@ -35,7 +35,7 @@ TEXT_FIELDS = {
     "hero_title": 90, "hero_subtitle": 220, "about_title": 90, "about_body": 2500, "rooms_title": 90, "rooms_intro": 600,
     "dining_title": 90, "dining_body": 1500, "dining_hours": 300, "events_title": 90, "events_body": 1500,
     "facilities_title": 90, "gallery_title": 90, "location_title": 90, "directions": 800, "contact_title": 90, "contact_intro": 400,
-    "contact_hours": 200, "seo_title": 70, "seo_description": 170, "footer_note": 300, "announcement": 200,
+    "contact_hours": 200, "seo_title": 70, "seo_description": 170, "footer_note": 300, "announcement": 200, "privacy_policy": 20000,
 }
 LIST_FIELDS = {"highlights": (6, {"title": 60, "text": 220}), "facilities": (24, None)}
 
@@ -60,7 +60,7 @@ def default_content(hotel: dict) -> dict:
                 "facilities_title": "Facilities", "gallery_title": "Gallery", "location_title": "Find us", "directions": "",
                 "contact_title": "Contact us", "contact_intro": "Questions, special requests or event enquiries — send us a message and we will reply quickly.",
                 "contact_hours": "Reception is open 24 hours.", "seo_title": f"{name} — Official website", "seo_description": f"Book directly with {name}{(', ' + city) if city else ''}: rooms, dining, meetings and events.",
-                "footer_note": "", "announcement": "",
+                "footer_note": "", "announcement": "", "privacy_policy": "",
                 "highlights": [{"title": "Best rate when you book direct", "text": "Book on our website for our best available price."},
                                {"title": "Free Wi-Fi", "text": "Fast internet throughout the hotel."},
                                {"title": "24-hour reception", "text": "We are here day and night."}],
@@ -450,3 +450,42 @@ def seo_for_index() -> tuple[str, str, str] | None:
     en = content["text"]["en"]
     return en.get("seo_title") or hotel["name"], en.get("seo_description") or "", hotel["name"]
 
+
+
+def default_privacy_policy(hotel: dict) -> str:
+    """Plain-text privacy notice used when the hotel has not written its own (Administration → Website)."""
+    name = hotel["name"]
+    contact = hotel.get("email") or hotel.get("phone") or "the reception desk"
+    return f"""{name} respects your privacy. This notice explains what personal information we collect, why, and your rights. It covers this website, online booking and the {name} staff app.
+
+What we collect
+- Booking and stay details: your name, phone number, email address, dates of stay, room preferences and special requests.
+- Identification required by law at check-in (ID type and number, nationality). ID numbers are stored encrypted.
+- Payments: we record amounts and references. Card details are entered on the payment provider's secure page (Paystack or Flutterwave) and never reach our systems.
+- Messages you send us through the contact form, and feedback you choose to give.
+- For staff using the app: work account details, sign-in history and the actions recorded for security and audit.
+
+Why we use it
+To confirm and manage your booking, check you in and out, issue invoices and receipts, meet legal obligations (for example guest registration and tax records), keep guests, staff and property safe, and answer your enquiries. With your consent only, we send offers; you can opt out at any time.
+
+Sharing
+We do not sell your information. We share it only with the payment provider handling your payment, email and SMS providers that deliver our messages, and authorities where the law requires it.
+
+Security and retention
+Data is sent over encrypted connections (HTTPS), sensitive fields and backups are encrypted, and access is limited by role with two-step verification for privileged staff. We keep records only as long as needed for the purposes above and legal retention periods, then delete or anonymise them.
+
+Your rights
+Under the Nigeria Data Protection Act 2023 you may ask to see, correct or delete your personal information, object to its use, or withdraw consent. Contact us at {contact}. You may also complain to the Nigeria Data Protection Commission.
+
+Changes
+We may update this notice; the current version is always on this page."""
+
+
+def privacy_for_page() -> tuple[str, str]:
+    """(hotel name, privacy text) for the public /privacy page."""
+    with get_db().tx() as c:
+        hotel = _hotel_for_site(c, None)
+        row = _content_row(c, hotel["id"])
+        content = _load(row["published"]) if row and row["published"] else default_content(hotel)
+    text = (content["text"]["en"].get("privacy_policy") or "").strip() or default_privacy_policy(hotel)
+    return hotel["name"], text

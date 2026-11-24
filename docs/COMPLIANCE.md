@@ -1,4 +1,4 @@
-# Requirements compliance — EHMS 1.3.0
+# Requirements compliance — EHMS 1.4.0
 
 This document checks EHMS against **every** requirement source: the *EHMS Software Requirements Specification v1*
 (SRS) and the *Master software development prompt*, section by section, including the parts the functional
@@ -11,7 +11,7 @@ account, device or server to switch on · **Partial**: core behaviour built, the
 **Your step**: depends on the hotel (hosting, sign-off, contracts) · **Optional / planned**: marked optional in
 the SRS or planned for after this release.
 
-Evidence: 120 automated API/integration tests (SQLite and PostgreSQL), the browser end-to-end test
+Evidence: 126 automated API/integration tests (SQLite and PostgreSQL), the browser end-to-end test
 (`frontend/e2e/smoke.py`), [TEST_REPORT.md](TEST_REPORT.md) and the source.
 
 ## Summary
@@ -21,7 +21,7 @@ Evidence: 120 automated API/integration tests (SQLite and PostgreSQL), the brows
 | SRS functional requirements (FR-…) | 127 / 127 Met |
 | SRS business rules (BR-001…014) | 14 / 14 Met |
 | Master prompt sections 1–34 | all Met, except the items listed under *Open items* |
-| Open items | 7 (2 partial, 5 needing external providers or optional) — listed at the end |
+| Open items | 5 (1 partial, 4 needing external providers or optional); 2 closed in 1.4 — listed at the end |
 
 Release 1.2 closed the gaps a line-by-line review found in 1.1.2: multiple languages, in-app backups with
 verification and restore, wake-up calls, early check-in / late check-out, registration cards, drag-and-drop room
@@ -85,9 +85,9 @@ biometric attendance intake, breadcrumb navigation, pagination, in-app help, and
 | 26 | Payment gateways, email, SMS, WhatsApp, booking platforms, channel managers, accounting/payroll apps, locks, key cards, CCTV, access control, e-invoicing; secure auth, webhook validation, retries, logs; no simulated success | Met (ready) / open item | Built: Paystack, Flutterwave, SMTP, Termii SMS, WhatsApp Cloud, lock/key-card/CCTV/attendance intakes, open REST API, signed webhooks, retries and integration log. Vendor-specific channel-manager, bank, accounting, payroll and e-invoicing connectors: see open items |
 | 27 | Normalised relational schema with all listed entities, keys, indexes, constraints, transactions | Met | 146 tables, 417 foreign keys — [DATA_DICTIONARY.md](DATA_DICTIONARY.md) |
 | 28 | Navy/gold design, collapsible menu, top bar, hotel selector, profile, notifications, global search, **breadcrumbs**, tables, search/filter, **pagination**, confirmations, loading, errors, success, responsive; role dashboards | Met | Breadcrumb and paging added in 1.2 |
-| 29 | Hashing, MFA, RBAC, validation, SQL injection and XSS protection, CSRF where applicable, secure API auth, HTTPS, rate limiting, sessions, encryption in transit, **encryption at rest where appropriate**, backup, audit, revocation, dependency updates; OWASP; privacy | **Partial** | All built and reviewed in [SECURITY.md](SECURITY.md). CSRF does not apply (tokens are not cookies). HTTPS via the reverse proxy in DEPLOYMENT.md. At rest: no card data stored, identity numbers masked, documents checksummed; database and backup encryption is done at disk level by the server, not field by field in EHMS |
+| 29 | Hashing, MFA, RBAC, validation, SQL injection and XSS protection, CSRF where applicable, secure API auth, HTTPS, rate limiting, sessions, encryption in transit, **encryption at rest where appropriate**, backup, audit, revocation, dependency updates; OWASP; privacy | Met | All built and reviewed in [SECURITY.md](SECURITY.md). CSRF does not apply (tokens are not cookies). HTTPS with automatic certificates (Caddy). **1.4**: AES-256-GCM field encryption of ID, bank, tax, pension and NHF numbers; encrypted, tamper-evident backups; MFA enforced for privileged roles; pinned and audited dependencies; privacy notice at `/privacy` |
 | 30 | Scheduled and manual backups, secure storage, history, **verification**, restoration, disaster recovery, failure notifications, retention | Met | Administration → **Backups** (1.2): back up now, daily schedule, retention, history, test-restore verification, download, failure alerts; `python -m ehms.backup restore` |
-| 31 | Unit, integration and end-to-end tests of every listed area | Met | 120 tests + browser E2E; mobile layout; security audit test |
+| 31 | Unit, integration and end-to-end tests of every listed area | Met | 126 tests + browser E2E; mobile layout; security audit test |
 | 32 | 23 deliverables | Met | App, dashboards, portal, backend, schema, migrations, API docs, auth, modules, finance, inventory, HR, AI, PDF/Excel, automations, audit, tests and reports, deployment config, backup/recovery, user guide (Word + online), administrator manual, technical docs |
 | 33 | Phased delivery, progress register | Met | Releases 0.3 → 1.2 in [RELEASE_NOTES.md](RELEASE_NOTES.md); [PROGRESS.md](PROGRESS.md) |
 | 34 | Final acceptance criteria 1–12 | Met | Each is covered by tests or this table |
@@ -119,9 +119,9 @@ biometric attendance intake, breadcrumb navigation, pagination, in-app help, and
 | # | Item | Why it is open | What is needed |
 |---|---|---|---|
 | 1 | Page text in languages other than English | French covers menu, header, sign-in and booking engine | Translate remaining screens in `frontend/src/i18n.tsx` |
-| 2 | Field-level encryption of stored personal data | Protected by masking, access control and disk encryption at the server | Optional enhancement if your auditors require it |
+| 2 | ~~Field-level encryption of stored personal data~~ | **Closed in 1.4** — encrypted with AES-256-GCM (see SECURITY.md) | — |
 | 3 | Channel manager / OTA connectors | Each provider has its own API and contract | Choose a provider; connect through the REST API |
 | 4 | Accounting, payroll, bank and e-invoicing software connectors | As above | Choose the software; exports and the API are ready |
 | 5 | Live review-site monitoring | Review sites need partner API access | Staff record review feedback in Guest relations today |
-| 6 | Push notifications to mobile apps | There is no mobile app yet (SRS future enhancement) | In-app, email, SMS and WhatsApp work now |
+| 6 | Push notifications to mobile apps | **Mobile app delivered in 1.4** (Android, Google Play; installable web app on iPhone). Device push needs a push service account (Firebase) | In-app, email, SMS and WhatsApp work now |
 | 7 | Single sign-on, smart-room control | Marked optional in the SRS | — |

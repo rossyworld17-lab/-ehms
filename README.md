@@ -5,6 +5,12 @@ guest folios, payments, double-entry accounting, housekeeping, reporting and a p
 Default localisation is Nigeria (NGN, Africa/Lagos, configurable VAT and service charge); every rate, tax
 and policy is configurable for other countries.
 
+> **Release 1.4 — ready for live deployment.** Sensitive data and backups are encrypted, two-step verification is
+> required for privileged roles, and production refuses to start with unsafe settings. One command installs the
+> hardened production stack with automatic HTTPS ([deployment guide](docs/DEPLOYMENT.md)), and the **EHMS Staff
+> Android app** is built for Google Play ([Android guide](docs/ANDROID_APP.md)). The full
+> [system analysis](docs/EHMS_System_Analysis.docx) documents the whole system.
+>
 > **Release 1.3 — hotel website.** The main address now shows the hotel's public website (rooms, dining, events, gallery,
 > location, contact form, English/French); EHMS itself is at `/staff`. Administrators edit the website under
 > Administration → Website — text, photos, sections and links — and publish without touching code.
@@ -113,21 +119,22 @@ Public booking engine: <http://localhost:8000/#/book/CGL>. API reference: <http:
 
 Demo data is fictional and clearly labelled. **Never enable `EHMS_SEED_DEMO` in production.**
 
-## Production
+## Production (live hotel)
+
+On an Ubuntu server with the domain's DNS pointing at it:
 
 ```bash
-cp .env.example .env            # set POSTGRES_PASSWORD and EHMS_SECRET_KEY
-docker compose up -d --build
-docker compose exec app python -m ehms.seed bootstrap --org "Your Company Ltd" --org-code YCL \
-  --hotel "Your Hotel" --hotel-code YH --admin-email you@example.com --admin-name "Your Name"
+sudo bash deploy/install.sh     # Docker, random secrets, HTTPS, go-live checks, first hotel and owner
 ```
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for TLS, email, payment gateways, backups and restore.
+The stack is Caddy (automatic HTTPS) → EHMS app → PostgreSQL, plus a worker for reminders, messages and daily
+encrypted backups. Updates: `sudo bash deploy/update.sh`. Everything else (settings, backups off-site, restore,
+monitoring) is in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md); the Android app in [docs/ANDROID_APP.md](docs/ANDROID_APP.md).
 
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q                       # 90 API/integration tests (SQLite)
+cd backend && python -m pytest -q                       # 126 API/integration tests (SQLite)
 TEST_DATABASE_URL=postgresql://... python -m pytest -q  # same suite on PostgreSQL
 python ../frontend/e2e/smoke.py                         # browser end-to-end (app running with demo data)
 ```
@@ -139,9 +146,10 @@ python ../frontend/e2e/smoke.py                         # browser end-to-end (ap
 
 - [Architecture & database](docs/ARCHITECTURE.md)
 - [REST API reference](docs/API.md)
-- **[EHMS v1.3.0 User Guide (Word)](docs/EHMS_v1.3.0_User_Guide.docx)** — complete guide for staff, managers and administrators
+- **[EHMS v1.4.0 User Guide (Word)](docs/EHMS_v1.4.0_User_Guide.docx)** — complete guide for staff, managers and administrators
+- **[EHMS System Analysis (Word)](docs/EHMS_System_Analysis.docx)** — comprehensive analysis: scope, architecture, data, processes, security, deployment
 - [User guide](docs/USER_GUIDE.md) · [Administrator manual](docs/ADMIN_MANUAL.md)
-- [Deployment, backup & recovery](docs/DEPLOYMENT.md)
+- [Going live: deployment, backup & recovery](docs/DEPLOYMENT.md) · [Android app & Google Play](docs/ANDROID_APP.md)
 - [Test report](docs/TEST_REPORT.md) · [Requirements traceability](docs/TRACEABILITY.md) · [Progress register](docs/PROGRESS.md) · [Roadmap](docs/ROADMAP.md)
 - [Security review](docs/SECURITY.md) · [Performance review](docs/PERFORMANCE.md) · [Acceptance, go-live & sign-off](docs/ACCEPTANCE.md) · [Release notes](docs/RELEASE_NOTES.md)
 

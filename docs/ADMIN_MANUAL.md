@@ -226,3 +226,31 @@ requests through the guest profile. Appoint a data protection officer as your ob
   `https://<EHMS address>/#/book/<HOTEL CODE>` and *Staff login* → `https://<EHMS address>/staff` — and simply leave the
   EHMS website unpublished or unused.
 
+
+## Going live and security (release 1.4)
+- **Installation** on a server is one command (`sudo bash deploy/install.sh`); see [DEPLOYMENT.md](DEPLOYMENT.md). Before
+  opening to staff run `docker compose exec app python -m ehms.preflight` — it must show `0 failing`.
+- **The data key** (`EHMS_DATA_KEY` in `.env`) encrypts guest/visitor ID numbers, staff and supplier bank numbers, tax IDs,
+  pension PINs, NHF numbers and every backup. Store it in the hotel's password manager and an offline copy, away from
+  the backups. **If it is lost, those fields and all backups cannot be recovered. Never change it** on a running hotel
+  (existing data would become unreadable); a server rebuilt for disaster recovery must use the same key. On screen
+  the data looks exactly as before; a value that shows *[encrypted — key mismatch]* means the server has the wrong key.
+- **Two-step verification**: with `EHMS_REQUIRE_MFA=privileged` (default) anyone holding an administrative or financial
+  approval permission (users, roles, settings, sessions, backups, payroll, refunds, manual journals, period close,
+  approvals and payments, HR accounts, website publishing) must set up an authenticator app (Google Authenticator,
+  Microsoft Authenticator, Authy…) at their first sign-in; until then they see only their profile. `all` requires it for
+  everyone; `off` is not recommended. If a privileged user loses their phone, an administrator resets the
+  user's two-step verification in Administration → Users, and the user enrols again at the next sign-in.
+- **Passwords**: at least `EHMS_MIN_PASSWORD_LENGTH` (10) characters with letters and digits; common passwords and
+  passwords containing the person's name or email are refused. Five wrong attempts lock an account for 15 minutes;
+  20 failures from one address in that time block the address.
+- **Backups**: daily at the configured hour, encrypted (`.zip.enc`) and verified; download them from Administration →
+  Backups or copy them off the server with `deploy/offsite-backup.sh`. A downloaded backup can only be opened by an
+  EHMS server holding the same data key.
+- **Privacy notice**: `https://<domain>/privacy`. Edit it in Administration → Website → Text → *Privacy notice* (leave it
+  empty for the standard NDPA 2023 notice, which uses the hotel's name and email). It is linked from the website footer
+  and the booking form, and is the privacy-policy URL for the Play Store.
+- **Android app**: build and publish as described in [ANDROID_APP.md](ANDROID_APP.md); set `EHMS_ANDROID_PACKAGE` and
+  `EHMS_ANDROID_SHA256` so the app opens full-screen. Staff sign in with their normal EHMS account; the app shows the live
+  system, so server updates reach every phone at once.
+- **Security contact**: set `EHMS_SECURITY_CONTACT` (an email) to publish `/.well-known/security.txt`.

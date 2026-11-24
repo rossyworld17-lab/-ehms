@@ -14,6 +14,9 @@ export default function Profile() {
   return <div className="page narrow">
     <div className="page-h"><div><h1>My profile & security</h1><p className="muted">{user!.full_name} · {user!.email}</p></div></div>
     {!!user!.must_change_password && <div className="note">Please set a new password — your current one was issued by an administrator.</div>}
+    {user!.mfa_enrollment_required && <div className="note note-warn" role="alert"><b>Set up two-step verification to continue.</b> Your role can approve payments, change settings or manage
+      users, so the hotel requires a code from an authenticator app (Google Authenticator, Microsoft Authenticator, Authy) at every sign-in. Click <b>Set up MFA</b> below,
+      add the key to the app, and enter the 6-digit code. The rest of EHMS opens as soon as it is on.</div>}
     <Card title="Roles & access"><p>{user!.roles.map(r => <Pill key={r.id} s="confirmed" text={r.name} />)}</p>
       <p className="muted small">Hotels: {user!.all_hotels ? "All hotels in the organisation" : user!.hotels.map(h => h.name).join(", ")}</p></Card>
     <Card title="Change password"><div className="form-grid">

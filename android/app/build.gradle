@@ -1,0 +1,57 @@
+plugins {
+    id "com.android.application"
+}
+
+def host = project.property("ehms.host")
+def launchUrl = "https://" + host + "/staff#/"
+
+android {
+    namespace "ng.ehms.staff"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId project.property("ehms.applicationId")
+        minSdk 24
+        targetSdk 36
+        versionCode Integer.parseInt(project.property("ehms.versionCode").toString())
+        versionName project.property("ehms.versionName")
+        manifestPlaceholders = [hostName: host, launchUrl: launchUrl]
+        resValue "string", "appName", project.property("ehms.appName")
+        resValue "string", "launcherName", project.property("ehms.appName")
+        resValue "string", "launchUrl", launchUrl
+        resValue "string", "hostName", host
+        resValue "string", "providerAuthority", project.property("ehms.applicationId") + ".fileprovider"
+        resValue "string", "assetStatements", "[{ \\\"relation\\\": [\\\"delegate_permission/common.handle_all_urls\\\"], \\\"target\\\": {\\\"namespace\\\": \\\"web\\\", \\\"site\\\": \\\"https://" + host + "\\\"}}]"
+    }
+
+    signingConfigs {
+        // Release signing comes from environment variables (the GitHub workflow decodes the upload keystore from secrets).
+        release {
+            def ks = System.getenv("EHMS_KEYSTORE_FILE")
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv("EHMS_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("EHMS_KEY_ALIAS")
+                keyPassword System.getenv("EHMS_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv("EHMS_KEYSTORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.5.0"
+}
