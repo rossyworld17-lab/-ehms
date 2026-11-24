@@ -8,6 +8,19 @@ EHMS shows each person only the menus their role allows. Amounts are entered in 
 - If two-step verification is on, enter the 6-digit code from your authenticator app.
 - You are signed out after 30 minutes of inactivity. Use **My profile & security** to change your password,
   turn on MFA and see your active sessions.
+- **Two-step verification is required** (release 1.4) for administrators, finance, HR, payroll and anyone who approves
+  refunds, purchases or payments. If your role needs it, EHMS opens *My profile & security* at your first sign-in: install
+  Google Authenticator, Microsoft Authenticator or Authy, press **Set up MFA**, choose *Enter a setup key* in the app and
+  type the key, then enter the 6-digit code and press **Turn on MFA**. Lost your phone? Another administrator uses
+  **Administration → Users → Reset two-step**, and you set it up again.
+- Passwords must have at least 10 characters with letters and digits, and may not be a common password or contain your
+  name or email.
+
+## EHMS Staff app (Android) and phones
+- Android: install **EHMS Staff** from the Play Store link your IT team shares and sign in with your normal account.
+- iPhone: open `https://<hotel domain>/staff` in Safari → Share → **Add to Home Screen**. Computers: Chrome/Edge offer
+  **Install** in the address bar.
+- The app always shows the live system; if the connection drops you see a "You are offline" page until it returns.
 
 ## Dashboard
 Occupancy tonight, arrivals, departures, in-house guests, revenue, ADR/RevPAR, outstanding balances, room
