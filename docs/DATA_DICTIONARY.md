@@ -2,7 +2,7 @@
 
 Generated from the migrations by `python -m ehms.datadict`; do not edit by hand. Types are shown as they are in PostgreSQL (SQLite uses compatible storage classes). Money columns hold whole kobo (minor units); `*_milli` quantities hold thousandths.
 
-**146 tables**, 1679 columns, 417 foreign keys.
+**147 tables**, 1702 columns, 423 foreign keys.
 
 ## Contents
 
@@ -13,7 +13,7 @@ Generated from the migrations by `python -m ehms.datadict`; do not edit by hand.
 - **Restaurant, bar and kitchen**: [cashier_shifts](#cashier_shifts), [menu_categories](#menu_categories), [menu_items](#menu_items), [outlets](#outlets), [pos_order_items](#pos_order_items), [pos_orders](#pos_orders), [pos_payments](#pos_payments), [pos_tables](#pos_tables), [recipe_lines](#recipe_lines), [table_reservations](#table_reservations)
 - **Inventory and procurement**: [goods_receipt_lines](#goods_receipt_lines), [goods_receipts](#goods_receipts), [inventory_items](#inventory_items), [purchase_order_lines](#purchase_order_lines), [purchase_orders](#purchase_orders), [purchase_requisition_lines](#purchase_requisition_lines), [purchase_requisitions](#purchase_requisitions), [purchase_return_lines](#purchase_return_lines), [purchase_returns](#purchase_returns), [stock_batches](#stock_batches), [stock_count_lines](#stock_count_lines), [stock_counts](#stock_counts), [stock_levels](#stock_levels), [stock_movements](#stock_movements), [stock_requisition_lines](#stock_requisition_lines), [stock_requisitions](#stock_requisitions), [stores](#stores), [supplier_invoices](#supplier_invoices), [supplier_payments](#supplier_payments), [supplier_quote_lines](#supplier_quote_lines), [supplier_quotes](#supplier_quotes), [suppliers](#suppliers)
 - **Housekeeping and laundry**: [housekeeping_tasks](#housekeeping_tasks), [laundry_order_items](#laundry_order_items), [laundry_orders](#laundry_orders), [laundry_prices](#laundry_prices)
-- **Human resources and payroll**: [applicant_events](#applicant_events), [applicants](#applicants), [appraisals](#appraisals), [attendance](#attendance), [employee_history](#employee_history), [employee_loans](#employee_loans), [employees](#employees), [hr_records](#hr_records), [job_openings](#job_openings), [leave_adjustments](#leave_adjustments), [leave_requests](#leave_requests), [leave_types](#leave_types), [payroll_adjustments](#payroll_adjustments), [payroll_runs](#payroll_runs), [payslips](#payslips), [public_holidays](#public_holidays), [shift_assignments](#shift_assignments), [shift_templates](#shift_templates), [staff_requests](#staff_requests), [trainings](#trainings), [welfare_records](#welfare_records)
+- **Human resources and payroll**: [applicant_events](#applicant_events), [applicants](#applicants), [appraisals](#appraisals), [attendance](#attendance), [employee_history](#employee_history), [employee_loans](#employee_loans), [employees](#employees), [hr_records](#hr_records), [job_openings](#job_openings), [leave_adjustments](#leave_adjustments), [leave_requests](#leave_requests), [leave_types](#leave_types), [payroll_adjustments](#payroll_adjustments), [payroll_runs](#payroll_runs), [payslips](#payslips), [public_holidays](#public_holidays), [shift_assignments](#shift_assignments), [shift_templates](#shift_templates), [staff_id_cards](#staff_id_cards), [staff_requests](#staff_requests), [trainings](#trainings), [welfare_records](#welfare_records)
 - **Maintenance, security and events**: [access_events](#access_events), [asset_depreciation](#asset_depreciation), [assets](#assets), [emergency_contacts](#emergency_contacts), [event_costs](#event_costs), [event_items](#event_items), [event_staff](#event_staff), [event_venues](#event_venues), [events](#events), [incident_notes](#incident_notes), [lost_found](#lost_found), [maintenance_schedules](#maintenance_schedules), [security_incidents](#security_incidents), [venues](#venues), [visitors](#visitors), [work_order_notes](#work_order_notes), [work_order_parts](#work_order_parts), [work_orders](#work_orders)
 - **Guest relations, sales and revenue**: [campaign_recipients](#campaign_recipients), [campaigns](#campaigns), [competitor_rates](#competitor_rates), [complaint_updates](#complaint_updates), [complaints](#complaints), [corporate_accounts](#corporate_accounts), [corporate_rates](#corporate_rates), [feedback](#feedback), [loyalty_accounts](#loyalty_accounts), [loyalty_transactions](#loyalty_transactions), [sales_targets](#sales_targets)
 - **Intelligence, documents, messaging and website**: [ai_interactions](#ai_interactions), [anomaly_flags](#anomaly_flags), [document_access_log](#document_access_log), [documents](#documents), [integration_logs](#integration_logs), [notification_templates](#notification_templates), [notifications](#notifications), [report_schedules](#report_schedules), [website_content](#website_content), [website_enquiries](#website_enquiries), [website_media](#website_media)
@@ -1914,6 +1914,12 @@ erDiagram
     SHIFT_TEMPLATES ||--o{ SHIFT_ASSIGNMENTS : "shift_id"
     EMPLOYEES ||--o{ SHIFT_ASSIGNMENTS : "employee_id"
     HOTELS ||--o{ SHIFT_TEMPLATES : "hotel_id"
+    USERS ||--o{ STAFF_ID_CARDS : "created_by"
+    USERS ||--o{ STAFF_ID_CARDS : "revoked_by"
+    USERS ||--o{ STAFF_ID_CARDS : "issued_by"
+    USERS ||--o{ STAFF_ID_CARDS : "printed_by"
+    EMPLOYEES ||--o{ STAFF_ID_CARDS : "employee_id"
+    HOTELS ||--o{ STAFF_ID_CARDS : "hotel_id"
     USERS ||--o{ STAFF_REQUESTS : "created_by"
     USERS ||--o{ STAFF_REQUESTS : "decided_by"
     EMPLOYEES ||--o{ STAFF_REQUESTS : "employee_id"
@@ -2077,6 +2083,9 @@ Defined in `0005_laundry_hr_payroll.sql`. Unique: (user_id), (employee_no).
 | line_manager_id | INTEGER | yes |  | → employees |
 | probation_end_date | TEXT | yes |  |  |
 | contract_end_date | TEXT | yes |  |  |
+| photo_filename | VARCHAR(100) | yes |  |  |
+| photo_content_type | VARCHAR(40) | yes |  |  |
+| blood_group | VARCHAR(5) | yes |  |  |
 
 ### hr_records
 
@@ -2268,6 +2277,33 @@ Defined in `0005_laundry_hr_payroll.sql`. Unique: (hotel_id, name).
 | name | VARCHAR(60) | no |  |  |
 | start_time | VARCHAR(5) | no |  |  |
 | end_time | VARCHAR(5) | no |  |  |
+
+### staff_id_cards
+
+Defined in `0015_staff_id_cards.sql`. Unique: (verify_token), (card_no).
+
+| Column | Type | Null | Default | Key / reference |
+|---|---|---|---|---|
+| id | INTEGER | no |  | PK |
+| hotel_id | INTEGER | no |  | → hotels |
+| employee_id | INTEGER | no |  | → employees |
+| card_no | VARCHAR(40) | no |  |  |
+| version | INTEGER | no | 1 |  |
+| reason | VARCHAR(20) | no | 'new_hire' |  |
+| status | VARCHAR(12) | no | 'pending' |  |
+| verify_token | VARCHAR(48) | no |  |  |
+| issue_date | TEXT | yes |  |  |
+| expiry_date | TEXT | no |  |  |
+| print_count | INTEGER | no | 0 |  |
+| printed_at | TEXT | yes |  |  |
+| printed_by | INTEGER | yes |  | → users |
+| issued_at | TEXT | yes |  |  |
+| issued_by | INTEGER | yes |  | → users |
+| revoked_at | TEXT | yes |  |  |
+| revoked_by | INTEGER | yes |  | → users |
+| revoke_reason | VARCHAR(200) | yes |  |  |
+| created_by | INTEGER | yes |  | → users |
+| created_at | TEXT | no |  |  |
 
 ### staff_requests
 

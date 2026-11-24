@@ -19,6 +19,7 @@ section lists what changed. An independent penetration test before go-live remai
 | Containers | Read-only root file system, non-root user, all Linux capabilities dropped, `no-new-privileges`; database on an internal network with no internet route; only the HTTPS proxy publishes ports; automatic TLS certificates | `docker-compose.yml`, `deploy/Caddyfile` |
 | Supply chain | All Python dependencies pinned to exact versions; frontend built from the lock file (`npm ci`); `pip-audit` and `npm audit` report no known vulnerabilities at release | `requirements.txt`, `package-lock.json` |
 | Mobile app | Trusted Web Activity verified by Digital Asset Links; no cleartext traffic, no Android backup of app data, no data stored on the phone; the service worker never caches `/api` responses | `android/`, `public/sw.js` |
+| Staff ID cards | The QR code holds only a random 32-character token, never personal data; the public check is rate-limited, shows name, position and photo only while the card is valid, and is not indexed; cards are cancelled automatically when staff leave; staff photos are served only to signed-in HR users | `modules/idcards.py` |
 | Privacy | Public privacy notice at `/privacy` (NDPA 2023), editable by the hotel, linked from the website, booking form and the Play listing | `modules/website.py` |
 
 ## Findings fixed in 1.4

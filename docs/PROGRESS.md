@@ -44,6 +44,7 @@ _Last updated: release 1.4._
 | Full HR suite | **1.1** | employees, leave, payroll, staff logins |
 | Requirements completion (backups, wake-up calls, stay fees, table bookings, returns, petty cash, French…) | **1.2** | front office, POS, inventory, finance |
 | Public hotel website and website editor | **1.3** | rooms & rates, booking engine, guest relations |
+| Staff ID cards: automatic on hiring, photo, A4/card-printer printing, QR verification | **1.4** | HR, recruitment, job history |
 | Go-live hardening: field and backup encryption, enforced MFA, preflight, production stack, Android app, privacy notice | **1.4** | database layer, backups, authentication, deployment |
 
 ## Partially completed

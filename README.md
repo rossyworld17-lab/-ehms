@@ -134,7 +134,7 @@ monitoring) is in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md); the Android app in [
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q                       # 126 API/integration tests (SQLite)
+cd backend && python -m pytest -q                       # 131 API/integration tests (SQLite)
 TEST_DATABASE_URL=postgresql://... python -m pytest -q  # same suite on PostgreSQL
 python ../frontend/e2e/smoke.py                         # browser end-to-end (app running with demo data)
 ```

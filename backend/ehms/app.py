@@ -117,6 +117,37 @@ async def privacy(request: Request) -> Response:
     return Response(page, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
 
+VERIFY_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Staff ID check</title><style>
+body{{font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;background:#f4f5f7;color:#1f2933}}
+main{{max-width:420px;margin:0 auto;padding:24px 16px}}.card{{background:#fff;border-radius:14px;border:1px solid #e3e5e8;overflow:hidden}}
+.band{{padding:18px 20px;color:#fff;font-weight:700;font-size:1.15rem}}.ok{{background:#14804a}}.bad{{background:#b42318}}
+.body{{padding:20px;display:flex;gap:16px;align-items:flex-start}}img{{width:96px;height:120px;object-fit:cover;border-radius:8px;background:#eef0f3}}
+h1{{font-size:1.2rem;margin:0 0 4px}}p{{margin:2px 0;color:#4b5563}}small{{display:block;margin-top:16px;color:#6b7280;text-align:center}}
+@media (prefers-color-scheme:dark){{body{{background:#14181b;color:#e6e6e3}}.card{{background:#1c2226;border-color:#2c343a}}p,small{{color:#a3acb5}}}}
+</style></head><body><main><div class="card"><div class="band {cls}">{icon} {message}</div><div class="body">{photo}<div>
+<h1>{name}</h1><p>{position}</p><p>{department}</p><p>{hotel}</p><p>Card {card_no} &middot; expires {expiry}</p></div></div></div>
+<small>Checked {checked}. Compare the photo with the person holding the card.</small></main></body></html>"""
+
+
+async def verify_staff_card(request: Request) -> Response:
+    """Page opened by scanning the QR code on a staff ID card."""
+    import datetime as _dt
+    import html as _h
+    from .modules.idcards import verify_token
+    token = request.path_params["token"]
+    out = await run_in_threadpool(verify_token, token)
+    if not out:
+        return Response("<!doctype html><title>Unknown card</title><p style='font-family:sans-serif;padding:24px'>This is not a staff ID card of this hotel.</p>",
+                        status_code=404, media_type="text/html", headers={"Cache-Control": "no-store"})
+    e = {k: _h.escape(str(v)) for k, v in out.items()}
+    photo = f'<img src="/api/public/staff-cards/{_h.escape(token)}/photo" alt="Photo of the card holder">' if out["has_photo"] else ""
+    page = VERIFY_PAGE.format(cls="ok" if out["valid"] else "bad", icon="&#10004;" if out["valid"] else "&#10006;", message=e["message"], photo=photo,
+                              name=e["name"], position=e["position"], department=e["department"], hotel=e["hotel"], card_no=e["card_no"],
+                              expiry=e["expiry_date"], checked=_dt.datetime.now().strftime("%d %b %Y %H:%M"))
+    return Response(page, media_type="text/html", headers={"Cache-Control": "no-store"})
+
+
 async def manifest(request: Request) -> Response:
     """Web app manifest for the staff app (installable from the browser; required by the Android app)."""
     name = os.environ.get("EHMS_APP_NAME", "EHMS Staff")
@@ -242,7 +273,7 @@ def create_app() -> Starlette:
                                      allow_headers=["Authorization", "Content-Type"]))
     routes = [Route("/api/health", health)] + ([Route("/api/openapi.json", openapi), Route("/api/docs", api_docs)] if api_docs_enabled() else [])
     routes += [Route("/.well-known/assetlinks.json", assetlinks), Route("/.well-known/security.txt", security_txt), Route("/manifest.webmanifest", manifest),
-               Route("/privacy", privacy)]
+               Route("/privacy", privacy), Route("/verify/staff/{token}", verify_staff_card)]
     routes += starlette_routes()
     routes += _frontend_routes()
 

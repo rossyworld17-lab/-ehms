@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **470**
+Total endpoints: **481**
 
 ## Accounting
 
@@ -350,6 +350,17 @@ Total endpoints: **470**
 | POST | `/api/employees/{employee_id}/welfare` | Record welfare support given to an employee: kind, support_date, amount (optional), description (confidential) | `hr.records` |
 | GET | `/api/hotels/{hotel_id}/hr/welfare` | Welfare register (?year) | `hr.records` |
 | POST | `/api/integrations/attendance-events` | Fingerprint / biometric clocks push clock-ins and outs (header X-EHMS-Integration-Token): hotel_code, events[{employee_no, action in/out, occurred_at}] | public |
+| GET | `/api/hotels/{hotel_id}/id-cards` | Staff ID cards: print queue and register (?status pending/printed/issued/revoked, ?q name or staff number) | `hr.id_cards` |
+| PUT | `/api/hotels/{hotel_id}/id-cards/settings` | Card design: valid_years (1-10), colour (#RRGGBB), back_note (text on the back; empty = standard wording) | `hr.id_cards` |
+| POST | `/api/hotels/{hotel_id}/id-cards/generate-missing` | Queue a card for every active employee who has none (first roll-out of ID cards) | `hr.id_cards` |
+| POST | `/api/employees/{employee_id}/id-cards` | Request a replacement card: reason lost/damaged/renewal/details_changed/other, note. Lost and damaged cards are cancelled at once | `hr.id_cards` |
+| POST | `/api/id-cards/{card_id}/issue` | Record that a printed card was handed to the employee; earlier cards of that person are cancelled | `hr.id_cards` |
+| POST | `/api/id-cards/{card_id}/revoke` | Cancel a card (reason required); scanning it then shows it is not valid | `hr.id_cards` |
+| POST | `/api/employees/{employee_id}/photo` | Upload the staff photo for the ID card: filename, content_base64 (JPEG/PNG/WebP, up to 5 MB); needs hr.manage or hr.id_cards | `hr.view` |
+| GET | `/api/employees/{employee_id}/photo` | The staff photo | `hr.view` |
+| GET | `/api/public/staff-cards/{token}` | Check a staff ID card from its QR code | public |
+| GET | `/api/public/staff-cards/{token}/photo` | Photo of the holder of a valid staff card | public |
+| GET | `/api/hotels/{hotel_id}/id-cards/print` | Print cards as PDF (?ids=1,2,3 or ?status=pending; ?layout=a4 (10 per sheet, fronts then backs for duplex) / card (one CR80 card per page, for card printers)); marks them printed | `hr.id_cards` |
 
 ## Inventory
 

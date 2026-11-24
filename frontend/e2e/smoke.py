@@ -385,6 +385,27 @@ def main():
         hrm.locator("td", has_text="Sani").first.click()
         expect(hrm.get_by_text("Job history")).to_be_visible(timeout=8000)
         hrm.screenshot(path=f"{SHOTS}/99_hr_employee.png", full_page=True)
+        expect(hrm.get_by_text("Photo & ID card")).to_be_visible()
+
+        # ---------------- staff ID cards (1.4): photo, print, hand over
+        from PIL import Image
+        photo = f"{SHOTS}/_staff_photo.png"
+        Image.new("RGB", (300, 380), (150, 120, 100)).save(photo)
+        hrm.goto(f"{BASE}/#/hr?tab=idcards")
+        expect(hrm.get_by_text("Waiting to print").first).to_be_visible(timeout=8000)
+        hrm.locator("input[type=file]").first.set_input_files(photo)
+        expect(hrm.get_by_text("Photo saved")).to_be_visible(timeout=8000)
+        hrm.locator("td input[type=checkbox]").first.check()
+        with hrm.expect_popup() as pop:
+            hrm.get_by_role("button", name=re.compile(r"Print 1 on A4")).click()
+        pop.value.close()
+        expect(hrm.get_by_text("Cards sent to print")).to_be_visible(timeout=8000)
+        hrm.get_by_role("tab", name=re.compile(r"^Printed")).click()
+        hrm.get_by_role("button", name="Handed over").first.click()
+        expect(hrm.get_by_text("Card handed over")).to_be_visible(timeout=8000)
+        hrm.get_by_role("tab", name="Waiting", exact=False).first.click()
+        hrm.wait_for_timeout(500)
+        hrm.screenshot(path=f"{SHOTS}/99_id_cards.png")
 
         # ---------------- requirements completion (1.2)
         a = page   # the admin session from the start of the tour (avoids the 10 sign-ins/minute limit)

@@ -16,11 +16,18 @@
 - **Android app for Google Play** ("EHMS Staff"): a Trusted Web Activity of the staff system, built and signed on
   GitHub Actions (`.aab` for Play, `.apk` for testing); installable web app (PWA) with an offline page for iPhone and
   desktop. See [ANDROID_APP.md](ANDROID_APP.md).
+- **Staff ID cards** (HR → ID cards, permission `hr.id_cards`): every new employee — registered directly or hired
+  from recruitment — gets a card in the print queue automatically. HR adds the staff photo, prints on A4 (10 cards per
+  sheet, fronts and backs for duplex printing, cut along the outlines) or on a PVC card printer (CR80), and records the
+  hand-over. Promotions, transfers and name changes queue a replacement; lost or damaged cards are cancelled and
+  replaced; cards are cancelled automatically when someone leaves; contract staff cards expire with the contract. A QR
+  code on the back opens `/verify/staff/<code>` showing whether the card is valid, with the holder's photo, name and
+  position. Card colour, validity (1–5 years) and back text are set under *Card design*; the hotel logo is printed.
 - **Privacy notice** page at `/privacy`, editable in Administration → Website, linked from the website footer and the
   booking form.
 - Security headers (HSTS preload, cross-origin isolation, permissions policy), API reference off in production,
   `/.well-known/security.txt`, pinned dependencies (no known vulnerabilities).
-- Database migration 0014 (encrypted columns become text on PostgreSQL).
+- Database migrations 0014 (encrypted columns become text on PostgreSQL) and 0015 (staff ID cards, staff photo and blood group).
 - New: [System analysis document](EHMS_System_Analysis.docx), user guide 1.4.
 
 ## 1.3 — hotel website

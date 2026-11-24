@@ -16,6 +16,14 @@ EHMS shows each person only the menus their role allows. Amounts are entered in 
 - Passwords must have at least 10 characters with letters and digits, and may not be a common password or contain your
   name or email.
 
+## Staff ID cards (HR)
+- **HR → ID cards** lists cards waiting to print (new employees and hires appear automatically), printed cards to hand
+  over, issued and cancelled cards.
+- Add the photo (*Add photo*), then **Print all waiting** — the PDF has a fronts page and a backs page (10 cards per A4
+  sheet) — or tick cards and choose **Card printer**. Press **Handed over** when the person receives the card.
+- **Replace** a lost, damaged or expired card; promotions and transfers queue a new card automatically. **Cancel** a card
+  that must stop working. Anyone can scan the QR code on the back to check a card is valid.
+
 ## EHMS Staff app (Android) and phones
 - Android: install **EHMS Staff** from the Play Store link your IT team shares and sign in with your normal account.
 - iPhone: open `https://<hotel domain>/staff` in Safari → Share → **Add to Home Screen**. Computers: Chrome/Edge offer

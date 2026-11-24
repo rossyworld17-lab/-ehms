@@ -147,6 +147,8 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "finance.petty_cash.approve": ("finance", "Approve petty cash vouchers above the fund limit"),
     # --- release 1.3: public website
     "website.manage": ("website", "Edit, preview and publish the hotel website and answer its enquiries"),
+    # --- release 1.4: staff ID cards
+    "hr.id_cards": ("hr", "Print, issue, reissue and cancel staff ID cards; upload staff photos"),
 }
 
 ALL = list(PERMISSIONS)
@@ -190,8 +192,9 @@ DEFAULT_ROLES: dict[str, tuple[str, str, list[str]]] = {
     "auditor": ("Auditor", "Read-only audit access", _VIEW_ALL + ["admin.audit.view"]),
     "hr_manager": ("Human Resources Manager", "Employee administration", ["dashboard.view", "admin.users.view", "hr.view", "hr.manage", "hr.records",
                                                                     "hr.attendance", "hr.leave.approve", "payroll.view", "payroll.run", "reports.view",
-                                                                    "finance.expenses.request", "bi.view", "ai.assistant", "documents.confidential", "documents.view", "documents.upload", "hr.recruit", "hr.requests.approve", "hr.performance", "hr.accounts"]),
-    "hr_officer": ("HR Officer", "HR administration", ["dashboard.view", "hr.view", "hr.manage", "hr.attendance", "documents.view", "documents.upload", "hr.recruit"]),
+                                                                    "finance.expenses.request", "bi.view", "ai.assistant", "documents.confidential", "documents.view", "documents.upload", "hr.recruit", "hr.requests.approve", "hr.performance", "hr.accounts",
+                                                                    "hr.id_cards"]),
+    "hr_officer": ("HR Officer", "HR administration", ["dashboard.view", "hr.view", "hr.manage", "hr.attendance", "documents.view", "documents.upload", "hr.recruit", "hr.id_cards"]),
     "housekeeping_manager": ("Housekeeping Manager", "Cleaning and room readiness",
                              ["dashboard.view", "rooms.view", "rooms.status.update", "housekeeping.view", "housekeeping.assign",
                               "housekeeping.update", "housekeeping.inspect", "reports.view",
@@ -266,6 +269,7 @@ INTRODUCED: dict[str, list[str]] = {
     "1.1": ["hr.requests.approve", "hr.performance", "hr.accounts"],
     "1.2": ["admin.backups", "procurement.return", "finance.petty_cash", "finance.petty_cash.manage", "finance.petty_cash.approve"],
     "1.3": ["website.manage"],
+    "1.4": ["hr.id_cards"],
 }
 
 

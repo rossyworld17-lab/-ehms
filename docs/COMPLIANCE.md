@@ -11,7 +11,7 @@ account, device or server to switch on · **Partial**: core behaviour built, the
 **Your step**: depends on the hotel (hosting, sign-off, contracts) · **Optional / planned**: marked optional in
 the SRS or planned for after this release.
 
-Evidence: 126 automated API/integration tests (SQLite and PostgreSQL), the browser end-to-end test
+Evidence: 131 automated API/integration tests (SQLite and PostgreSQL), the browser end-to-end test
 (`frontend/e2e/smoke.py`), [TEST_REPORT.md](TEST_REPORT.md) and the source.
 
 ## Summary
@@ -87,7 +87,7 @@ biometric attendance intake, breadcrumb navigation, pagination, in-app help, and
 | 28 | Navy/gold design, collapsible menu, top bar, hotel selector, profile, notifications, global search, **breadcrumbs**, tables, search/filter, **pagination**, confirmations, loading, errors, success, responsive; role dashboards | Met | Breadcrumb and paging added in 1.2 |
 | 29 | Hashing, MFA, RBAC, validation, SQL injection and XSS protection, CSRF where applicable, secure API auth, HTTPS, rate limiting, sessions, encryption in transit, **encryption at rest where appropriate**, backup, audit, revocation, dependency updates; OWASP; privacy | Met | All built and reviewed in [SECURITY.md](SECURITY.md). CSRF does not apply (tokens are not cookies). HTTPS with automatic certificates (Caddy). **1.4**: AES-256-GCM field encryption of ID, bank, tax, pension and NHF numbers; encrypted, tamper-evident backups; MFA enforced for privileged roles; pinned and audited dependencies; privacy notice at `/privacy` |
 | 30 | Scheduled and manual backups, secure storage, history, **verification**, restoration, disaster recovery, failure notifications, retention | Met | Administration → **Backups** (1.2): back up now, daily schedule, retention, history, test-restore verification, download, failure alerts; `python -m ehms.backup restore` |
-| 31 | Unit, integration and end-to-end tests of every listed area | Met | 126 tests + browser E2E; mobile layout; security audit test |
+| 31 | Unit, integration and end-to-end tests of every listed area | Met | 131 tests + browser E2E; mobile layout; security audit test |
 | 32 | 23 deliverables | Met | App, dashboards, portal, backend, schema, migrations, API docs, auth, modules, finance, inventory, HR, AI, PDF/Excel, automations, audit, tests and reports, deployment config, backup/recovery, user guide (Word + online), administrator manual, technical docs |
 | 33 | Phased delivery, progress register | Met | Releases 0.3 → 1.2 in [RELEASE_NOTES.md](RELEASE_NOTES.md); [PROGRESS.md](PROGRESS.md) |
 | 34 | Final acceptance criteria 1–12 | Met | Each is covered by tests or this table |

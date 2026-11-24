@@ -6,6 +6,7 @@ import { DocumentsPanel } from "./Documents";
 import { RejectModal } from "./Inventory";
 import Recruitment from "./Recruitment";
 import { EmployeeWelfare, WelfareRegister } from "./Completion";
+import { EmployeeIdCard, IDCards } from "./IDCards";
 import { EmployeeExtras, HRDashboard, Holidays, LeaveBalances, LeaveCalendar, MyHRFull, Performance, StaffRequests, TrainingRegister } from "./HRSuite";
 
 // ======================================================================== HR
@@ -17,7 +18,8 @@ export default function HR({ q }: { q: URLSearchParams }) {
     <div className="page-h"><div><h1>Human resources</h1><p className="muted">Staff records, leave, requests, performance, training, rosters, attendance and recruitment</p></div></div>
     <Tabs tabs={[{ id: "dashboard", label: "Dashboard" }, { id: "employees", label: "Employees" }, { id: "leave", label: "Leave" }, { id: "requests", label: "Requests" },
       ...(can("hr.performance") ? [{ id: "performance", label: "Performance" }] : []), { id: "training", label: "Training" }, { id: "roster", label: "Roster" },
-      { id: "attendance", label: "Attendance" }, { id: "recruitment", label: "Recruitment" }, ...(can("hr.records") ? [{ id: "welfare", label: "Welfare" }] : [])]} value={tab} onChange={setTab} />
+      { id: "attendance", label: "Attendance" }, { id: "recruitment", label: "Recruitment" },
+      ...(can("hr.id_cards") ? [{ id: "idcards", label: "ID cards" }] : []), ...(can("hr.records") ? [{ id: "welfare", label: "Welfare" }] : [])]} value={tab} onChange={setTab} />
     {tab === "dashboard" && <HRDashboard go={setTab} />}
     {tab === "requests" && <StaffRequests />}
     {tab === "performance" && <Performance />}
@@ -28,6 +30,7 @@ export default function HR({ q }: { q: URLSearchParams }) {
     {tab === "attendance" && <Attendance />}
     {tab === "leave" && <LeaveHub />}
     {tab === "welfare" && <WelfareRegister />}
+    {tab === "idcards" && <IDCards />}
   </div>;
 }
 
@@ -61,7 +64,7 @@ function EmployeeModal({ e, meta, onClose, onDone }: any) {
     hire_date: e.hire_date || new Date().toISOString().slice(0, 10), basic_salary: money0(e.basic_salary), housing_allowance: money0(e.housing_allowance),
     transport_allowance: money0(e.transport_allowance), other_allowance: money0(e.other_allowance), annual_rent: money0(e.annual_rent), bank_name: e.bank_name || "",
     bank_account_number: e.bank_account_number || "", tax_id: e.tax_id || "", pension_pfa: e.pension_pfa || "", pension_pin: e.pension_pin || "", nhf_number: e.nhf_number || "",
-    next_of_kin: e.next_of_kin || "", emergency_contact: e.emergency_contact || "", qualifications: e.qualifications || "", user_id: e.user_id || "",
+    next_of_kin: e.next_of_kin || "", emergency_contact: e.emergency_contact || "", blood_group: e.blood_group || "", qualifications: e.qualifications || "", user_id: e.user_id || "",
     line_manager_id: e.line_manager_id || "", probation_end_date: e.probation_end_date || "", contract_end_date: e.contract_end_date || "" });
   const staff = useLoad(() => get(`/api/hotels/${hotel!.id}/employees`, { status: "active" }), [hotel?.id]);
   const { busy, run } = useAction();
@@ -78,7 +81,7 @@ function EmployeeModal({ e, meta, onClose, onDone }: any) {
     <Button busy={busy} disabled={!f.first_name || !f.last_name || !f.position} onClick={go}>Save</Button></>}>
     <h4>Personal</h4><div className="form-grid">{fld("first_name", "First name")}{fld("last_name", "Last name")}
       <Field label="Gender"><Select value={f.gender} onChange={x => setF({ ...f, gender: x.target.value })}><option value="">—</option><option>Female</option><option>Male</option></Select></Field>
-      {fld("date_of_birth", "Date of birth", "date")}{fld("phone", "Phone")}{fld("email", "Email")}{fld("address", "Address", "text", true)}{fld("next_of_kin", "Next of kin")}{fld("emergency_contact", "Emergency contact")}</div>
+      {fld("date_of_birth", "Date of birth", "date")}{fld("phone", "Phone")}{fld("email", "Email")}{fld("address", "Address", "text", true)}{fld("next_of_kin", "Next of kin")}{fld("emergency_contact", "Emergency contact")}{fld("blood_group", "Blood group (printed on the ID card)")}</div>
     <h4>Employment</h4><div className="form-grid">
       <Field label="Department"><Select value={f.department} onChange={x => setF({ ...f, department: x.target.value })}>{meta.departments.map((d: string) => <option key={d} value={d}>{label(d)}</option>)}</Select></Field>
       {fld("position", "Position")}
@@ -119,6 +122,7 @@ export function EmployeeDetail({ id }: { id: number }) {
       <Card title="Leave balances (this year)" pad={false}><Table rows={e.leave_balances} cols={[{ h: "Type", r: b => b.name }, { h: "Entitlement", r: b => b.entitlement, cls: "num" },
         { h: "Used", r: b => b.used, cls: "num" }, { h: "Pending", r: b => b.pending, cls: "num" }, { h: "Remaining", r: b => <b>{b.remaining}</b>, cls: "num" }]} /></Card>
     </div>
+    <EmployeeIdCard e={e} reload={st.reload} />
     <EmployeeExtras e={e} reload={st.reload} />
     <EmployeeWelfare employee={e} onChange={st.reload} />
     <DocumentsPanel entityType="employee" entityId={e.id} defaultCategory="contract" />

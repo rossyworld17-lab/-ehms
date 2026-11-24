@@ -253,4 +253,13 @@ requests through the guest profile. Appoint a data protection officer as your ob
 - **Android app**: build and publish as described in [ANDROID_APP.md](ANDROID_APP.md); set `EHMS_ANDROID_PACKAGE` and
   `EHMS_ANDROID_SHA256` so the app opens full-screen. Staff sign in with their normal EHMS account; the app shows the live
   system, so server updates reach every phone at once.
+- **Staff ID cards** (HR → ID cards; permission `hr.id_cards`, given to the HR manager and HR officer): a card is queued
+  automatically for every new employee, including applicants hired from Recruitment. Add the photo (*Add photo* in the
+  queue or *Upload photo* on the employee's page — a phone camera works), then **Print all waiting** (A4: print the
+  fronts page, put the sheet back and print the backs page, or use duplex "flip on long edge"; cut along the grey
+  outlines and laminate) or tick cards and choose **Card printer** for PVC printers (85.6 × 54 mm). After giving the
+  card to the person press **Handed over** — older cards of that person are cancelled. *Replace* handles lost, damaged
+  or renewed cards; promotions, transfers and name changes queue a new card by themselves; leavers' cards are cancelled
+  automatically. Security staff scan the QR code on the back with any phone camera to see whether the card is valid.
+  For an existing hotel upgrading to 1.4, press *Create their cards* to queue cards for all current staff.
 - **Security contact**: set `EHMS_SECURITY_CONTACT` (an email) to publish `/.well-known/security.txt`.

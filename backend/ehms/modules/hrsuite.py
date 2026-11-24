@@ -174,6 +174,8 @@ def add_history(ctx: Ctx):
                                               "note": note, "created_by": ctx.user_id, "created_at": now_iso()})
         if change:
             c.update("employees", e["id"], change)
+            from .idcards import on_employee_changed
+            on_employee_changed(c, e, {**e, **change}, ctx.user_id)   # a promotion or transfer queues a new ID card
         _notify_employee(c, e, f"{kind.replace('_', ' ').title()} recorded", f"HR recorded your {kind.replace('_', ' ')} effective {eff}.", "employee", e["id"])
         audit(c, ctx, f"hr.{kind}", "employee", e["id"], e["employee_no"], old={k: e.get(k) for k in change}, new={**change, "effective": eff}, hotel_id=e["hotel_id"])
     return {"id": hid_, "_created": True}

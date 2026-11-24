@@ -234,6 +234,21 @@ def seed_demo() -> None:
     seed_hr11_demo(hid, org)
     seed_v12_demo(hid, org)
     seed_v13_demo(hid, org)
+    seed_v14_demo(hid, org)
+
+
+def seed_v14_demo(hid: int, org: int) -> None:
+    """Release 1.4 demo: every active employee has an ID card; most are issued, the newest ones wait in the print queue."""
+    from .modules.idcards import generate_card
+    with get_db().tx() as c:
+        if c.one("SELECT id FROM staff_id_cards WHERE hotel_id = ?", [hid]):
+            return
+        emps = c.all("SELECT id FROM employees WHERE hotel_id = ? AND status = 'active' ORDER BY id", [hid])
+        for i, e in enumerate(emps):
+            k = generate_card(c, e["id"], "new_hire", None)
+            if i < len(emps) - 3:
+                c.update("staff_id_cards", k["id"], {"status": "issued", "issue_date": now_iso()[:10], "print_count": 1,
+                                                     "printed_at": now_iso(), "issued_at": now_iso()})
 
 
 def seed_v13_demo(hid: int, org: int) -> None:
@@ -784,6 +799,7 @@ def _upgrade_demo(org: int) -> None:
         seed_hr11_demo(hid, org)
         seed_v12_demo(hid, org)
         seed_v13_demo(hid, org)
+        seed_v14_demo(hid, org)
         return
     with db.tx() as c:
         roles = seed_permissions_and_roles(c, org)
@@ -808,6 +824,7 @@ def _upgrade_demo(org: int) -> None:
     seed_hr11_demo(hid, org)
     seed_v12_demo(hid, org)
     seed_v13_demo(hid, org)
+    seed_v14_demo(hid, org)
     print("Added release 0.4 demo data (outlets, menu, stores, suppliers) to the existing demo organisation.")
 
 

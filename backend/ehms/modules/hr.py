@@ -30,6 +30,8 @@ def _mask(v: str | None) -> str | None:
 def present(ctx: Ctx, e: dict) -> dict:
     """Hide pay and identity fields from users without payroll/HR management rights."""
     e = dict(e)
+    e["has_photo"] = bool(e.pop("photo_filename", None))
+    e.pop("photo_content_type", None)
     if not (ctx.can("hr.manage") or ctx.can("payroll.view")):
         for k in SALARY_FIELDS:
             e.pop(k, None)
@@ -71,10 +73,14 @@ def _payload(ctx: Ctx, partial: bool) -> dict:
             v = ctx.field(k, required=k == "hire_date" and not partial)
             data[k] = parse_date(v, k).isoformat() if v else None
     for k in ("gender", "phone", "email", "address", "bank_name", "bank_account_number", "tax_id", "pension_pfa", "pension_pin", "nhf_number",
-              "next_of_kin", "emergency_contact", "qualifications"):
+              "next_of_kin", "emergency_contact", "qualifications", "blood_group"):
         if k in b:
             v = b[k]
             data[k] = str(v).strip() if v not in (None, "") else None
+    if data.get("blood_group"):
+        data["blood_group"] = data["blood_group"].upper().replace(" ", "")
+        if data["blood_group"] not in ("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"):
+            raise bad_request("Blood group must be one of A+, A-, B+, B-, AB+, AB-, O+, O-")
     for k in SALARY_FIELDS:
         if k in b:
             data[k] = to_minor(b[k] or 0, k)
@@ -120,6 +126,8 @@ def create_employee(ctx: Ctx):
                                      "created_at": now_iso(), **data})
         c.insert("hr_records", {"employee_id": eid, "kind": "onboarding", "record_date": data["hire_date"], "title": f"Joined as {data['position']}",
                                 "details": None, "created_by": ctx.user_id, "created_at": now_iso()})
+        from .idcards import generate_card
+        generate_card(c, eid, "new_hire", ctx.user_id)        # the ID card waits in HR's print queue
         audit(c, ctx, "hr.employee_created", "employee", eid, number, new={k: v for k, v in data.items() if k not in SENSITIVE}, hotel_id=hid)
     return {"id": eid, "employee_no": number, "_created": True}
 
@@ -181,6 +189,8 @@ def update_employee(ctx: Ctx):
                                         "title": f"{k.replace('_', ' ').title()} changed", "details": f"{e[k] / 100:,.2f} → {data[k] / 100:,.2f}",
                                         "created_by": ctx.user_id, "created_at": now_iso()})
         c.update("employees", e["id"], data)
+        from .idcards import on_employee_changed
+        on_employee_changed(c, e, {**e, **data}, ctx.user_id)   # revoke cards on exit; reprint when card details change
         audit(c, ctx, "hr.employee_updated", "employee", e["id"], e["employee_no"],
               old={k: e.get(k) for k in data if k not in SENSITIVE}, new={k: v for k, v in data.items() if k not in SENSITIVE}, hotel_id=e["hotel_id"])
     return {"ok": True}
