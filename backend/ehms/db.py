@@ -6,6 +6,8 @@ All money is stored as integer minor units (kobo for NGN) to avoid rounding erro
 """
 from __future__ import annotations
 
+import contextlib
+
 import datetime as _dt
 import decimal
 import re
@@ -254,6 +256,30 @@ class Database:
 
 
 _db: Database | None = None
+
+
+@contextlib.contextmanager
+def startup_lock(db: Database | None = None):
+    """Serialise start-up work (migrations, permission upgrades, encryption of old values) across processes.
+
+    Production runs several app processes plus the worker; on a brand-new database they would otherwise all create
+    the same tables at once. PostgreSQL: a session-level advisory lock on a dedicated connection. SQLite (demo, tests):
+    a single process, nothing to do.
+    """
+    db = db or get_db()
+    if db.dialect != "postgresql":
+        yield
+        return
+    import psycopg
+    conn = psycopg.connect(db.url, autocommit=True)
+    try:
+        conn.execute("SELECT pg_advisory_lock(7240314)")
+        yield
+    finally:
+        try:
+            conn.execute("SELECT pg_advisory_unlock(7240314)")
+        finally:
+            conn.close()
 
 
 def get_db() -> Database:

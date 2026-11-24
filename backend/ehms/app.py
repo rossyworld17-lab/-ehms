@@ -277,25 +277,31 @@ def create_app() -> Starlette:
     routes += starlette_routes()
     routes += _frontend_routes()
 
+    def prepare_database() -> None:
+        """Migrations and one-off upgrades, done by one process at a time (several app processes start together)."""
+        from .db import startup_lock
+        with startup_lock():
+            applied = migrate()
+            if applied:
+                log.info("Applied migrations: %s", applied)
+            from .rbac import apply_permission_upgrades
+            from .services import seed_chart_of_accounts
+            with get_db().tx() as c:
+                for org in c.all("SELECT id FROM organisations"):
+                    seed_chart_of_accounts(c, org["id"])
+                    if apply_permission_upgrades(c, org["id"]):
+                        log.info("Granted new release permissions to system roles for organisation %s", org["id"])
+            if settings.seed_demo:
+                from .seed import seed_demo
+                seed_demo()
+            from .crypto import encrypt_existing
+            n = encrypt_existing(get_db())
+            if n:
+                log.info("Encrypted %s sensitive values stored before release 1.4", n)
+
     @contextlib.asynccontextmanager
     async def lifespan(app):
-        applied = migrate()
-        if applied:
-            log.info("Applied migrations: %s", applied)
-        from .rbac import apply_permission_upgrades
-        from .services import seed_chart_of_accounts
-        with get_db().tx() as c:
-            for org in c.all("SELECT id FROM organisations"):
-                seed_chart_of_accounts(c, org["id"])
-                if apply_permission_upgrades(c, org["id"]):
-                    log.info("Granted new release permissions to system roles for organisation %s", org["id"])
-        if settings.seed_demo:
-            from .seed import seed_demo
-            seed_demo()
-        from .crypto import encrypt_existing
-        n = await asyncio.to_thread(encrypt_existing, get_db())
-        if n:
-            log.info("Encrypted %s sensitive values stored before release 1.4", n)
+        await asyncio.to_thread(prepare_database)
         from . import worker
         task = asyncio.create_task(worker.loop(int(os.environ.get("EHMS_WORKER_INTERVAL", "60")))) if worker.enabled() else None
         yield
