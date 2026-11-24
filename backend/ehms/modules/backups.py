@@ -83,7 +83,7 @@ def download_backup(ctx: Ctx):
         if not os.path.isfile(path):
             raise not_found("Backup file")
         audit(c, ctx, "admin.backup_downloaded", "backup", b["id"], b["filename"])
-    return FileResponse(path, media_type="application/zip", filename=b["filename"])
+    return FileResponse(path, media_type="application/zip" if b["filename"].endswith(".zip") else "application/octet-stream", filename=b["filename"])
 
 
 @route("PUT", "/api/admin/backups/schedule", perm="admin.backups", tag="admin",

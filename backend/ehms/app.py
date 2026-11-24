@@ -5,6 +5,7 @@ Run (development):  uvicorn ehms.app:app --reload --port 8000
 from __future__ import annotations
 
 import asyncio
+import datetime as dt
 import contextlib
 import hashlib
 import logging
@@ -75,6 +76,38 @@ STALE_BANNER = ('<div style="background:#b42318;color:#fff;padding:10px 16px;fon
                 "then press Ctrl+F5.</div>")
 
 
+async def assetlinks(request: Request) -> Response:
+    """Digital Asset Links: lets the EHMS Android app (a trusted web activity) open this site without a browser bar.
+    Set EHMS_ANDROID_PACKAGE and EHMS_ANDROID_SHA256 (comma-separated certificate fingerprints, incl. Play App Signing's)."""
+    pkg = os.environ.get("EHMS_ANDROID_PACKAGE", "").strip()
+    prints = [p.strip().upper() for p in os.environ.get("EHMS_ANDROID_SHA256", "").split(",") if p.strip()]
+    body = [{"relation": ["delegate_permission/common.handle_all_urls"],
+             "target": {"namespace": "android_app", "package_name": pkg, "sha256_cert_fingerprints": prints}}] if pkg and prints else []
+    return JSONResponse(body, headers={"Cache-Control": "public, max-age=3600"})
+
+
+async def security_txt(request: Request) -> Response:
+    contact = os.environ.get("EHMS_SECURITY_CONTACT", "").strip()
+    if not contact:
+        return Response("Not found", status_code=404)
+    url = os.environ.get("EHMS_PUBLIC_URL", "").rstrip("/")
+    expires = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=180)).strftime("%Y-%m-%dT00:00:00Z")
+    text = f"Contact: {contact if ':' in contact else 'mailto:' + contact}\nExpires: {expires}\nPreferred-Languages: en, fr\n" + (f"Canonical: {url}/.well-known/security.txt\n" if url else "")
+    return Response(text, media_type="text/plain")
+
+
+async def manifest(request: Request) -> Response:
+    """Web app manifest for the staff app (installable from the browser; required by the Android app)."""
+    name = os.environ.get("EHMS_APP_NAME", "EHMS Staff")
+    return JSONResponse({"name": name, "short_name": name[:12], "description": "Hotel management for staff", "id": "/staff",
+                         "start_url": "/staff#/", "scope": "/", "display": "standalone", "orientation": "any",
+                         "background_color": "#0f1f3d", "theme_color": "#0f1f3d", "lang": "en",
+                         "icons": [{"src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+                                   {"src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+                                   {"src": "/assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]},
+                        media_type="application/manifest+json", headers={"Cache-Control": "public, max-age=3600"})
+
+
 def _frontend_routes() -> list:
     dist = os.path.abspath(settings.frontend_dist)
     if not os.path.isdir(dist):
@@ -123,8 +156,16 @@ def _frontend_routes() -> list:
             resp.headers["Cache-Control"] = "no-cache"
             return resp
 
+    sw = os.path.join(dist, "sw.js")
+
+    async def service_worker(request: Request) -> Response:
+        if not os.path.isfile(sw):
+            return Response("Not found", status_code=404)
+        with open(sw, "rb") as fh:
+            return Response(fh.read(), media_type="text/javascript", headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
+
     return [Mount("/assets", app=Assets(directory=os.path.join(dist, "assets")), name="assets"),
-            Route("/{path:path}", spa)]
+            Route("/sw.js", service_worker), Route("/{path:path}", spa)]
 
 
 class SecurityHeaders:
@@ -143,27 +184,33 @@ class SecurityHeaders:
                 headers = list(message.get("headers", []))
                 headers += [(b"x-content-type-options", b"nosniff"), (b"x-frame-options", b"DENY"),
                             (b"referrer-policy", b"strict-origin-when-cross-origin"),
-                            (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+                            (b"permissions-policy", b"camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"),
+                            (b"cross-origin-opener-policy", b"same-origin"), (b"cross-origin-resource-policy", b"same-origin"),
+                            (b"x-permitted-cross-domain-policies", b"none"),
                             (b"content-security-policy", b"default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; "
                                                          + script + b"; connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; "
                                                          b"form-action 'self'; frame-ancestors 'none'")]
                 if settings.environment == "production":
-                    headers.append((b"strict-transport-security", b"max-age=31536000; includeSubDomains"))
+                    headers.append((b"strict-transport-security", b"max-age=63072000; includeSubDomains; preload"))
                 message["headers"] = headers
             await send(message)
         await self.app(scope, receive, send_wrapper)
 
 
 def check_production_settings() -> None:
-    """Refuse to start a production server with unsafe settings."""
+    """Refuse to start a production server while any go-live check fails (see `python -m ehms.preflight`)."""
     if settings.environment != "production":
         return
-    key = os.environ.get("EHMS_SECRET_KEY", "")
-    if len(key) < 32 or "CHANGE-ME" in key:
-        raise RuntimeError("EHMS_SECRET_KEY must be set to a random value of at least 32 characters in production "
-                           "(every app process must share it, or sign-ins fail at random)")
-    if settings.seed_demo and os.environ.get("EHMS_ALLOW_DEMO_IN_PRODUCTION") != "1":
-        raise RuntimeError("EHMS_SEED_DEMO=1 would load fictional demo data into a production database; unset it")
+    from .preflight import errors
+    problems = errors()
+    if settings.seed_demo and os.environ.get("EHMS_ALLOW_DEMO_IN_PRODUCTION") == "1":
+        problems = [p for p in problems if not p.startswith("Demo data")]
+    if problems:
+        raise RuntimeError("EHMS will not start in production until these are fixed:\n- " + "\n- ".join(problems))
+
+
+def api_docs_enabled() -> bool:
+    return os.environ.get("EHMS_API_DOCS", "0" if settings.environment == "production" else "1") == "1"
 
 
 def create_app() -> Starlette:
@@ -172,7 +219,9 @@ def create_app() -> Starlette:
     if settings.cors_origins:
         middleware.append(Middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"],
                                      allow_headers=["Authorization", "Content-Type"]))
-    routes = [Route("/api/health", health), Route("/api/openapi.json", openapi), Route("/api/docs", api_docs)] + starlette_routes()
+    routes = [Route("/api/health", health)] + ([Route("/api/openapi.json", openapi), Route("/api/docs", api_docs)] if api_docs_enabled() else [])
+    routes += [Route("/.well-known/assetlinks.json", assetlinks), Route("/.well-known/security.txt", security_txt), Route("/manifest.webmanifest", manifest)]
+    routes += starlette_routes()
     routes += _frontend_routes()
 
     @contextlib.asynccontextmanager
@@ -190,6 +239,10 @@ def create_app() -> Starlette:
         if settings.seed_demo:
             from .seed import seed_demo
             seed_demo()
+        from .crypto import encrypt_existing
+        n = await asyncio.to_thread(encrypt_existing, get_db())
+        if n:
+            log.info("Encrypted %s sensitive values stored before release 1.4", n)
         from . import worker
         task = asyncio.create_task(worker.loop(int(os.environ.get("EHMS_WORKER_INTERVAL", "60")))) if worker.enabled() else None
         yield

@@ -68,9 +68,13 @@ def test_sql_identifiers_are_validated():
 
 
 def test_production_start_up_guards(monkeypatch):
+    import base64
     from ehms import app as appmod
+    from ehms import preflight
     monkeypatch.setattr(appmod.settings, "environment", "production")
     monkeypatch.setattr(appmod.settings, "seed_demo", False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://ehms:Str0ng-Database-Passw0rd-1@db:5432/ehms")
+    monkeypatch.setenv("EHMS_DATA_KEY", base64.b64encode(b"x" * 32).decode())
     monkeypatch.setenv("EHMS_SECRET_KEY", "short")
     with pytest.raises(RuntimeError, match="EHMS_SECRET_KEY"):
         appmod.check_production_settings()
@@ -78,10 +82,29 @@ def test_production_start_up_guards(monkeypatch):
     with pytest.raises(RuntimeError):
         appmod.check_production_settings()
     monkeypatch.setenv("EHMS_SECRET_KEY", "k" * 48)
-    appmod.check_production_settings()
+    appmod.check_production_settings()                     # everything required is now set
     monkeypatch.setattr(appmod.settings, "seed_demo", True)
-    with pytest.raises(RuntimeError, match="demo"):
+    with pytest.raises(RuntimeError, match="[Dd]emo"):
         appmod.check_production_settings()
+    monkeypatch.setattr(appmod.settings, "seed_demo", False)
+    # 1.4: the data-encryption key, PostgreSQL and a strong database password are required in production
+    monkeypatch.delenv("EHMS_DATA_KEY")
+    with pytest.raises(RuntimeError, match="EHMS_DATA_KEY"):
+        appmod.check_production_settings()
+    monkeypatch.setenv("EHMS_DATA_KEY", base64.b64encode(b"x" * 32).decode())
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///./ehms.db")
+    with pytest.raises(RuntimeError, match="PostgreSQL"):
+        appmod.check_production_settings()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://ehms:ehms@db:5432/ehms")
+    with pytest.raises(RuntimeError, match="password"):
+        appmod.check_production_settings()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://ehms:Str0ng-Database-Passw0rd-1@db:5432/ehms")
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "*")
+    with pytest.raises(RuntimeError, match="Forwarded"):
+        appmod.check_production_settings()
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "127.0.0.1")
+    levels = {name: level for level, name, _ in preflight.checks()}
+    assert levels["Two-step verification"] == "OK" and levels["Public address"] == "WARN"
 
 
 def test_security_headers_and_csp(client):
@@ -104,3 +127,84 @@ def test_request_size_limit_and_public_rate_limit(client):
     _rate.clear()
     codes = [client.get("/api/public/hotels/CGL", token=None).status_code for _ in range(62)]
     assert codes[0] == 200 and 429 in codes
+
+
+# ------------------------------------------------------------------ release 1.4 hardening
+def test_sensitive_fields_are_encrypted_at_rest(client):
+    from ehms.db import get_db
+    client.login("hrmanager@demo.ehms")
+    with get_db().tx() as c:
+        e = c.one("SELECT id FROM employees WHERE bank_account_number IS NOT NULL ORDER BY id")
+        raw = c.execute("SELECT bank_account_number, tax_id, pension_pin FROM employees WHERE id = ?", [e["id"]]).fetchone()
+        assert all(str(v).startswith("enc:v1:") for v in raw if v)          # stored encrypted
+        assert not str(c.one("SELECT bank_account_number FROM employees WHERE id = ?", [e["id"]])["bank_account_number"]).startswith("enc:")
+    detail = client.get(f"/api/employees/{e['id']}").json()
+    assert detail["bank_account_number"] and not detail["bank_account_number"].startswith("enc:")
+    # a guest's identity number written through the API is encrypted too
+    client.login("frontdesk@demo.ehms")
+    g = client.post("/api/guests", {"first_name": "Enc", "last_name": "Test", "email": "enc.test@example.com", "id_type": "passport", "id_number": "A12345678", "force": True}).json()
+    with get_db().tx() as c:
+        stored = c.execute("SELECT id_number FROM guests WHERE id = ?", [g["id"]]).fetchone()[0]
+    assert stored.startswith("enc:v1:") and "A12345678" not in stored
+
+
+def test_crypto_values_and_files(tmp_path):
+    from ehms import crypto
+    v = crypto.encrypt_value("0123456789")
+    assert v.startswith("enc:v1:") and v != crypto.encrypt_value("0123456789")     # random nonce
+    assert crypto.decrypt_value(v) == "0123456789" and crypto.encrypt_value(v) == v
+    assert crypto.decrypt_value(v[:-4] + "AAAA") == "[encrypted — key mismatch]"
+    src = tmp_path / "a.bin"
+    src.write_bytes(os.urandom(crypto.CHUNK * 2 + 123))
+    crypto.encrypt_file(str(src), str(tmp_path / "a.enc"))
+    crypto.decrypt_file(str(tmp_path / "a.enc"), str(tmp_path / "a.out"))
+    assert (tmp_path / "a.out").read_bytes() == src.read_bytes()
+    data = (tmp_path / "a.enc").read_bytes()
+    (tmp_path / "t.enc").write_bytes(data[: len(data) - crypto.CHUNK // 2])          # truncated
+    with pytest.raises(ValueError):
+        crypto.decrypt_file(str(tmp_path / "t.enc"), str(tmp_path / "t.out"))
+
+
+def test_mfa_required_for_privileged_accounts(client, monkeypatch):
+    from ehms import security
+    monkeypatch.setenv("EHMS_REQUIRE_MFA", "privileged")
+    client.login("gm@demo.ehms")
+    me = client.get("/api/auth/me").json()
+    assert me["mfa_enrollment_required"] is True
+    blocked = client.get("/api/admin/users")
+    assert blocked.status_code == 403 and blocked.json()["error"]["code"] == "mfa_enrollment_required"
+    secret = client.post("/api/auth/mfa/setup", {}).json()["secret"]
+    assert client.post("/api/auth/mfa/enable", {"code": security.totp_now(secret)}).status_code == 200
+    assert client.get("/api/admin/users").status_code == 200
+    client.login("waiter@demo.ehms")                               # not privileged: no change
+    assert client.get("/api/auth/me").json()["mfa_enrollment_required"] is False
+    monkeypatch.setenv("EHMS_REQUIRE_MFA", "all")
+    assert client.get("/api/auth/me").json()["mfa_enrollment_required"] is True
+
+
+def test_password_blocklist_and_ip_throttle(client, monkeypatch):
+    from ehms import security
+    assert security.password_problems("Password123!")
+    assert security.password_problems("Welcome2026")
+    assert any("name" in p for p in security.password_problems("Adebayo-Strong-2026", "ngozi@hotel.ng", "Ngozi Adebayo"))
+    assert not security.password_problems("Blue-Mango-Harbour-71")
+    monkeypatch.setenv("EHMS_IP_MAX_FAILED_LOGINS", "3")
+    for i in range(3):
+        assert client.post("/api/auth/login", {"email": f"nobody{i}@demo.ehms", "password": "x"}, token=None).status_code == 401
+    r = client.post("/api/auth/login", {"email": "admin@demo.ehms", "password": "Demo@12345"}, token=None)
+    assert r.status_code == 429 and r.json()["error"]["code"] == "too_many_failures"   # even the right password, from this address
+
+
+def test_hardened_headers_assetlinks_and_manifest(client, monkeypatch):
+    r = client.get("/api/health")
+    assert r.headers.get("cross-origin-opener-policy") == "same-origin" and "payment=()" in r.headers.get("permissions-policy", "")
+    assert client.get("/.well-known/assetlinks.json").json() == []
+    monkeypatch.setenv("EHMS_ANDROID_PACKAGE", "ng.hotel.ehms")
+    monkeypatch.setenv("EHMS_ANDROID_SHA256", "aa:bb:cc")
+    al = client.get("/.well-known/assetlinks.json").json()
+    assert al[0]["target"]["package_name"] == "ng.hotel.ehms" and al[0]["target"]["sha256_cert_fingerprints"] == ["AA:BB:CC"]
+    m = client.get("/manifest.webmanifest").json()
+    assert m["display"] == "standalone" and any(i["purpose"] == "maskable" for i in m["icons"])
+    assert client.get("/.well-known/security.txt").status_code == 404
+    monkeypatch.setenv("EHMS_SECURITY_CONTACT", "security@hotel.example")
+    assert "mailto:security@hotel.example" in client.get("/.well-known/security.txt").text

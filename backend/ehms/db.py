@@ -26,6 +26,9 @@ class IntegrityError(DBError):
 
 
 def _norm(v: Any) -> Any:
+    if isinstance(v, str) and v.startswith("enc:v1:"):
+        from .crypto import decrypt_value
+        return decrypt_value(v)
     if isinstance(v, _dt.datetime):
         if v.tzinfo is None:
             v = v.replace(tzinfo=_dt.timezone.utc)
@@ -92,6 +95,9 @@ class Connection:
         return name
 
     def insert(self, table: str, data: dict) -> int:
+        from .crypto import ENCRYPTED_COLUMNS, encrypt_row
+        if table in ENCRYPTED_COLUMNS:
+            data = encrypt_row(table, data)
         cols = [self._ident(k) for k in data.keys()]
         self._ident(table)
         sql = f"INSERT INTO {table} ({', '.join(cols)}) VALUES ({', '.join('?' for _ in cols)}) RETURNING id"
@@ -100,6 +106,9 @@ class Connection:
     def update(self, table: str, row_id: int, data: dict) -> None:
         if not data:
             return
+        from .crypto import ENCRYPTED_COLUMNS, encrypt_row
+        if table in ENCRYPTED_COLUMNS:
+            data = encrypt_row(table, data)
         sets = ", ".join(f"{self._ident(c)} = ?" for c in data)
         self._ident(table)
         self.execute(f"UPDATE {table} SET {sets} WHERE id = ?", [*data.values(), row_id])

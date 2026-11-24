@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 import hashlib
 import secrets
 
 from .. import security
 from ..config import settings
 from ..db import get_db, now_iso
-from ..http import ApiError, Ctx, audit, bad_request, route
+from ..http import forbidden, ApiError, Ctx, audit, bad_request, route
 from ..services import queue_notification
 
 
@@ -32,6 +33,9 @@ def user_profile(c, user_id: int) -> dict:
         h["logo_url"] = logo_url(c, h["id"])
     u["roles"], u["permissions"], u["hotels"] = roles, perms, hotels
     u["mfa_enabled"] = bool(u["mfa_enabled"])
+    from ..http import mfa_enrollment_required, mfa_policy
+    u["mfa_policy"] = mfa_policy()
+    u["mfa_enrollment_required"] = mfa_enrollment_required(u, set(perms))
     u["all_hotels"] = bool(u["all_hotels"])
     return u
 
@@ -47,12 +51,22 @@ def login(ctx: Ctx):
     with db.tx() as c:
         user = c.one("SELECT * FROM users WHERE lower(email) = ?", [email])
         now = dt.datetime.now(dt.timezone.utc)
+        # failed sign-ins from one address across ALL accounts and server processes (password spraying)
+        ip_limit = int(os.environ.get("EHMS_IP_MAX_FAILED_LOGINS", "20"))
+        since = (now - dt.timedelta(minutes=settings.lockout_minutes)).isoformat().replace("+00:00", "Z")
+        if ctx.ip and c.scalar("SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND success = 0 AND created_at > ?", [ctx.ip, since]) >= ip_limit:
+            c.insert("login_attempts", {"email": email, "user_id": user["id"] if user else None, "success": 0, "reason": "ip_blocked",
+                                        "ip": ctx.ip, "user_agent": ctx.user_agent, "created_at": now_iso()})
+            error = ApiError(429, "too_many_failures", f"Too many failed sign-ins from this network. Try again in {settings.lockout_minutes} minutes.")
+            user = False
 
         def fail(reason: str, user_id=None):
             c.insert("login_attempts", {"email": email, "user_id": user_id, "success": 0, "reason": reason,
                                         "ip": ctx.ip, "user_agent": ctx.user_agent, "created_at": now_iso()})
 
-        if not user:
+        if user is False:
+            pass
+        elif not user:
             fail("unknown_user")
             security.hash_password(password)  # equalise timing
             error = ApiError(401, "invalid_credentials", "Incorrect email or password")
@@ -112,20 +126,20 @@ def mfa_verify(ctx: Ctx):
         return {"token": security.create_access_token(user["id"], jti, False, minutes=12 * 60), "user": user_profile(c, user["id"])}
 
 
-@route("POST", "/api/auth/logout", tag="auth", allow_mfa_pending=True, summary="Sign out (revoke current session)")
+@route("POST", "/api/auth/logout", tag="auth", allow_mfa_pending=True, summary="Sign out (revoke current session)", mfa_setup_ok=True)
 def logout(ctx: Ctx):
     with get_db().tx() as c:
         c.execute("UPDATE sessions SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL", [now_iso(), ctx.session["id"]])
     return {"ok": True}
 
 
-@route("GET", "/api/auth/me", tag="auth", summary="Current user profile, roles, permissions and hotels")
+@route("GET", "/api/auth/me", tag="auth", summary="Current user profile, roles, permissions and hotels", mfa_setup_ok=True)
 def me(ctx: Ctx):
     with get_db().tx() as c:
         return user_profile(c, ctx.user_id)
 
 
-@route("POST", "/api/auth/mfa/setup", tag="auth", summary="Start MFA enrolment (returns secret and otpauth URI)")
+@route("POST", "/api/auth/mfa/setup", tag="auth", summary="Start MFA enrolment (returns secret and otpauth URI)", mfa_setup_ok=True)
 def mfa_setup(ctx: Ctx):
     secret = security.new_totp_secret()
     with get_db().tx() as c:
@@ -135,7 +149,7 @@ def mfa_setup(ctx: Ctx):
     return {"secret": secret, "otpauth_uri": security.totp_uri(secret, ctx.user["email"])}
 
 
-@route("POST", "/api/auth/mfa/enable", tag="auth", summary="Confirm MFA enrolment with a code from the authenticator app")
+@route("POST", "/api/auth/mfa/enable", tag="auth", summary="Confirm MFA enrolment with a code from the authenticator app", mfa_setup_ok=True)
 def mfa_enable(ctx: Ctx):
     code = str(ctx.field("code"))
     with get_db().tx() as c:
@@ -154,15 +168,18 @@ def mfa_disable(ctx: Ctx):
         u = c.one("SELECT * FROM users WHERE id = ?", [ctx.user_id])
         if not security.verify_password(password, u["password_hash"]) or not u["mfa_secret"] or not security.verify_totp(u["mfa_secret"], code):
             raise bad_request("Password or verification code is incorrect")
+        from ..http import mfa_enrollment_required
+        if mfa_enrollment_required({**u, "mfa_enabled": 0}, ctx.permissions):
+            raise forbidden("Your role requires two-step verification, so it cannot be turned off")
         c.execute("UPDATE users SET mfa_enabled = 0, mfa_secret = NULL WHERE id = ?", [ctx.user_id])
         audit(c, ctx, "auth.mfa_disabled", "user", ctx.user_id)
     return {"mfa_enabled": False}
 
 
-@route("POST", "/api/auth/password", tag="auth", summary="Change own password")
+@route("POST", "/api/auth/password", tag="auth", summary="Change own password", mfa_setup_ok=True)
 def change_password(ctx: Ctx):
     current, new = str(ctx.field("current_password")), str(ctx.field("new_password"))
-    problems = security.password_problems(new)
+    problems = security.password_problems(new, ctx.user.get("email"), ctx.user.get("full_name"))
     if problems:
         raise bad_request("Password " + "; ".join(problems), {"field": "new_password"})
     with get_db().tx() as c:
@@ -196,13 +213,14 @@ def reset_request(ctx: Ctx):
 @route("POST", "/api/auth/password-reset/confirm", public=True, tag="auth", rate_limit=10, summary="Set a new password using a reset code")
 def reset_confirm(ctx: Ctx):
     token, new = str(ctx.field("token")), str(ctx.field("new_password"))
-    problems = security.password_problems(new)
-    if problems:
-        raise bad_request("Password " + "; ".join(problems), {"field": "new_password"})
     with get_db().tx() as c:
         r = c.one("SELECT * FROM password_resets WHERE token_hash = ?", [hashlib.sha256(token.encode()).hexdigest()])
         if not r or r["used_at"] or dt.datetime.fromisoformat(r["expires_at"].replace("Z", "+00:00")) < dt.datetime.now(dt.timezone.utc):
             raise bad_request("This reset code is invalid or has expired")
+        u = c.one("SELECT email, full_name FROM users WHERE id = ?", [r["user_id"]])
+        problems = security.password_problems(new, u["email"], u["full_name"])
+        if problems:
+            raise bad_request("Password " + "; ".join(problems), {"field": "new_password"})
         c.execute("UPDATE password_resets SET used_at = ? WHERE id = ?", [now_iso(), r["id"]])
         c.execute("UPDATE users SET password_hash = ?, password_changed_at = ?, failed_logins = 0, locked_until = NULL WHERE id = ?",
                   [security.hash_password(new), now_iso(), r["user_id"]])
@@ -211,7 +229,7 @@ def reset_confirm(ctx: Ctx):
     return {"ok": True}
 
 
-@route("GET", "/api/auth/sessions", tag="auth", summary="List my active sessions")
+@route("GET", "/api/auth/sessions", tag="auth", summary="List my active sessions", mfa_setup_ok=True)
 def my_sessions(ctx: Ctx):
     with get_db().tx() as c:
         rows = c.all("SELECT id, ip, user_agent, created_at, last_seen_at, expires_at FROM sessions "

@@ -8,6 +8,7 @@ os.environ.setdefault("EHMS_SECRET_KEY", "test-secret-key-not-for-production-012
 os.environ["EHMS_LOGIN_RATE_LIMIT"] = "1000"
 os.environ["EHMS_WORKER"] = "0"
 os.environ["EHMS_BACKUP_SCHEDULE"] = "0"
+os.environ.setdefault("EHMS_DATA_KEY", "dGVzdC1kYXRhLWtleS0zMi1ieXRlcy1mb3ItZWhtcyE=")   # fixed 32-byte test key
 
 from asgi_client import Client  # noqa: E402
 

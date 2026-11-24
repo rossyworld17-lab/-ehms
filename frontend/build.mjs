@@ -2,7 +2,7 @@
 //   npm run build          (one-off)
 //   npm run dev            (watch mode; run the backend separately on :8000)
 import { build, context } from "esbuild";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const watch = process.argv.includes("--watch");
@@ -10,6 +10,8 @@ const out = "dist";
 rmSync(out, { recursive: true, force: true });
 mkdirSync(path.join(out, "assets"), { recursive: true });
 copyFileSync("index.html", path.join(out, "index.html"));
+// static files (icons, offline page) go to /assets; the service worker must live at the root of its scope
+for (const f of existsSync("public") ? readdirSync("public") : []) copyFileSync(path.join("public", f), path.join(out, f === "sw.js" ? "sw.js" : path.join("assets", f)));
 // The server compares this with its own version and warns when an old interface build is being served.
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 writeFileSync(path.join(out, "version.json"), JSON.stringify({ version }) + "\n");

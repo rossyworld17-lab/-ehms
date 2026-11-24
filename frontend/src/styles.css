@@ -363,3 +363,4 @@ td.best { background: #eaf7f0; font-weight: 600; }
   .site-split, .site-f-in, .site-form-row { grid-template-columns: 1fr; } .site-split.rev > :first-child { order: 1; }
 }
 .site-narrow > div { max-width: 820px; }
+.note-warn { border-left-color: var(--amber); background: #fff7ec; }

@@ -36,7 +36,21 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-def password_problems(password: str) -> list[str]:
+# Passwords people pick first (and attackers try first). Compared case-insensitively, also with trailing digits/symbols
+# removed, so "Password123!" is caught as "password".
+COMMON_PASSWORDS = frozenset("""
+password passw0rd p@ssword p@ssw0rd welcome welcome1 letmein qwerty qwertyuiop asdfghjkl zxcvbnm abc abcd abcdef abcdefgh
+iloveyou admin administrator root changeme default secret master monkey dragon football baseball sunshine princess
+shadow superman batman trustno1 starwars whatever freedom hello hotel hotels reception manager receptionist frontdesk
+lagos abuja nigeria naija ehms guest staff service company business office summer winter spring autumn january
+february march april may june july august september october november december monday friday sunday computer
+internet security login access temp temporary test testing demo user username system pa55word 123456 1234567 12345678
+123456789 1234567890 111111 000000 654321 121212 112233 696969 qazwsx 1q2w3e 1qaz2wsx zaq12wsx aa123456 god jesus
+blessing grace favour
+""".split())
+
+
+def password_problems(password: str, email: str | None = None, name: str | None = None) -> list[str]:
     problems = []
     if len(password) < settings.min_password_length:
         problems.append(f"must be at least {settings.min_password_length} characters")
@@ -46,6 +60,13 @@ def password_problems(password: str) -> list[str]:
         problems.append("must contain a lower-case letter")
     if not any(c.isdigit() for c in password):
         problems.append("must contain a digit")
+    low = password.lower()
+    core = low.rstrip("0123456789!@#$%^&*.?_-+= ").lstrip("0123456789!@#$%^&*.?_-+= ")
+    if low in COMMON_PASSWORDS or core in COMMON_PASSWORDS or (len(set(low)) <= 3):
+        problems.append("is too common or easy to guess — use a longer phrase only you would think of")
+    personal = [x for x in ([(email or "").split("@")[0]] + (name or "").lower().split()) if len(x) >= 4]
+    if any(p.lower() in low for p in personal):
+        problems.append("must not contain your name or email address")
     return problems
 
 

@@ -1,6 +1,10 @@
-starlette>=0.46,<2
-uvicorn[standard]>=0.30
-PyJWT>=2.8
-reportlab>=4.0
-openpyxl>=3.1
-psycopg[binary]>=3.1
+# Exact versions, tested together (release 1.4). Update deliberately: change a pin, run the tests, run
+#   pip-audit -r requirements.txt
+# and rebuild the image. Ranges are not used so a server built next year installs what was tested.
+starlette==1.10.0
+uvicorn[standard]==0.54.0
+PyJWT==2.15.1
+reportlab==5.1.0
+openpyxl==3.1.5
+psycopg[binary]==3.3.9
+cryptography==50.0.2

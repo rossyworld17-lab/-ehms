@@ -99,6 +99,13 @@ def create_backup(kind: str = "manual", user_id: int | None = None, db: Database
                             z.writestr(f"files/{rel}", blob)
                             manifest["files"][rel] = hashlib.sha256(blob).hexdigest()
                 z.writestr("manifest.json", json.dumps(manifest, indent=1))
+        if os.environ.get("EHMS_BACKUP_ENCRYPT", "1") == "1":
+            # encrypt the whole archive with the data key (AES-256-GCM chunks); the plain file never stays on disk
+            from .crypto import encrypt_file
+            enc_path = path + ".enc"
+            encrypt_file(path, enc_path)
+            os.remove(path)
+            path, name = enc_path, name + ".enc"
         size = os.path.getsize(path)
         with open(path, "rb") as fh:
             checksum = hashlib.sha256(fh.read()).hexdigest()
@@ -106,10 +113,11 @@ def create_backup(kind: str = "manual", user_id: int | None = None, db: Database
                "rows_count": sum(t["rows"] for t in manifest["tables"].values()), "checksum": checksum, "verified": 0,
                "created_by": user_id, "created_at": _now()}
     except Exception as e:  # record the failure so it is visible and alerted
-        try:
-            os.remove(path)
-        except OSError:
-            pass
+        for p in (path, path + ".enc"):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
         row = {"filename": name, "kind": kind, "status": "failed", "error": f"{type(e).__name__}: {e}"[:500], "verified": 0,
                "created_by": user_id, "created_at": _now()}
     with db.tx() as c:
@@ -122,7 +130,17 @@ def _now() -> str:
 
 
 def read_archive(path: str) -> tuple[dict, dict[str, list[dict]], dict[str, bytes]]:
-    """Open and fully check an archive. Raises ValueError with a readable reason when anything is wrong."""
+    """Open and fully check an archive (encrypted or not). Raises ValueError with a readable reason when anything is wrong."""
+    from .crypto import decrypt_file, is_encrypted_file
+    if is_encrypted_file(path):
+        with tempfile.TemporaryFile() as tmp:
+            decrypt_file(path, tmp)
+            tmp.seek(0)
+            return _read_zip(tmp)
+    return _read_zip(path)
+
+
+def _read_zip(path) -> tuple[dict, dict[str, list[dict]], dict[str, bytes]]:
     with zipfile.ZipFile(path) as z:
         bad = z.testzip()
         if bad:
@@ -200,6 +218,7 @@ def _order(c, tables: list[str]) -> tuple[list[str], dict[str, list[str]]]:
 
 def restore_into(db: Database, tables: dict[str, list[dict]], require_empty: bool = True) -> dict[str, int]:
     """Load backup rows into a database whose schema is already migrated. Returns inserted counts."""
+    from .crypto import encrypt_row
     counts: dict[str, int] = {}
     with db.tx() as c:
         present = _tables(c)
@@ -214,7 +233,7 @@ def restore_into(db: Database, tables: dict[str, list[dict]], require_empty: boo
             for row in tables[t]:
                 if cols_present is None:
                     cols_present = {r for r in row}
-                data = dict(row)
+                data = encrypt_row(t, dict(row))         # sensitive columns are stored encrypted again
                 hold = {k: data[k] for k in deferred.get(t, []) if data.get(k) is not None}
                 for k in hold:
                     data[k] = None

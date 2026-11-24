@@ -131,7 +131,26 @@ def rate_limited(key: str, limit: int, window: float = 60.0) -> bool:
         return False
 
 
-def _authenticate(request: Request, allow_mfa_pending: bool) -> tuple[dict, dict, set[str], set[int] | None]:
+PRIVILEGED = frozenset({"admin.users.manage", "admin.roles.manage", "admin.settings.manage", "admin.sessions.manage", "admin.backups",
+                        "payroll.approve", "payroll.pay", "payments.refund_approve", "accounting.post_manual", "accounting.close_period",
+                        "finance.notes.approve", "finance.expenses.pay", "procurement.pay", "procurement.approve_high", "hr.accounts",
+                        "website.manage", "finance.petty_cash.approve"})
+
+
+def mfa_policy() -> str:
+    """off | privileged | all — read at call time (EHMS_REQUIRE_MFA; production default: privileged)."""
+    v = os.environ.get("EHMS_REQUIRE_MFA", "privileged" if settings.environment == "production" else "off").strip().lower()
+    return v if v in ("off", "privileged", "all") else "privileged"
+
+
+def mfa_enrollment_required(user: dict, perms: set[str]) -> bool:
+    pol = mfa_policy()
+    if pol == "off" or user.get("mfa_enabled"):
+        return False
+    return pol == "all" or bool(perms & PRIVILEGED)
+
+
+def _authenticate(request: Request, allow_mfa_pending: bool, mfa_setup_ok: bool = False) -> tuple[dict, dict, set[str], set[int] | None]:
     from . import security
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
@@ -162,11 +181,13 @@ def _authenticate(request: Request, allow_mfa_pending: bool) -> tuple[dict, dict
             "SELECT DISTINCT rp.permission_code FROM user_roles ur JOIN role_permissions rp ON rp.role_id = ur.role_id WHERE ur.user_id = ?",
             [user["id"]])}
         hotel_ids = None if user["all_hotels"] else {r["hotel_id"] for r in c.all("SELECT hotel_id FROM user_hotels WHERE user_id = ?", [user["id"]])}
+    if not mfa_setup_ok and mfa_enrollment_required(user, perms):
+        raise ApiError(403, "mfa_enrollment_required", "Your role requires two-step verification. Set it up under My profile & security to continue.")
     return user, sess, perms, hotel_ids
 
 
 def route(method: str, path: str, perm: str | None = None, public: bool = False, summary: str = "",
-          tag: str = "general", allow_mfa_pending: bool = False, rate_limit: int | None = None):
+          tag: str = "general", allow_mfa_pending: bool = False, rate_limit: int | None = None, mfa_setup_ok: bool = False):
     def deco(fn: Callable[[Ctx], Any]):
         async def endpoint(request: Request) -> Response:
             try:
@@ -188,7 +209,7 @@ def route(method: str, path: str, perm: str | None = None, public: bool = False,
                             raise bad_request("Request body must be valid JSON")
                 ctx = Ctx(request=request, body=body, path=dict(request.path_params), query=dict(request.query_params), raw=raw)
                 if not public:
-                    user, sess, perms, hotels = await run_in_threadpool(_authenticate, request, allow_mfa_pending)
+                    user, sess, perms, hotels = await run_in_threadpool(_authenticate, request, allow_mfa_pending, mfa_setup_ok or allow_mfa_pending)
                     ctx.user, ctx.session, ctx.permissions, ctx.hotel_ids = user, sess, perms, hotels
                     if perm:
                         ctx.require(perm)

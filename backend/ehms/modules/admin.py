@@ -72,7 +72,7 @@ def create_user(ctx: Ctx):
         raise bad_request("A valid email is required", {"field": "email"})
     full_name = ctx.field("full_name", kind=str)
     temp = ctx.field("password", required=False) or ("Tmp-" + secrets.token_urlsafe(9) + "9a")
-    problems = security.password_problems(temp)
+    problems = security.password_problems(temp, email, full_name)
     if problems:
         raise bad_request("Password " + "; ".join(problems), {"field": "password"})
     with get_db().tx() as c:

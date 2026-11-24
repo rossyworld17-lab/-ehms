@@ -328,7 +328,7 @@ def test_backup_verify_download_and_restore(client, tmp_path):
     lst = client.get("/api/admin/backups").json()
     assert lst["items"][0]["verified"] == 1 and lst["items"][0]["file_present"]
     dl = client.get(f"/api/admin/backups/{bid}/download")
-    assert dl.status_code == 200 and dl.content[:2] == b"PK"
+    assert dl.status_code == 200 and dl.content[:8] == b"EHMSENC1"          # 1.4: archives are encrypted
     assert client.put("/api/admin/backups/schedule", {"enabled": True, "hour_utc": 25, "retention_days": 7}).status_code == 400
     assert client.put("/api/admin/backups/schedule", {"enabled": True, "hour_utc": 2, "retention_days": 7}).json()["retention_days"] == 7
     # restore the archive into a brand-new database and compare
@@ -349,9 +349,22 @@ def test_backup_verify_download_and_restore(client, tmp_path):
     except ValueError as e:
         assert "not empty" in str(e)
     target.close()
-    # a tampered archive fails verification
+    # a flipped byte in the encrypted file is detected
+    from ehms import crypto
+    raw = bytearray(open(path, "rb").read())
+    raw[200] ^= 0xFF
+    flipped = tmp_path / "flipped.zip.enc"
+    flipped.write_bytes(bytes(raw))
+    try:
+        bk.verify(str(flipped))
+        raise AssertionError("an altered encrypted backup must fail")
+    except ValueError as e:
+        assert "cannot be decrypted" in str(e)
+    # a tampered table inside the archive fails verification
+    plain = tmp_path / "plain.zip"
+    crypto.decrypt_file(path, str(plain))
     bad = tmp_path / "bad.zip"
-    with zipfile.ZipFile(path) as zin, zipfile.ZipFile(bad, "w") as zout:
+    with zipfile.ZipFile(plain) as zin, zipfile.ZipFile(bad, "w") as zout:
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename == "tables/reservations.jsonl":

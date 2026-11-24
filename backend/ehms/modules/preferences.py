@@ -7,12 +7,12 @@ from ..http import Ctx, audit, bad_request, route
 LANGUAGES = {"en": "English", "fr": "Français"}
 
 
-@route("GET", "/api/me/preferences", tag="auth", summary="Your interface language and the languages available")
+@route("GET", "/api/me/preferences", tag="auth", mfa_setup_ok=True, summary="Your interface language and the languages available")
 def get_prefs(ctx: Ctx):
     return {"language": (ctx.user or {}).get("language") or "en", "languages": LANGUAGES}
 
 
-@route("PUT", "/api/me/preferences", tag="auth", summary="Set your interface language: language (en | fr)")
+@route("PUT", "/api/me/preferences", tag="auth", mfa_setup_ok=True, summary="Set your interface language: language (en | fr)")
 def set_prefs(ctx: Ctx):
     lang = ctx.field("language", kind=str)
     if lang not in LANGUAGES:
