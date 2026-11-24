@@ -106,6 +106,7 @@ def create_backup(kind: str = "manual", user_id: int | None = None, db: Database
             encrypt_file(path, enc_path)
             os.remove(path)
             path, name = enc_path, name + ".enc"
+        os.chmod(path, 0o600)  # backups hold the whole database: owner-only
         size = os.path.getsize(path)
         with open(path, "rb") as fh:
             checksum = hashlib.sha256(fh.read()).hexdigest()

@@ -53,6 +53,9 @@ services:
     <<: *ehms
     command: ["python", "-m", "ehms.worker", "--loop"]
     healthcheck: { disable: true }
+    depends_on:
+      db: { condition: service_healthy }
+      app: { condition: service_healthy }   # the app applies database migrations first
     networks: [internal, edge]     # edge = outbound email, SMS and payment-provider calls
 
   db:

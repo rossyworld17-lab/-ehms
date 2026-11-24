@@ -208,3 +208,9 @@ def test_hardened_headers_assetlinks_and_manifest(client, monkeypatch):
     assert client.get("/.well-known/security.txt").status_code == 404
     monkeypatch.setenv("EHMS_SECURITY_CONTACT", "security@hotel.example")
     assert "mailto:security@hotel.example" in client.get("/.well-known/security.txt").text
+
+
+def test_public_privacy_notice(client):
+    r = client.get("/privacy")
+    assert r.status_code == 200 and "Privacy notice" in r.text and "Nigeria Data Protection Act" in r.text
+    assert "<script" not in r.text.lower()

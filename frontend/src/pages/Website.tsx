@@ -121,6 +121,7 @@ export function WebsiteView({ data, preview }: { data: Site; preview?: boolean }
         <div className="site-f-links">
           {data.other_hotels?.map((o: any) => <a key={o.code} href={`/?hotel=${o.code}`}>{o.name}</a>)}
           <a href={book}>{t("Book now")}</a><a href={book}>{t("Find my booking")}</a>
+          <a href="/privacy">{t("Privacy")}</a>
           <a className="site-staff" href="/staff">{t("Staff login")}</a></div>
       </div><p className="site-copy">© {new Date().getFullYear()} {h.name} · Powered by EHMS</p></footer>
 

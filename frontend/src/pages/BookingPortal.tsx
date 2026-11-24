@@ -93,7 +93,7 @@ export default function BookingPortal({ code }: { code: string }) {
           <Field label={t("Special requests")} wide><Textarea value={g.special_requests} onChange={e => setG({ ...g, special_requests: e.target.value })} /></Field>
         </div>
         {hotel.cancellation_policy && <p className="small"><b>{t("Cancellation policy")}:</b> {hotel.cancellation_policy}</p>}
-        <label className="check"><input type="checkbox" checked={g.accept_terms} onChange={e => setG({ ...g, accept_terms: e.target.checked })} /> I accept the booking terms and agree that my details are used to manage this booking, in line with the privacy notice.</label>
+        <label className="check"><input type="checkbox" checked={g.accept_terms} onChange={e => setG({ ...g, accept_terms: e.target.checked })} /> I accept the booking terms and agree that my details are used to manage this booking, in line with the <a href="/privacy" target="_blank" rel="noopener">privacy notice</a>.</label>
         <label className="check"><input type="checkbox" checked={g.marketing_consent} onChange={e => setG({ ...g, marketing_consent: e.target.checked })} /> Send me offers by email (optional)</label>
         {hotel.online_payment_available ? <div className="row gap wrap">
           <label className="check"><input type="radio" name="pay" checked={!payOnline} onChange={() => setPayOnline(false)} /> {t("Pay at the hotel")}</label>

@@ -96,6 +96,27 @@ async def security_txt(request: Request) -> Response:
     return Response(text, media_type="text/plain")
 
 
+PRIVACY_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy notice — {name}</title><meta name="robots" content="index"><style>
+body{{font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;background:#f7f7f5;color:#1f2933}}
+main{{max-width:760px;margin:0 auto;padding:32px 16px 64px}}h1{{font-size:1.8rem;margin:0 0 4px}}
+.body{{white-space:pre-wrap;background:#fff;border:1px solid #e3e3df;border-radius:10px;padding:24px}}a{{color:#0b5c56}}
+@media (prefers-color-scheme:dark){{body{{background:#14181b;color:#e6e6e3}}.body{{background:#1c2226;border-color:#2c343a}}a{{color:#6fd1c6}}}}
+</style></head><body><main><p><a href="/">&larr; {name}</a></p><h1>Privacy notice</h1><p>{name}</p><div class="body">{text}</div></main></body></html>"""
+
+
+async def privacy(request: Request) -> Response:
+    """Public privacy notice (linked from the website footer, booking form and the Play Store listing)."""
+    import html as _h
+    from .modules.website import privacy_for_page
+    try:
+        name, text = await run_in_threadpool(privacy_for_page)
+    except Exception:
+        name, text = "Our hotel", "Our privacy notice will be published here shortly."
+    page = PRIVACY_PAGE.format(name=_h.escape(name), text=_h.escape(text))
+    return Response(page, media_type="text/html", headers={"Cache-Control": "no-cache"})
+
+
 async def manifest(request: Request) -> Response:
     """Web app manifest for the staff app (installable from the browser; required by the Android app)."""
     name = os.environ.get("EHMS_APP_NAME", "EHMS Staff")
@@ -220,7 +241,8 @@ def create_app() -> Starlette:
         middleware.append(Middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["*"],
                                      allow_headers=["Authorization", "Content-Type"]))
     routes = [Route("/api/health", health)] + ([Route("/api/openapi.json", openapi), Route("/api/docs", api_docs)] if api_docs_enabled() else [])
-    routes += [Route("/.well-known/assetlinks.json", assetlinks), Route("/.well-known/security.txt", security_txt), Route("/manifest.webmanifest", manifest)]
+    routes += [Route("/.well-known/assetlinks.json", assetlinks), Route("/.well-known/security.txt", security_txt), Route("/manifest.webmanifest", manifest),
+               Route("/privacy", privacy)]
     routes += starlette_routes()
     routes += _frontend_routes()
 

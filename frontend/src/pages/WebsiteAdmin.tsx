@@ -17,6 +17,7 @@ const TEXT_GROUPS: { title: string; section?: string; fields: [string, string, b
   { title: "Location", section: "location", fields: [["location_title", "Title"], ["directions", "Directions (landmarks, parking, airport distance)", true]] },
   { title: "Contact", section: "contact", fields: [["contact_title", "Title"], ["contact_intro", "Introduction", true], ["contact_hours", "Opening hours of reception"]] },
   { title: "Footer and search engines", fields: [["footer_note", "Footer note (e.g. RC number)"], ["seo_title", "Title shown in Google and on the browser tab (≤ 70)"], ["seo_description", "Description shown in Google (≤ 170)", true]] },
+  { title: "Privacy notice (shown at /privacy; needed for the Play Store listing)", fields: [["privacy_policy", "Your privacy notice — leave empty to use the standard notice for Nigerian hotels (NDPA 2023)", true]] },
 ];
 const SECTION_LABELS: Record<string, string> = { about: "About", highlights: "Highlights", rooms: "Rooms", dining: "Restaurant & bar", events: "Meetings & events",
   facilities: "Facilities", gallery: "Gallery", location: "Location", contact: "Contact form" };
