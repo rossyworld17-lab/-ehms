@@ -44,7 +44,7 @@ export function PhotoUpload({ employeeId, onDone, text = "Upload photo" }: { emp
 
 // ------------------------------------------------------------------ HR → ID cards tab
 export function IDCards() {
-  const { hotel } = useAuth();
+  const { hotel, can } = useAuth();
   const [status, setStatus] = useState("pending");
   const [q, setQ] = useState("");
   const [sel, setSel] = useState<number[]>([]);
@@ -69,7 +69,7 @@ export function IDCards() {
           sub={d.active_without_card ? <button className="link small" disabled={busy} onClick={async () => { if (await run(() => post(`/api/hotels/${hotel!.id}/id-cards/generate-missing`), "Cards created")) st.reload(); }}>Create their cards</button> : "everyone has one"} />
       </div>
       <Card pad={false} title="Staff ID cards" actions={<div className="row gap-s wrap">
-        <Button kind="secondary" onClick={() => setModal({ kind: "settings", settings: d.settings })}>Card design</Button>
+        {can("admin.id_card_design") && <a className="btn btn-secondary" href="#/admin/id-card-design">Card design</a>}
         {sel.length > 0 && <>
           <Button busy={busy} onClick={() => print(sel, "a4")}>Print {sel.length} on A4</Button>
           <Button kind="secondary" busy={busy} onClick={() => print(sel, "card")}>Card printer</Button></>}
@@ -101,7 +101,6 @@ export function IDCards() {
             </div> },
         ]} />
       </Card>
-      {modal?.kind === "settings" && <CardSettings settings={modal.settings} onClose={() => setModal(null)} onDone={() => { setModal(null); st.reload(); }} />}
       {modal?.kind === "reissue" && <ReissueModal employeeId={modal.card.employee_id} name={`${modal.card.first_name} ${modal.card.last_name}`} reasons={modal.reasons}
         onClose={() => setModal(null)} onDone={() => { setModal(null); setStatus("pending"); st.reload(); }} />}
       {modal?.kind === "revoke" && <Confirm title={`Cancel card ${modal.card.card_no}`} danger needReason="Reason" confirmText="Cancel card"
@@ -122,28 +121,6 @@ function ReissueModal({ employeeId, name, reasons, onClose, onDone }: any) {
         {(reasons || []).map((r: any) => <option key={r.code} value={r.code}>{r.label}</option>)}</Select></Field>
       <Field label="Note (optional)"><Textarea value={f.note} onChange={e => setF({ ...f, note: e.target.value })} /></Field>
       <p className="small muted">{f.reason === "lost" || f.reason === "damaged" ? "The current card is cancelled now, so it fails a scan straight away." : "The current card stays valid until the new one is handed over."}</p>
-    </div>
-  </Modal>;
-}
-
-function CardSettings({ settings, onClose, onDone }: any) {
-  const { hotel } = useAuth();
-  const [f, setF] = useState({ colour: settings.colour, valid_years: String(settings.valid_years), back_note: settings.back_note });
-  const { busy, run } = useAction();
-  return <Modal title="Card design" onClose={onClose} width={560} footer={<>
-    <Button kind="secondary" onClick={onClose}>Back</Button>
-    <Button busy={busy} onClick={async () => { if (await run(() => put(`/api/hotels/${hotel!.id}/id-cards/settings`, { ...f, valid_years: Number(f.valid_years) }), "Card design saved")) onDone(); }}>Save</Button></>}>
-    <div className="stack">
-      <div className="row gap-s">
-        <Field label="Card colour"><div className="row gap-s"><input type="color" value={f.colour} onChange={e => setF({ ...f, colour: e.target.value.toUpperCase() })} aria-label="Card colour" />
-          <Input value={f.colour} onChange={e => setF({ ...f, colour: e.target.value })} style={{ width: 110 }} /></div></Field>
-        <Field label="Valid for (years)"><Select value={f.valid_years} onChange={e => setF({ ...f, valid_years: e.target.value })}>
-          {[1, 2, 3, 4, 5].map(y => <option key={y} value={y}>{y}</option>)}</Select></Field>
-      </div>
-      <Field label="Text on the back" hint="Leave empty for the standard wording shown below"><Textarea value={f.back_note} maxLength={300} onChange={e => setF({ ...f, back_note: e.target.value })} /></Field>
-      <p className="small muted">Standard: {settings.default_back_note}</p>
-      <p className="small muted">The card shows the hotel logo (Administration → Hotel settings), the staff photo, name, position, department, staff number, issue and expiry dates on the front;
-        the hotel address, this text, blood group (if recorded) and a QR code that anyone can scan to check the card is valid on the back. Contract staff get cards that expire with their contract.</p>
     </div>
   </Modal>;
 }

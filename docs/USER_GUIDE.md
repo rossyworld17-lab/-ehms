@@ -23,6 +23,8 @@ EHMS shows each person only the menus their role allows. Amounts are entered in 
   sheet) — or tick cards and choose **Card printer**. Press **Handed over** when the person receives the card.
 - **Replace** a lost, damaged or expired card; promotions and transfers queue a new card automatically. **Cancel** a card
   that must stop working. Anyone can scan the QR code on the back to check a card is valid.
+- **Card design** (administrators and the HR manager): Administration → **ID card design** — shape, colours, wording,
+  which details show and the signature, with a live preview and PDF proofs before saving.
 
 ## EHMS Staff app (Android) and phones
 - Android: install **EHMS Staff** from the Play Store link your IT team shares and sign in with your normal account.

@@ -406,6 +406,15 @@ def main():
         hrm.get_by_role("tab", name="Waiting", exact=False).first.click()
         hrm.wait_for_timeout(500)
         hrm.screenshot(path=f"{SHOTS}/99_id_cards.png")
+        # the card design (Administration → ID card design): portrait, new title, live preview, save
+        hrm.get_by_role("link", name="Card design", exact=True).click()
+        expect(hrm.get_by_role("heading", name="ID card design")).to_be_visible(timeout=8000)
+        hrm.get_by_label("Portrait (tall, for lanyards)").check()
+        hrm.get_by_label("Title under the hotel name").fill("EMPLOYEE ID")
+        expect(hrm.get_by_label("Front of the card").get_by_text("EMPLOYEE ID")).to_be_visible()
+        hrm.get_by_role("button", name="Save design").click()
+        expect(hrm.get_by_text("Card design saved")).to_be_visible(timeout=8000)
+        hrm.screenshot(path=f"{SHOTS}/99_id_card_design.png", full_page=True)
 
         # ---------------- requirements completion (1.2)
         a = page   # the admin session from the start of the tour (avoids the 10 sign-ins/minute limit)

@@ -262,4 +262,13 @@ requests through the guest profile. Appoint a data protection officer as your ob
   or renewed cards; promotions, transfers and name changes queue a new card by themselves; leavers' cards are cancelled
   automatically. Security staff scan the QR code on the back with any phone camera to see whether the card is valid.
   For an existing hotel upgrading to 1.4, press *Create their cards* to queue cards for all current staff.
+- **ID card design** (Administration → ID card design; permission `admin.id_card_design`, held by the owner, general and
+  hotel managers, IT administrator and HR manager — grant it to other roles in Roles & permissions): choose landscape
+  or portrait, the colours (band, text on the band, job title), the title under the hotel name and the word in the footer
+  strip, which details appear (logo, hotel name, department, staff number, issue and expiry dates, address, phone, blood
+  group, signature line), the text on the back, the words under the signature and how many years cards are valid. Upload
+  the authorised signature (PNG with a transparent background) to print it on every card. Watch the live preview, press
+  **Exact PDF proof** or **A4 sheet proof** to check the real output (marked SAMPLE), then **Save design**. Cards already
+  printed are not changed; reprint them if needed. **Standard design** goes back to the default (the signature is kept).
+  Every change is in the audit trail.
 - **Security contact**: set `EHMS_SECURITY_CONTACT` (an email) to publish `/.well-known/security.txt`.

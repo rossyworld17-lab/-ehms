@@ -94,21 +94,58 @@ def test_reissue_change_and_exit(client):
     assert client.post(f"/api/employees/{eid}/id-cards", {"reason": "other"}).status_code == 409
 
 
-def test_card_settings_and_roll_out(client):
+def test_card_design_editable_by_administrators(client):
+    import json as _json
     h, _ = ctx_ids()
+    client.login("hrofficer@demo.ehms")                            # prints cards, but cannot change the design
+    assert client.put(f"/api/hotels/{h['id']}/id-cards/design", {"colour": "#000000"}).status_code == 403
+    client.login("admin@demo.ehms")                                # administrators design the card
+    d = client.get(f"/api/hotels/{h['id']}/id-cards/design").json()
+    assert d["orientation"] == "landscape" and d["show_signature"] is True and d["defaults"]["title"] == "STAFF IDENTITY CARD"
+    for bad in ({"colour": "blue"}, {"valid_years": 20}, {"orientation": "round"}, {"title": "x" * 41}, {"back_note": "y" * 301}):
+        assert client.put(f"/api/hotels/{h['id']}/id-cards/design", bad).status_code == 400, bad
+    new = {"orientation": "portrait", "colour": "#7a1f2b", "band_text": "#fff8e1", "accent": "#7A1F2B", "title": "Employee ID",
+           "footer_label": "CREW", "valid_years": 3, "show_department": False, "show_blood_group": False, "signature_label": "General Manager",
+           "back_note": "Property of the hotel.", "unknown_key": "ignored"}
+    s = client.put(f"/api/hotels/{h['id']}/id-cards/design", new).json()
+    assert s["orientation"] == "portrait" and s["colour"] == "#7A1F2B" and s["band_text"] == "#FFF8E1" and s["valid_years"] == 3
+    assert s["show_department"] is False and s["title"] == "Employee ID" and "unknown_key" not in s
+    # a partial change keeps the rest
+    assert client.put(f"/api/hotels/{h['id']}/id-cards/design", {"show_logo": False}).json()["orientation"] == "portrait"
+    # signature image: checked, stored, printed, removable
+    from test_id_cards import _png
+    assert client.post(f"/api/hotels/{h['id']}/id-cards/signature", {"filename": "s.gif", "content_base64": _png()}).status_code == 400
+    assert client.post(f"/api/hotels/{h['id']}/id-cards/signature", {"filename": "s.png", "content_base64": _png()}).status_code == 200
+    assert client.get(f"/api/hotels/{h['id']}/id-cards/design").json()["has_signature"] is True
+    assert client.get(f"/api/hotels/{h['id']}/id-cards/signature").status_code == 200
+    # preview of an unsaved design, both sizes; nothing is printed or saved
+    with get_db().tx() as c:
+        printed_before = c.scalar("SELECT COUNT(*) FROM staff_id_cards WHERE status <> 'pending'")
+    for lay in ("card", "a4"):
+        for orient in ("portrait", "landscape"):
+            r = client.post(f"/api/hotels/{h['id']}/id-cards/preview", {"layout": lay, "design": {"orientation": orient, "title": "Preview"}})
+            assert r.status_code == 200 and r.content.startswith(b"%PDF"), r.text
+    assert client.get(f"/api/hotels/{h['id']}/id-cards/design").json()["title"] == "Employee ID"
+    with get_db().tx() as c:
+        assert c.scalar("SELECT COUNT(*) FROM staff_id_cards WHERE status <> 'pending'") == printed_before
+    # HR prints with the saved design (portrait: 9 cards per A4 sheet)
     client.login("hrmanager@demo.ehms")
-    assert client.put(f"/api/hotels/{h['id']}/id-cards/settings", {"colour": "blue"}).status_code == 400
-    assert client.put(f"/api/hotels/{h['id']}/id-cards/settings", {"valid_years": 20}).status_code == 400
-    s = client.put(f"/api/hotels/{h['id']}/id-cards/settings", {"colour": "#7a1f2b", "valid_years": 3, "back_note": "Property of the hotel."}).json()
-    assert s["colour"] == "#7A1F2B" and s["valid_years"] == 3
-    out = client.get(f"/api/hotels/{h['id']}/id-cards").json()
-    assert out["active_without_card"] == 0                        # the demo gives every active employee a card
+    assert client.get(f"/api/hotels/{h['id']}/id-cards").json()["settings"]["orientation"] == "portrait"
     with get_db().tx() as c:
         c.execute("UPDATE staff_id_cards SET status = 'revoked' WHERE hotel_id = ?", [h["id"]])
     n = client.post(f"/api/hotels/{h['id']}/id-cards/generate-missing").json()["created"]
-    assert n > 5 and client.get(f"/api/hotels/{h['id']}/id-cards").json()["counts"]["pending"] == n
-    pdf = client.get(f"/api/hotels/{h['id']}/id-cards/print")    # the whole queue, several A4 sheets
+    assert n > 9 and client.get(f"/api/hotels/{h['id']}/id-cards").json()["counts"]["pending"] == n
+    pdf = client.get(f"/api/hotels/{h['id']}/id-cards/print")
     assert pdf.status_code == 200 and pdf.content.count(b"/Type /Page") >= 4
+    # expiry follows the design's validity
+    with get_db().tx() as c:
+        k = c.one("SELECT issue_date, expiry_date FROM staff_id_cards WHERE status = 'printed' ORDER BY id DESC LIMIT 1")
+    assert int(str(k["expiry_date"])[:4]) - int(str(k["issue_date"])[:4]) == 3
+    client.login("admin@demo.ehms")
+    assert client.delete(f"/api/hotels/{h['id']}/id-cards/signature").status_code == 200
+    assert client.post(f"/api/hotels/{h['id']}/id-cards/design/reset").json()["orientation"] == "landscape"
+    with get_db().tx() as c:
+        assert _json.loads(c.scalar("SELECT value FROM system_settings WHERE key = 'idcards.design' AND hotel_id = ?", [h["id"]]))["title"] == "STAFF IDENTITY CARD"
 
 
 def test_blood_group_validated(client):

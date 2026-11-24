@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   MdDashboard, MdKingBed, MdEventNote, MdCalendarMonth, MdPeople, MdCleaningServices, MdAccountBalance, MdAssessment,
   MdVerified, MdAdminPanelSettings, MdMenu, MdLogout, MdPerson, MdSearch, MdSettings, MdMeetingRoom, MdHistory,
-  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder, MdGroups, MdBackup, MdHelpOutline, MdChevronRight, MdLanguage,
+  MdPointOfSale, MdSoupKitchen, MdRestaurantMenu, MdInventory2, MdShoppingCart, MdReceiptLong, MdLocalOffer, MdMail, MdLocalLaundryService, MdBadge, MdPayments, MdPersonPin, MdBuild, MdShield, MdCelebration, MdSentimentSatisfied, MdTrendingUp, MdInsights, MdQuestionAnswer, MdFolder, MdGroups, MdBackup, MdHelpOutline, MdChevronRight, MdLanguage, MdPalette,
 } from "react-icons/md";
 import { useAuth, useRoute, navigate } from "./state";
 import { get, put } from "./api";
@@ -40,6 +40,7 @@ import { Spinner } from "./ui";
 import { Backups, Help } from "./pages/Completion";
 import Website from "./pages/Website";
 import WebsiteAdmin from "./pages/WebsiteAdmin";
+import IDCardDesign from "./pages/IDCardDesign";
 
 declare const __APP_VERSION__: string;
 const APP_VERSION = __APP_VERSION__;
@@ -97,6 +98,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/admin/audit", label: "Audit trail", icon: <MdHistory />, perm: "admin.audit.view" },
     { to: "/admin/messaging", label: "Messaging", icon: <MdMail />, perm: "admin.notifications.manage" },
     { to: "/admin/website", label: "Website", icon: <MdLanguage />, perm: "website.manage" },
+    { to: "/admin/id-card-design", label: "ID card design", icon: <MdPalette />, perm: "admin.id_card_design" },
     { to: "/admin/backups", label: "Backups", icon: <MdBackup />, perm: "admin.backups" },
   ]},
   { group: "Help", items: [
@@ -263,6 +265,7 @@ export default function App() {
     case path === "/help": page = <Help />; break;
     case path === "/admin/backups": page = guard("admin.backups", <Backups />); break;
     case path === "/admin/website": page = guard("website.manage", <WebsiteAdmin />); break;
+    case path === "/admin/id-card-design": page = guard("admin.id_card_design", <IDCardDesign />); break;
     default: page = <div className="empty"><h2>{t("Page not found")}</h2><p><a href="#/">{t("Go to the dashboard")}</a></p></div>;
   }
   return <Shell path={path}>{page}</Shell>;

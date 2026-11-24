@@ -22,7 +22,13 @@
   hand-over. Promotions, transfers and name changes queue a replacement; lost or damaged cards are cancelled and
   replaced; cards are cancelled automatically when someone leaves; contract staff cards expire with the contract. A QR
   code on the back opens `/verify/staff/<code>` showing whether the card is valid, with the holder's photo, name and
-  position. Card colour, validity (1–5 years) and back text are set under *Card design*; the hotel logo is printed.
+  position.
+- **ID card designer** (Administration → ID card design, permission `admin.id_card_design`: owners, general and hotel
+  managers, IT administrator and HR manager): landscape or portrait card; main, band-text and job-title colours; title
+  and footer wording; show or hide the logo, hotel name, department, staff number, issue and expiry dates, address,
+  phone, blood group and signature line; back text; an uploaded signature image printed on every card; validity
+  (1–5 years). A live preview updates as you type, exact PDF proofs (single card or A4 sheet, marked SAMPLE) can be
+  checked before saving, and *Standard design* restores the default. Portrait cards print 9 per A4 sheet.
 - **Privacy notice** page at `/privacy`, editable in Administration → Website, linked from the website footer and the
   booking form.
 - Security headers (HSTS preload, cross-origin isolation, permissions policy), API reference off in production,

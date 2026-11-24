@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **481**
+Total endpoints: **487**
 
 ## Accounting
 
@@ -351,7 +351,13 @@ Total endpoints: **481**
 | GET | `/api/hotels/{hotel_id}/hr/welfare` | Welfare register (?year) | `hr.records` |
 | POST | `/api/integrations/attendance-events` | Fingerprint / biometric clocks push clock-ins and outs (header X-EHMS-Integration-Token): hotel_code, events[{employee_no, action in/out, occurred_at}] | public |
 | GET | `/api/hotels/{hotel_id}/id-cards` | Staff ID cards: print queue and register (?status pending/printed/issued/revoked, ?q name or staff number) | `hr.id_cards` |
-| PUT | `/api/hotels/{hotel_id}/id-cards/settings` | Card design: valid_years (1-10), colour (#RRGGBB), back_note (text on the back; empty = standard wording) | `hr.id_cards` |
+| GET | `/api/hotels/{hotel_id}/id-cards/design` | The staff ID card design | `admin.id_card_design` |
+| PUT | `/api/hotels/{hotel_id}/id-cards/design` | Change the card design: orientation landscape/portrait, valid_years, colour, band_text, accent, title, footer_label, show_* switches, signature_label, back_note | `admin.id_card_design` |
+| POST | `/api/hotels/{hotel_id}/id-cards/design/reset` | Put the card design back to the standard one | `admin.id_card_design` |
+| POST | `/api/hotels/{hotel_id}/id-cards/signature` | Upload the signature printed on the back of every card: filename, content_base64 (PNG with a transparent background is best, or JPEG; up to 1 MB) | `admin.id_card_design` |
+| DELETE | `/api/hotels/{hotel_id}/id-cards/signature` | Remove the signature image (cards then show an empty line to sign by hand) | `admin.id_card_design` |
+| GET | `/api/hotels/{hotel_id}/id-cards/signature` | The signature image | `admin.id_card_design` |
+| POST | `/api/hotels/{hotel_id}/id-cards/preview` | Sample card as PDF with the given (unsaved) design: design {…}, layout card/a4, employee_id (optional: a real employee's details). Nothing is saved or printed | `admin.id_card_design` |
 | POST | `/api/hotels/{hotel_id}/id-cards/generate-missing` | Queue a card for every active employee who has none (first roll-out of ID cards) | `hr.id_cards` |
 | POST | `/api/employees/{employee_id}/id-cards` | Request a replacement card: reason lost/damaged/renewal/details_changed/other, note. Lost and damaged cards are cancelled at once | `hr.id_cards` |
 | POST | `/api/id-cards/{card_id}/issue` | Record that a printed card was handed to the employee; earlier cards of that person are cancelled | `hr.id_cards` |
@@ -360,7 +366,7 @@ Total endpoints: **481**
 | GET | `/api/employees/{employee_id}/photo` | The staff photo | `hr.view` |
 | GET | `/api/public/staff-cards/{token}` | Check a staff ID card from its QR code | public |
 | GET | `/api/public/staff-cards/{token}/photo` | Photo of the holder of a valid staff card | public |
-| GET | `/api/hotels/{hotel_id}/id-cards/print` | Print cards as PDF (?ids=1,2,3 or ?status=pending; ?layout=a4 (10 per sheet, fronts then backs for duplex) / card (one CR80 card per page, for card printers)); marks them printed | `hr.id_cards` |
+| GET | `/api/hotels/{hotel_id}/id-cards/print` | Print cards as PDF (?ids=1,2,3 or ?status=pending; ?layout=a4 (10 landscape or 9 portrait cards per sheet, fronts then backs for duplex) / card (one CR80 card per page, for card printers)); marks them printed | `hr.id_cards` |
 
 ## Inventory
 
