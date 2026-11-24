@@ -145,7 +145,7 @@ def mfa_setup(ctx: Ctx):
     with get_db().tx() as c:
         if ctx.user["mfa_enabled"]:
             raise bad_request("MFA is already enabled")
-        c.execute("UPDATE users SET mfa_secret = ? WHERE id = ?", [secret, ctx.user_id])
+        c.update("users", ctx.user_id, {"mfa_secret": secret})  # encrypted at rest by the database layer
     return {"secret": secret, "otpauth_uri": security.totp_uri(secret, ctx.user["email"])}
 
 

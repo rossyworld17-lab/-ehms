@@ -1,5 +1,28 @@
 # Release notes
 
+## 1.4 — go-live: security hardening, Android app, production deployment
+- **Encryption at rest**: guest/visitor ID numbers and staff/supplier bank, tax, pension and NHF numbers are encrypted
+  (AES-256-GCM) with a separate data key (`EHMS_DATA_KEY`); existing data is encrypted automatically on first start.
+- **Encrypted backups**: every backup (daily and manual) is encrypted and tamper-evident (`.zip.enc`), verified by a test
+  restore, owner-only on disk; `deploy/offsite-backup.sh` copies them off the server. Restore needs the same data key.
+- **Two-step verification required** for owners, administrators, finance, HR and other privileged roles
+  (`EHMS_REQUIRE_MFA`, default `privileged`): such users are taken to their profile to set it up before anything else.
+- **Stronger sign-in protection**: per-address limit on failed logins, common-password blocklist, passwords may not
+  contain the user's name or email.
+- **Go-live checks**: `python -m ehms.preflight`; production refuses to start with unsafe settings.
+- **Production stack**: HTTPS with automatic certificates (Caddy), app, background worker and PostgreSQL in separate
+  hardened containers; one-command installer `deploy/install.sh` and updater `deploy/update.sh`
+  (see [DEPLOYMENT.md](DEPLOYMENT.md)).
+- **Android app for Google Play** ("EHMS Staff"): a Trusted Web Activity of the staff system, built and signed on
+  GitHub Actions (`.aab` for Play, `.apk` for testing); installable web app (PWA) with an offline page for iPhone and
+  desktop. See [ANDROID_APP.md](ANDROID_APP.md).
+- **Privacy notice** page at `/privacy`, editable in Administration → Website, linked from the website footer and the
+  booking form.
+- Security headers (HSTS preload, cross-origin isolation, permissions policy), API reference off in production,
+  `/.well-known/security.txt`, pinned dependencies (no known vulnerabilities).
+- Database migration 0014 (encrypted columns become text on PostgreSQL).
+- New: [System analysis document](EHMS_System_Analysis.docx), user guide 1.4.
+
 ## 1.3 — hotel website
 - **Public website at the main address**: home with headline and announcement bar, highlights, about, rooms & suites
   (live from Rooms & rates with photos and "from" prices), restaurant & bar with opening hours, meetings & events,

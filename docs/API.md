@@ -11,7 +11,7 @@ Generated from the route table (`python -m ehms.apidoc`). The live, machine-read
 - Errors return `{"error": {"code", "message", "details"}}` with HTTP 400 (validation), 401 (sign-in), 403 (permission/scope), 404, 409 (conflict, e.g. double booking, unsettled balance, insufficient stock), 423 (account locked), 429 (rate limit), 501 (integration not configured).
 - Payments require an `idempotency_key`; repeating a request with the same key never creates a second payment.
 
-Total endpoints: **469**
+Total endpoints: **470**
 
 ## Accounting
 
@@ -35,6 +35,7 @@ Total endpoints: **469**
 | PATCH | `/api/admin/users/{user_id}` | Update a user, roles and hotel access | `admin.users.manage` |
 | POST | `/api/admin/users/{user_id}/status` | Activate, suspend or deactivate a user | `admin.users.manage` |
 | POST | `/api/admin/users/{user_id}/reset-password` | Issue a temporary password and end the user's sessions | `admin.users.manage` |
+| POST | `/api/admin/users/{user_id}/reset-mfa` | Remove a user's two-step verification (lost phone) and end their sessions; they enrol again at next sign-in | `admin.users.manage` |
 | GET | `/api/admin/users/{user_id}/sessions` | List a user's active sessions | `admin.sessions.manage` |
 | POST | `/api/admin/sessions/{session_id}/revoke` | Revoke an active session | `admin.sessions.manage` |
 | GET | `/api/admin/permissions` | Permission catalogue | `admin.users.view` |

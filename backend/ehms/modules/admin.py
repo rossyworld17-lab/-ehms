@@ -137,6 +137,19 @@ def admin_reset_password(ctx: Ctx):
     return {"temporary_password": temp}
 
 
+@route("POST", "/api/admin/users/{user_id:int}/reset-mfa", perm="admin.users.manage", tag="admin",
+       summary="Remove a user's two-step verification (lost phone) and end their sessions; they enrol again at next sign-in")
+def admin_reset_mfa(ctx: Ctx):
+    with get_db().tx() as c:
+        u = _org_user(c, ctx, ctx.path["user_id"])
+        if u["id"] == ctx.user_id:
+            raise bad_request("You cannot reset your own two-step verification; ask another administrator")
+        c.execute("UPDATE users SET mfa_enabled = 0, mfa_secret = NULL WHERE id = ?", [u["id"]])
+        c.execute("UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL", [now_iso(), u["id"]])
+        audit(c, ctx, "user.mfa_reset_by_admin", "user", u["id"], u["email"])
+        return _public_user(c, c.one("SELECT * FROM users WHERE id = ?", [u["id"]]))
+
+
 @route("GET", "/api/admin/users/{user_id:int}/sessions", perm="admin.sessions.manage", tag="admin", summary="List a user's active sessions")
 def user_sessions(ctx: Ctx):
     with get_db().tx() as c:

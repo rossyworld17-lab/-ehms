@@ -13,3 +13,4 @@ ALTER TABLE employees ALTER COLUMN tax_id TYPE TEXT;
 ALTER TABLE employees ALTER COLUMN pension_pin TYPE TEXT;
 ALTER TABLE employees ALTER COLUMN nhf_number TYPE TEXT;
 ALTER TABLE suppliers ALTER COLUMN bank_account_number TYPE TEXT;
+ALTER TABLE users ALTER COLUMN mfa_secret TYPE TEXT;

@@ -1,7 +1,7 @@
 """Encryption of sensitive data at rest (release 1.4).
 
 Field encryption: guest and visitor identification numbers, and staff and supplier bank, tax, pension and NHF numbers
-are stored as `enc:v1:<base64(nonce | ciphertext+tag)>` using AES-256-GCM. The database layer encrypts these columns
+and staff two-step verification secrets are stored as `enc:v1:<base64(nonce | ciphertext+tag)>` using AES-256-GCM. The database layer encrypts these columns
 on every insert/update (`ENCRYPTED_COLUMNS`) and decrypts any value carrying the prefix on every read, so the rest of
 the code works with plain values.
 
@@ -28,6 +28,7 @@ ENCRYPTED_COLUMNS: dict[str, frozenset[str]] = {
     "visitors": frozenset({"id_number"}),
     "employees": frozenset({"bank_account_number", "tax_id", "pension_pin", "nhf_number"}),
     "suppliers": frozenset({"bank_account_number"}),
+    "users": frozenset({"mfa_secret"}),
 }
 
 _lock = threading.Lock()

@@ -3,7 +3,7 @@
 Maintained per the master prompt: completed modules, partially completed modules, pending integrations,
 outstanding defects and test results. Requirement-level status is in [TRACEABILITY.md](TRACEABILITY.md).
 
-_Last updated: release 1.0._
+_Last updated: release 1.4._
 
 ## Completed modules (implemented, integrated and tested)
 
@@ -41,6 +41,10 @@ _Last updated: release 1.0._
 | Cancellation policies & fees, group blocks & rooming lists, split folios & transfers, credit/debit notes, exchange rates & foreign-currency payments | **0.95** | reservations, availability, booking engine, front office, folios, ledger, approvals |
 | FIFO costing option | **0.95** | stock ledger, POS recipes, inventory reports |
 | Recruitment pipeline | **0.95** | HR (employee creation), documents |
+| Full HR suite | **1.1** | employees, leave, payroll, staff logins |
+| Requirements completion (backups, wake-up calls, stay fees, table bookings, returns, petty cash, French…) | **1.2** | front office, POS, inventory, finance |
+| Public hotel website and website editor | **1.3** | rooms & rates, booking engine, guest relations |
+| Go-live hardening: field and backup encryption, enforced MFA, preflight, production stack, Android app, privacy notice | **1.4** | database layer, backups, authentication, deployment |
 
 ## Partially completed
 
@@ -68,7 +72,7 @@ Independent penetration test; UAT execution and sign-off ([ACCEPTANCE.md](ACCEPT
 
 None known. Defects found and fixed while building 0.4 are listed in [TEST_REPORT.md](TEST_REPORT.md).
 
-## Test results (release 1.3)
+## Test results (release 1.4)
 
 | Suite | Result |
 |---|---|

@@ -1,14 +1,15 @@
-# Test report — release 1.3
+# Test report — release 1.4
 
 ## Environment
 Python 3.13, SQLite 3 (test database rebuilt for every test) and PostgreSQL 16 (full suite run locally against
 a PostgreSQL 16 server; CI runs it on every push), Chromium via Playwright for browser tests.
 
-## Automated API / integration tests — 120 passed, 0 failed (SQLite and PostgreSQL)
+## Automated API / integration tests — 126 passed, 0 failed (SQLite and PostgreSQL)
 `cd backend && python -m pytest -q` · `TEST_DATABASE_URL=postgresql://… python -m pytest -q`
 
 | Area | Tests | What is proven |
 |---|---|---|
+| **Go-live hardening (1.4)** | 7 | ID and bank numbers stored encrypted in the database (raw read shows `enc:v1:`) yet shown in full to permitted users; values written before 1.4 encrypted at start-up; wrong-key values reported, never crash; encrypted backup round trip, wrong key, flipped byte and truncation all refused; privileged user without MFA reaches only the profile until enrolled and cannot disable MFA, TOTP secret stored encrypted, another administrator can reset a lost phone's MFA (not your own); common and personal passwords refused; per-address login limit; production preflight refuses weak keys, missing data key, demo data, SQLite and weak database password; security headers, assetlinks.json, web manifest, security.txt; public privacy notice |
 | **Hotel website (1.3)** | 5 | public site shows only published content plus live rooms and prices, other hotels and `?hotel=`; editor permission (marketing manager yes, receptionist no); validation of links (https only), lengths, images from another hotel; preview does not save; draft does not reach the public site until published; French text; discard; audit; image upload type/content checks, gallery order and de-duplication, used images protected from deletion; contact form validation, honeypot, notification to events staff for event enquiries, guest relations sees all, events-only staff see and update event enquiries only; main address carries the hotel's title and description, EHMS at /staff |
 | **Requirements completion (1.2)** | 14 | wake-up calls (booking, duplicates, outcomes, reminder once and only when due — including calls just after midnight), early check-in / late check-out fees posted to the folio and waiving restricted, registration card PDF; table bookings with clash prevention and seating rules; purchase returns before invoicing (GRNI, order reopened) and after (invoice credit) with stock and ledger reconciled; referral codes, booking-engine referral, self-referral refused, points awarded once at check-out; welfare register confidential to `hr.records`; petty cash fund, voucher limit, approval by another person, overdraw refused, top-up, voucher PDF, books balanced; room photos (type/content checks), video links (https only), public gallery; CCTV clip links (https only); pagination totals; language preference; backup → verify (test restore) → download → restore into an empty database with identical counts and balanced books, restore over data refused, tampered archive rejected; scheduled backup once a day, failure alerts administrators; cancellation risk, equipment-failure prediction, guest insights, daily summary; check-out reminders; public booking confirmation PDF needs the guest's email; hotel logo; biometric clock intake with token |
 | **HR suite (1.1)** | 8 | employee applies for leave, HR approves, holidays excluded from days, staff cancels, HR ends leave early with days returned; staff requests: change of details applied on approval, shift swap swaps roster shifts, letter PDF only for owner and HR, advance above one month's pay refused, approved advance notifies payroll and is completed by payroll only, nobody decides their own request; grievances hidden from HR officers; appraisals draft → share → acknowledge, no self-appraisal, drafts invisible to staff; job history applies promotion; training expiry list; logins issued by HR cannot carry admin roles; exit suspends login and revokes sessions; HR dashboard alerts |
@@ -66,6 +67,16 @@ Additional scripted browser walkthroughs for 0.4 (run during development): waite
 sale with change; room-service order charged to a room; full procurement cycle across five roles
 (requisition → approval → two quotations → PO → approval → GRN → invoice → approval → payment with WHT);
 stock requisition approve/issue; trial balance balanced at the end; no console errors.
+
+## Production stack test (1.4) — passed
+The production `docker compose` stack (Caddy, app, worker, PostgreSQL 16) was built and started from `.env.example` with
+generated secrets: health check through HTTPS, website and `/staff` served, HSTS/CSP/COOP/CORP headers present, preflight
+`0 failing` (warnings only for email and payments), organisation bootstrapped, owner sign-in returned
+`must_change_password`, encrypted backup (`EHMSENC1`, mode 600) created and verified (145 tables). Found and fixed:
+encrypted values exceeded PostgreSQL `VARCHAR` limits (migration 0014); the worker started before migrations on first
+boot (now waits for the healthy app); backup files were world-readable (now 600).
+
+**Android**: the TWA project builds on GitHub Actions (`bundleRelease` + `assembleDebug`), producing the `.aab` and `.apk`.
 
 ## Upgrade test — passed
 A database created by release 0.3 (with its demo data) was started with 0.4: migration 0003 applied, new

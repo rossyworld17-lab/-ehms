@@ -176,6 +176,18 @@ def test_mfa_required_for_privileged_accounts(client, monkeypatch):
     secret = client.post("/api/auth/mfa/setup", {}).json()["secret"]
     assert client.post("/api/auth/mfa/enable", {"code": security.totp_now(secret)}).status_code == 200
     assert client.get("/api/admin/users").status_code == 200
+    from ehms.db import get_db
+    with get_db().tx() as c:                                       # TOTP secret encrypted at rest
+        raw = c.execute("SELECT mfa_secret, id FROM users WHERE email = ?", ["gm@demo.ehms"]).fetchone()
+    assert str(raw[0]).startswith("enc:v1:")
+    gm_id = raw[1]
+    assert client.post("/api/auth/mfa/disable", {"password": "Demo@12345", "code": security.totp_now(secret)}).status_code in (400, 403)
+    assert client.post(f"/api/admin/users/{gm_id}/reset-mfa", {}).status_code == 400  # not your own
+    client.login("admin@demo.ehms")                                # another administrator resets it (lost phone)
+    secret2 = client.post("/api/auth/mfa/setup", {}).json()["secret"]
+    client.post("/api/auth/mfa/enable", {"code": security.totp_now(secret2)})
+    r = client.post(f"/api/admin/users/{gm_id}/reset-mfa", {})
+    assert r.status_code == 200 and r.json()["mfa_enabled"] is False
     client.login("waiter@demo.ehms")                               # not privileged: no change
     assert client.get("/api/auth/me").json()["mfa_enrollment_required"] is False
     monkeypatch.setenv("EHMS_REQUIRE_MFA", "all")

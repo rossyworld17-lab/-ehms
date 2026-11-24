@@ -90,4 +90,5 @@ jobs:
           path: |
             android/app/build/outputs/bundle/release/*.aab
             android/app/build/outputs/apk/debug/*.apk
+            android/fingerprint.txt
           if-no-files-found: error

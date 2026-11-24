@@ -1,4 +1,4 @@
-# Data dictionary — EHMS 1.3.0
+# Data dictionary — EHMS 1.4.0
 
 Generated from the migrations by `python -m ehms.datadict`; do not edit by hand. Types are shown as they are in PostgreSQL (SQLite uses compatible storage classes). Money columns hold whole kobo (minor units); `*_milli` quantities hold thousandths.
 
